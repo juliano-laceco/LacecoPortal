@@ -1,0 +1,1 @@
+function checkEmployeeExists(employee_id)
