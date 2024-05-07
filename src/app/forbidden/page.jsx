@@ -15,7 +15,7 @@ function Forbidden() {
                     You tried to access a page you do not have authorization for.
                 </p>
                 <Link href="/">
-                    <Button name="Back to Home" className="mt-6" primary large Icon={ArrowBackIcon} ltr />
+                    <Button name="Back to Home" className="mt-6" primary small Icon={ArrowBackIcon} ltr />
                 </Link>
             </div>
         </div>
