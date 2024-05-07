@@ -11,9 +11,9 @@ export default withAuth(
       //  console.log("THIS IS THE ROLE :", role)
       //  console.log("THIS IS THE PATHNAME :", page)
 
-        switch (page) {
-            case "/hr":
-                if (role !== "HR") return NextResponse.redirect(new URL("/forbidden", req.url))
+        switch (true) {
+            case /^\/hr(\/|$)/.test(page):
+                if (role === "HR") return NextResponse.redirect(new URL("/forbidden", req.url))
         }
     },
     {

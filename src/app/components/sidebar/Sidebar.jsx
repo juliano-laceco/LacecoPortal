@@ -1,10 +1,26 @@
 "use client"
 
+import SidebarItem from './SidebarItem';
+import { signOut } from 'next-auth/react';
+import { Logout } from '@mui/icons-material';
 
 
-function Sidebar() {
+
+function Sidebar({ sidebarItems }) {
+
     return (
-        <h1>HI</h1>
+        <div className={"bg-primary w-fit h-full p-3 transition-all duration-500 flex flex-col items-center justify-between "}>
+            <div className="flex flex-col gap-5">
+                {
+                    sidebarItems.map((item) => (
+                        <SidebarItem key={item.id} Icon={item.icon} label={item.label} redirect={item.redirectsTo} />
+                    ))
+                }
+            </div>
+            <div title="Sign Out" className="text-white p-2 hover:bg-bg-primary-h cursor-pointer rounded-lg overflow-hidden transition-colors duration-500" onClick={() => signOut()}>
+                <Logout />
+            </div>
+        </div>
     )
 }
 
