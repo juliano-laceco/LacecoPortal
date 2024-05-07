@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { handleEmployeeLogin } from '../../utilities/db-utils';
 import * as res from '../../utilities/response-utils';
 
@@ -12,7 +11,6 @@ export async function POST(request) {
         }
 
         const result = await handleEmployeeLogin(email, google_sub);
-        console.log(result);
 
         if (result.res === 'success') {
             return res.success_res(201, "Employee Login Successful")

@@ -10,7 +10,7 @@ function Header() {
     const { data: session, status } = useSession();
 
     return (
-        <div className="bg-primary p-6">
+        <div className="bg-primary p-6 sticky top-0">
             <div className="flex items-center justify-between">
                 <Image src="/resources/logos/laceco-white.png" width="160" height="20" />
                 {!!session &&  <Button name="Logout" className="text-2xl" large plain Icon={LogoutIcon} onClick={signOut}/>}

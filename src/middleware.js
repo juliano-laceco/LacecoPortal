@@ -8,8 +8,8 @@ export default withAuth(
         const page = req.nextUrl.pathname
         const role = req.nextauth.token?.role_name
 
-        console.log("THIS IS THE ROLE :", role)
-        console.log("THIS IS THE PATHNAME :", page)
+      //  console.log("THIS IS THE ROLE :", role)
+      //  console.log("THIS IS THE PATHNAME :", page)
 
         switch (page) {
             case "/hr":

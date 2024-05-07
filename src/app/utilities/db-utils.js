@@ -43,5 +43,6 @@ export async function getLoggedInRole(google_sub) {
     const getRoleSQL = 'SELECT role_name , role_id  FROM employee_roles WHERE google_sub = ? '
     const roleRes = await execute(getRoleSQL, [google_sub])
     const { role_id, role_name } = roleRes[0]
+    
     return { role_id, role_name }
 }

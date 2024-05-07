@@ -1,5 +1,6 @@
-import { getLoggedInRole } from "@/app/utilities/db-utils";
+import { getLoggedInRole, handleEmployeeLogin } from "@/app/utilities/db-utils";
 import GoogleProvider from "next-auth/providers/google"
+import axios from 'axios'
 
 export const authOptions = {
     providers: [
@@ -7,8 +8,6 @@ export const authOptions = {
             clientId: "490632785003-uncrgfjfimke37ddslfpp6nrenpuvmlf.apps.googleusercontent.com",
             clientSecret: "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",
             profile(profile) {
-
-                console.log("Profile Google :", profile)
 
                 return {
                     ...profile,
@@ -22,15 +21,19 @@ export const authOptions = {
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                const { role_name, role_id } = await getLoggedInRole(token.sub)
+
+                await handleEmployeeLogin(user.email, user.sub)
+                const { role_name, role_id } = await getLoggedInRole(token?.sub)
                 token = { ...token, role_name, role_id }
+                
             }
-            console.log("Token :", token)
             return token
         },
         async session({ session, token }) {
-            if (session?.user) session.user.role = token.role
-            console.log("Session :", token)
+            if (session?.user) {
+                session.user.role_name = token.role_name
+                session.user.role_id = token.role_id
+            }
             return session;
         }
     },
