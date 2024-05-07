@@ -1,3 +1,4 @@
+import { getLoggedInRole } from "@/app/utilities/db-utils";
 import GoogleProvider from "next-auth/providers/google"
 
 export const authOptions = {
@@ -8,6 +9,7 @@ export const authOptions = {
             profile(profile) {
 
                 console.log("Profile Google :", profile)
+
                 return {
                     ...profile,
                     id: profile.sub,
@@ -19,8 +21,11 @@ export const authOptions = {
     ],
     callbacks: {
         async jwt({ token, user }) {
-            if (user) token.role = "admin"
-           // console.log("Token", token)
+            if (user) {
+                const { role_name, role_id } = await getLoggedInRole(token.sub)
+                token = { ...token, role_name, role_id }
+            }
+            console.log("Token :", token)
             return token
         },
         async session({ session, token }) {

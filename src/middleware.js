@@ -6,14 +6,26 @@ export default withAuth(
     async function middleware(req) {
 
         const page = req.nextUrl.pathname
-        const role = req.nextauth.token?.role
+        const role = req.nextauth.token?.role_name
+
+        console.log("THIS IS THE ROLE :", role)
+        console.log("THIS IS THE PATHNAME :", page)
+
+        switch (page) {
+            case "/hr":
+                if (role !== "HR") return NextResponse.redirect(new URL("/forbidden", req.url))
+        }
     },
     {
         pages: {
             signIn: "/login",
         }
-      
+
     }
 
 )
+
+export const config = {
+    matcher: ['/((?!resources|_next/static|_next/image|favicon.ico).*)']
+}
 
