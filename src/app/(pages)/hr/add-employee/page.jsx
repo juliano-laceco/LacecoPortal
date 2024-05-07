@@ -1,6 +1,6 @@
 function page() {
   return (
-    <h1 className="font-bold text-4xl py-6">This is the Add Employee Page</h1>
+    <h1 className="font-bold text-section-title">This is the Add Employee Page</h1>
   )
 }
 

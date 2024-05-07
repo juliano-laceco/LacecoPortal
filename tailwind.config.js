@@ -4,6 +4,7 @@ module.exports = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./node_modules/flowbite/**/*.js"
   ],
   theme: {
     extend: {
@@ -21,8 +22,13 @@ module.exports = {
         "bg-secondary": "#ccd3d5",
         "secondary-b": "#777571",
         "bg-secondary-h": "#a5a2a2"
+      },
+      screens: {
+        'mob': { 'max': '700px' }
       }
     },
   },
-  plugins: [],
+  plugins: [
+    require('flowbite/plugin')
+  ]
 };
