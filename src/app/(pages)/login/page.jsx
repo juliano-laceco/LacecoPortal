@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-function LoginPage() {
+function page() {
     const searchParams = useSearchParams();
     const callbackURL = searchParams.get("callbackUrl");
     const router = useRouter();
@@ -29,23 +29,23 @@ function LoginPage() {
     };
 
     return (
-        <div class="relative py-16 bg-gradient-to-br mt-12 w-full">
-            <div class="relative container mx-auto px-6 text-gray-500 md:px-12 xl:px-40">
-                <div class="mx-auto md:w-8/12 lg:w-6/12 xl:w-6/12">
-                    <div class="rounded-xl bg-white shadow-2xl">
-                        <div class="p-6 sm:p-16">
-                            <img src="/resources/logos/laceco-gray.png" class="mb-10" alt="Laceco Logo" height="30" width="120" />
-                            <h2 class="mb-8 text-xl darkgrey font-semibold">Sign in with Google to proceed<br /> to your profile.</h2>
-                            <div class="mt-10 grid gap-4">
-                                <button class="group h-12 px-6 border-2 border-gray-300 rounded-full transition duration-300 hover:border-primary" onClick={handleSignIn}>
-                                    <div class="relative flex items-center justify-center">
-                                        <img src="/resources/logos/google-icon.png" class="absolute left-0" alt="Google Logo" height="30" width="30" />
-                                        <span class="block w-max font-semibold tracking-wide text-gray-700 text-sm transition duration-300 group-hover:text-gray-800 sm:text-base">Continue with Google</span>
+        <div className="relative py-16 bg-gradient-to-br mt-12 w-full">
+            <div className="relative container mx-auto px-6 text-darkgrey md:px-12 xl:px-40">
+                <div className="mx-auto md:w-8/12 lg:w-6/12 xl:w-6/12">
+                    <div className="rounded-xl bg-white shadow-2xl">
+                        <div className="p-6 sm:p-16">
+                            <Image src="/resources/logos/laceco-gray.png" className="mb-10" alt="Laceco Logo" height="30" width="120" />
+                            <h2 className="mb-8 text-xl text-darkgrey font-semibold">Sign in with Google to proceed<br /> to your profile.</h2>
+                            <div className="mt-10 grid gap-4">
+                                <button className="group h-12 px-6 border-2 border-gray-300 rounded-full transition duration-300 hover:border-primary" onClick={handleSignIn}>
+                                    <div className="relative flex items-center justify-center">
+                                        <Image src="/resources/logos/google-icon.png" className="absolute left-0" alt="Google Logo" height="30" width="30" />
+                                        <span className="block w-max font-semibold tracking-wide text-gray-700 text-sm transition duration-300 group-hover:text-gray-800 sm:text-base">Continue with Google</span>
                                     </div>
                                 </button>
                             </div>
-                            <div class="mt-20 space-y-4 darkgrey text-center sm:-mb-8">
-                                <p class="text-xs">By proceeding, you agree to our <a href="https://developers.google.com/terms" class="underline">Terms of Use</a> and confirm you have read our <a href="https://developers.google.com/identity/protocols/oauth2/policies" class="underline">Privacy and Cookie Statement</a>.</p>
+                            <div className="mt-20 space-y-4 darkgrey text-center sm:-mb-8">
+                                <p className="text-xs">By proceeding, you agree to our <a href="https://developers.google.com/terms" className="underline">Terms of Use</a> and confirm you have read our <a href="https://developers.google.com/identity/protocols/oauth2/policies" className="underline">Privacy and Cookie Statement</a>.</p>
                             </div>
                         </div>
                     </div>
@@ -56,4 +56,4 @@ function LoginPage() {
     );
 }
 
-export default LoginPage;
+export default page;

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -45,7 +46,7 @@
 @media (max-width: 700px) {
 
     .text-tiny {
-        font-size: 0.5rem;
+        font-size: 0.7rem;
     }
 
     .text-small {

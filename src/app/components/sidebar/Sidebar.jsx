@@ -7,11 +7,11 @@ import { Logout } from '@mui/icons-material';
 function Sidebar({ sidebarItems }) {
 
     return (
-        <div className={"bg-primary w-fit h-full p-3 transition-all duration-500 flex flex-col items-center justify-between mob:hidden"}>
+        <div className={"bg-primary w-fit h-full p-3 rounded-tr-md transition-all duration-500 flex flex-col items-center justify-between mob:hidden"}>
             <div className="flex flex-col gap-7">
                 {
                     sidebarItems.map((item) => (
-                        <SidebarItem key={item.id} Icon={item.icon} label={item.label} redirect={item.redirectsTo} />
+                        <SidebarItem key={item.id} Icon={item.icon} label={item.label} redirect={item.redirectTo} />
                     ))
                 }
             </div>

@@ -19,9 +19,9 @@ export default async function RootLayout({ children }) {
   const session = await getSession()
 
 
-  const sidebarItems = [
-    { id: crypto.randomUUID(), icon: PersonAddAlt1Icon, label: "Add Employee", redirectsTo: "/hr/add-employee" },
-    { id: crypto.randomUUID(), icon: GroupsIcon, label: "Employee Management", redirectsTo: "/hr/employee-management" },
+  const navItems = [
+    { id: crypto.randomUUID(), icon: PersonAddAlt1Icon, label: "Add Employee", redirectTo: "/hr/add-employee" },
+    { id: crypto.randomUUID(), icon: GroupsIcon, label: "Employee Management", redirectTo: "/hr/employee-management" },
   ];
 
 
@@ -34,9 +34,9 @@ export default async function RootLayout({ children }) {
       <body className="flex flex-col gap-4 h-screen">
 
         <AuthProvider>
-          <Header />
+          <Header burgerNavItems={navItems} />
           <div className="flex gap-5 h-full">
-            {!!session && <Sidebar sidebarItems={sidebarItems} />} {/* Render sidebar only if user is authenticated */}
+            {!!session && <Sidebar sidebarItems={navItems} />} {/* Render sidebar only if user is authenticated */}
             {children}
           </div>
         </AuthProvider>

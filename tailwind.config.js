@@ -8,11 +8,6 @@ module.exports = {
   ],
   theme: {
     extend: {
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
-      },
       colors: {
         "primary": "#dc2625",
         "darkgrey": "#4b5563",
@@ -21,11 +16,17 @@ module.exports = {
         "bg-primary-h": "#ea767b",
         "bg-secondary": "#ccd3d5",
         "secondary-b": "#777571",
-        "bg-secondary-h": "#a5a2a2"
+        "bg-secondary-h": "#a5a2a2",
+        "bg-gray-active" : "#9ca3af",
+        "bg-gray-h" : "#f3f4f6"
       },
       screens: {
         'mob': { 'max': '700px' }
-      }
+      },
+      fontFamily: {
+        sans: ['Poppins', "Arial"],
+      },
+
     },
   },
   plugins: [

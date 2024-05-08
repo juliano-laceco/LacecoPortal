@@ -1,19 +1,21 @@
 import Image from 'next/image'
-import React from 'react'
+import Link from 'next/link'
+import SignOutListItem from './SignOutListItem'
 
 function ProfileDropdown({ name, email, sub }) {
+
     return (
         <>
             <button
                 id="dropdownUserAvatarButton"
                 data-dropdown-toggle="dropdownAvatar"
-                className="flex text-sm bg-gray-800 rounded-full md:me-4 focus:ring-3 focus:ring-gray-300" // Add md:me-4 class
+                className="flex text-sm bg-gray-800 rounded-full md:me-4 focus:ring-3 focus:ring-gray-300"
                 type="button"
             >
                 <Image
                     className="rounded-full"
-                    height="45"
-                    width="45"
+                    height="50"
+                    width="50"
                     src="/resources/logos/dummyuser.jpg"
                     alt="profile pic"
                 />
@@ -22,25 +24,20 @@ function ProfileDropdown({ name, email, sub }) {
                 id="dropdownAvatar"
                 className="z-10 hidden bg-white divide-y divide-gray-100 rounded-2xl shadow-xl w-64"
             >
-                <div className="px-4 py-3 text-sm text-gray-900 ">
+                <div className="px-4 py-3 text-sm text-gray-900 mob:py-2">
                     <div>{name}</div>
-                    <div className="font-medium truncate">{email}</div>
+                    <div className="text-tiny font-bold truncate mt-1">{email}</div>
                 </div>
-                <ul className="py-2 text-sm text-gray-700 " aria-labelledby="dropdownUserAvatarButton">
+                <ul className="py-2 text-small text-gray-700 mob:py-1" aria-labelledby="dropdownUserAvatarButton">
                     <li>
-                        <a href="#" className="block px-4 py-2 hover:bg-gray-100 ">Dashboard</a>
+                        <Link href="/" className="block px-4 py-2 hover:bg-gray-h">Dashboard</Link>
                     </li>
                     <li>
-                        <a href="#" className="block px-4 py-2 hover:bg-gray-100 ">Settings</a>
+                        <Link href="/profile" className="block px-4 py-2 hover:bg-gray-h">Profile</Link>
                     </li>
-                    <li>
-                        <a href="#" className="block px-4 py-2 hover:bg-gray-100 ">Earnings</a>
-                    </li>
+                    <SignOutListItem />
                 </ul>
-                <div className="py-2">
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 "> Sign out</a>
-                </div>
-            </div>
+            </div >
         </>
     )
 }
