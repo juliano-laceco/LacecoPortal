@@ -23,24 +23,25 @@ function Button({
             min-w-[10ex] p-2 text-xs 
             mob:min-w-[9ex]
             tablet:min-w-[10ex] 
-            lap:min-w-[11ex] 
+            lap:min-w-[10ex]  // Decreased by 1 for lap
             desk:min-w-[12ex]
         `,
         medium: `
             min-w-[13ex] ${loading ? "p-3" : "p-2"} text-base 
             mob:min-w-[10ex] ${loading && "mob:p-[10px]"} mob:text-sm 
             tablet:min-w-[12ex] tablet:text-base 
-            lap:min-w-[13ex] 
+            lap:min-w-[12ex]  // Decreased by 1 for lap
             desk:min-w-[15ex] desk:text-lg
         `,
         large: `
             min-w-[17ex] ${loading ? "p-4" : "p-3"} text-lg 
             mob:min-w-[13ex] mob:p-3 mob:text-base 
             tablet:min-w-[14ex] tablet:text-lg 
-            lap:min-w-[16ex] lap:text-lg 
+            lap:min-w-[15ex] lap:text-lg  // Decreased by 1 for lap
             desk:min-w-[18ex] desk:text-xl
         `,
     };
+
     const variantClasses = {
         primary: 'bg-pric text-pri-but-txtc border-[1px] border-pri-butb hover:bg-pri-hovc',
         secondary: 'bg-sec-c text-sec-txtc border-[1px] border-sec-butb hover:bg-sec-hovc',
