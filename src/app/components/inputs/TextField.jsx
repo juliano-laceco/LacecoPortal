@@ -11,8 +11,8 @@ const TextField = forwardRef(({ type, onChange, onKeyUp, onBlur, placeholder, cl
 
                 }
                 <div className='w-full'>
-                    <div className={'border-1 flex items-center border-[var(--input-border-color)] border-[1px] rounded-lg w-full bg-white' + ' ' + className}>
-                        <input id={id} className='focus-visible:outline-none w-full p-2 rounded-lg'
+                    <div className={'border-1 flex items-center border-sec-c border-[1px] rounded-lg w-full bg-white' + ' ' + className}>
+                        <input id={id} className='focus:outline-pric w-full p-2 rounded-lg'
                             type={type} onChange={onChange} onKeyUp={onKeyUp} ref={ref} placeholder={placeholder} onBlur={onBlur} disabled={disabled} value={value} min={min} max={max} onFocus={onFocus}
                         />
                         {
@@ -34,7 +34,7 @@ const TextField = forwardRef(({ type, onChange, onKeyUp, onBlur, placeholder, cl
                         }
                     </div>
 
-                    <div className='text-[var(--error-color)] text-[1.5ex]  ml-1 '>{error}</div>
+                    <div className='text-pric text-[1.5ex]  ml-1 '>{error}</div>
                 </div>
 
             </div>

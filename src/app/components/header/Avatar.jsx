@@ -13,7 +13,7 @@ function Avatar({ name, email, sub }) {
                 type="button"
             >
                 <Image
-                    className="rounded-full"
+                    className="rounded-full ring-[3px] ring-pric"
                     height="50"
                     width="50"
                     src="/resources/logos/dummyuser.jpg"

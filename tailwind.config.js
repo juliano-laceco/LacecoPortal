@@ -9,12 +9,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        "pric": "#dc2626",
+        "pric": "#e84a40",
         "pri-lightc": "#ef4444",
         "sec-c": "transparent",
         "sec-lightc": "#f8faff",
         "pri-hovc": "#b91c1c",
-        "sec-hovc": "#e5e7eb",
+        "sec-hovc": "#f7f8f9",
+        "nav-c": "#d1d5db",
         "th-bgc": "#fff",
         "error-bgc": "#dc2626",
         "success-bgc": "#22c55e",
@@ -28,11 +29,16 @@ module.exports = {
         "th-txtc": "#1f2937",
         "error-txt-c": "#dc2626",
         "success-txt-c": "#22c55e",
-        "pri-butb": "#dc2626",
+        "pri-butb": "#e84a40",
         "pri-butb-h": "#dc2626",
-        "sec-butb": "#585555",
-        "sec-butb-h": "#585555",
-        "pri-b": "#d3d7dd"
+        "sec-butb": "#9ca3af",
+        "sec-butb-h": "#9ca3af",
+        "pri-b": "#9ca3af",
+        "input-b": "#9ca3af",
+        "input-focb": "#ef4444",
+        "input-bg": "#f7f8f9",
+        "input-dis" : "#d1d5db"
+
       },
       screens: {
         mob: { min: '320px', max: '480px' },  // Mobile devices
