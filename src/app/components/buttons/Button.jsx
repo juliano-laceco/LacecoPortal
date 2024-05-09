@@ -1,42 +1,70 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import ClipLoader from "react-spinners/ClipLoader";
+import React from 'react'
+import { ClipLoader } from 'react-spinners'; // Assuming ClipLoader import
+import { theme } from "../../../../tailwind.config";
+import { mobileStepperClasses } from '@mui/material';
 
-function Button({ name, onClick, className, primary, secondary, plain, small, medium, large, loading, Icon, type, ltr }) {
-    const [style, setStyle] = useState('')
-    const [disabled, setDisabled] = useState()
+function Button({
+    name,
+    onClick,
+    className = '',
+    variant = 'primary', // Default variant
+    size = 'medium', // Default size
+    loading = false,
+    disabled = false,
+    Icon = null,
+    ltr = true, // Default direction
+}) {
+    const baseClasses = `rounded-[4px] ${(loading || disabled) && "opacity-70 cursor-not-allowed"} transition-all h-fit duration-200 flex justify-center items-center`;
 
-    useEffect(() => {
-        primary && setStyle("bg-primary text-white  hover:bg-bg-primary-h")
-        secondary && setStyle("bg-secondary border-secondary-border border-[1px] text-white hover:text-[var(--secondary-button-text-color-h)] hover:bg-[var(--secondary-button-bg-color-h)]")
-        plain && setStyle("text-white")
-        small && setStyle(prevStyle => `${prevStyle} min-w-[10ex] p-1`)
-        medium && setStyle(prevStyle => `${prevStyle} min-w-[14ex] p-2`)
-        large && setStyle(prevStyle => `${prevStyle} min-w-[16ex] text-2xl p-3`)
-        loading ? setDisabled('disabled') : setDisabled('')
-    }, [small, medium, large, primary, secondary])
+    const sizeClasses = {
+        small: `
+            min-w-[10ex] p-2 text-xs 
+            mob:min-w-[9ex]
+            tablet:min-w-[10ex] 
+            lap:min-w-[11ex] 
+            desk:min-w-[12ex]
+        `,
+        medium: `
+            min-w-[13ex] ${loading ? "p-3" : "p-2"} text-base 
+            mob:min-w-[10ex] ${loading && "mob:p-[10px]"} mob:text-sm 
+            tablet:min-w-[12ex] tablet:text-base 
+            lap:min-w-[13ex] 
+            desk:min-w-[15ex] desk:text-lg
+        `,
+        large: `
+            min-w-[17ex] ${loading ? "p-4" : "p-3"} text-lg 
+            mob:min-w-[13ex] mob:p-3 mob:text-base 
+            tablet:min-w-[14ex] tablet:text-lg 
+            lap:min-w-[16ex] lap:text-lg 
+            desk:min-w-[18ex] desk:text-xl
+        `,
+    };
+    const variantClasses = {
+        primary: 'bg-pric text-pri-but-txtc border-[1px] border-pri-butb hover:bg-pri-hovc',
+        secondary: 'bg-sec-c text-sec-txtc border-[1px] border-sec-butb hover:bg-sec-hovc',
+        plain: 'text-white',
+    };
+
+    const loadingColor = variant === "secondary" ? theme.extend.colors["sec-but-txtc"] : "white"
+
+    const combinedClasses = `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`;
 
     return (
-        <>
-            <button type={type} onClick={onClick} className={`rounded-md transition-all duration-200 ${className} ${style}`} disabled={disabled}>
-                {
-                    loading ? (
-                        <ClipLoader
-                            loading={loading}
-                            size={19}
-                            color='white'
-                            aria-label="Loading Spinner"
-                            data-testid="loader"
-                        />
-                    ) :
-                        <div className={`flex ${ltr ? "flex-row-reverse" : ""} items-center gap-3 justify-center ${large ? "text-lg" : "text-md"}`}> <div> {name} </div>{Icon && <Icon className='w-5 fill-white' />}</div>
+        <button type="button" disabled={loading || disabled} onClick={onClick} className={combinedClasses}>
+            {loading ? (
+                <ClipLoader loading={loading} size={18} color={loadingColor} aria-label="Loading Spinner" data-testid="loader" />
+            ) : (
+                <div className={`flex ${ltr ? 'flex-row-reverse' : ''} items-center gap-2 justify-center `}>
+                    <div>{name}</div>
+                    {!!Icon && <Icon className={`w-5 fill-white mob:w-3`} />}
+                </div>
+            )}
+        </button>
+    );
+};
 
-                }
 
-            </button>
-        </>
-    )
-}
 
 export default Button

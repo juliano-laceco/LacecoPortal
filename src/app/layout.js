@@ -7,8 +7,6 @@ import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import GroupsIcon from '@mui/icons-material/Groups';
 import { getSession } from "./utilities/auth-utils";
 
-
-
 export const metadata = {
   title: "Laceco Portal",
   description: "Laceco's Intranet Portal",
@@ -18,13 +16,10 @@ export default async function RootLayout({ children }) {
 
   const session = await getSession()
 
-
   const navItems = [
     { id: crypto.randomUUID(), icon: PersonAddAlt1Icon, label: "Add Employee", redirectTo: "/hr/add-employee" },
     { id: crypto.randomUUID(), icon: GroupsIcon, label: "Employee Management", redirectTo: "/hr/employee-management" },
   ];
-
-
 
   return (
     <html lang="en">
@@ -36,7 +31,7 @@ export default async function RootLayout({ children }) {
         <AuthProvider>
           <Header burgerNavItems={navItems} />
           <div className="flex gap-5 h-full">
-            {!!session && <Sidebar sidebarItems={navItems} />} {/* Render sidebar only if user is authenticated */}
+            {!!session && <Sidebar sidebarItems={navItems} />}
             {children}
           </div>
         </AuthProvider>

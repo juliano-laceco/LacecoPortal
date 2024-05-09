@@ -1,3 +1,4 @@
+import { Button } from "@mui/material";
 import Image from "next/image";
 
 export default function Home() {
@@ -5,6 +6,7 @@ export default function Home() {
     <>
       <div className="flex flex-col">
         <h1 className="font-bold text-section-title">This is the Home Page</h1>
+        <p className="bg-darkgrey">hi</p>
       </div>
 
     </>

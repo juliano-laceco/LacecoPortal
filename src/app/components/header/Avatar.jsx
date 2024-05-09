@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import SignOutListItem from './SignOutListItem'
 
-function ProfileDropdown({ name, email, sub }) {
+function Avatar({ name, email, sub }) {
 
     return (
         <>
@@ -30,10 +30,10 @@ function ProfileDropdown({ name, email, sub }) {
                 </div>
                 <ul className="py-2 text-small text-gray-700 mob:py-1" aria-labelledby="dropdownUserAvatarButton">
                     <li>
-                        <Link href="/" className="block px-4 py-2 hover:bg-gray-h">Dashboard</Link>
+                        <Link href="/" className="block px-4 py-2 hover:bg-bg-gray-h">Dashboard</Link>
                     </li>
                     <li>
-                        <Link href="/profile" className="block px-4 py-2 hover:bg-gray-h">Profile</Link>
+                        <Link href="/profile" className="block px-4 py-2 hover:bg-bg-gray-h">Profile</Link>
                     </li>
                     <SignOutListItem />
                 </ul>
@@ -42,4 +42,4 @@ function ProfileDropdown({ name, email, sub }) {
     )
 }
 
-export default ProfileDropdown
+export default Avatar
