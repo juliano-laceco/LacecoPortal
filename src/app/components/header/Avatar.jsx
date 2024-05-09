@@ -9,7 +9,7 @@ function Avatar({ name, email, sub }) {
             <button
                 id="dropdownUserAvatarButton"
                 data-dropdown-toggle="dropdownAvatar"
-                className="flex text-sm bg-gray-800 rounded-full md:me-4 focus:ring-3 focus:ring-gray-300"
+                className="flex text-sm rounded-full"
                 type="button"
             >
                 <Image
@@ -22,18 +22,18 @@ function Avatar({ name, email, sub }) {
             </button>
             <div
                 id="dropdownAvatar"
-                className="z-10 hidden bg-white divide-y divide-gray-100 rounded-2xl shadow-xl w-64"
+                className="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-2xl w-64"
             >
                 <div className="px-4 py-3 text-sm text-gray-900 mob:py-2">
                     <div>{name}</div>
-                    <div className="text-tiny font-bold truncate mt-1">{email}</div>
+                    <div className="text-xs font-bold truncate mt-1">{email}</div>
                 </div>
-                <ul className="py-2 text-small text-gray-700 mob:py-1" aria-labelledby="dropdownUserAvatarButton">
+                <ul className="py-2 text-sm  mob:py-1" aria-labelledby="dropdownUserAvatarButton">
                     <li>
-                        <Link href="/" className="block px-4 py-2 hover:bg-bg-gray-h">Dashboard</Link>
+                        <Link href="/" className="block px-4 py-2 hover:basic-item-hov">Dashboard</Link>
                     </li>
                     <li>
-                        <Link href="/profile" className="block px-4 py-2 hover:bg-bg-gray-h">Profile</Link>
+                        <Link href="/profile" className="block px-4 py-2 hover:basic-item-hov">Profile</Link>
                     </li>
                     <SignOutListItem />
                 </ul>

@@ -15,7 +15,7 @@ function Sidebar({ sidebarItems }) {
                     ))
                 }
             </div>
-            <div title="Sign Out" className="text-white p-2 hover:bg-bg-primary-h cursor-pointer rounded-lg overflow-hidden transition-colors duration-500" onClick={() => signOut()}>
+            <div title="Sign Out" className="text-white p-2 hover:bg-pri-hovc cursor-pointer rounded-lg overflow-hidden transition-colors duration-500" onClick={() => signOut()}>
                 <Logout />
             </div>
         </div>

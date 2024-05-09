@@ -6,7 +6,7 @@ function SignOutListItem() {
     return (
         <div>
             <li>
-                <button className="block px-4 py-2 hover:bg-bg-gray-h w-full text-left" onClick={() => signOut()}>Sign Out</button>
+                <button className="block px-4 py-2 hover:basic-item-hov w-full text-left" onClick={() => signOut()}>Sign Out</button>
             </li>
         </div>
     )

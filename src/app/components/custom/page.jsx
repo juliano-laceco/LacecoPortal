@@ -58,7 +58,7 @@ function page() {
             <Input type="text" label="Regular" placeholder="Placeholder value" />
             <Input type="text" label="Disabled" placeholder="Placeholder value" disabled />
             <Input type="number" min="1" max="10" label="Number" placeholder="Placeholder value" />
-            <Input type="number" min="1" max="10" label="Number" placeholder="Placeholder value" />
+            <Input type="number" min="1" max="10" label="With Icon" placeholder="Placeholder value" Icon={Google} />
           </div>
         </div>
       </div >

@@ -11,7 +11,7 @@ function SidebarItem({ Icon, label, redirect }) {
 
     return (
         <div
-            className={`hover:bg-bg-primary-h cursor-pointer rounded-lg overflow-hidden transition-colors duration-200 ${isActive ? 'bg-bg-primary-h' : ''
+            className={`hover:bg-pri-hovc cursor-pointer rounded-lg overflow-hidden transition-colors duration-200 ${isActive ? 'bg-bg-primary-h' : ''
                 }`}
         >
             <Link href={redirect} passHref>

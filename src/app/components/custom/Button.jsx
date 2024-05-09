@@ -14,7 +14,7 @@ function Button({
     disabled = false,
     Icon = null,
     ltr = true // Default direction
-   
+
 }) {
 
     const baseClasses = `rounded-[4px] ${(loading || disabled) && "opacity-60 cursor-not-allowed"} transition-all h-fit duration-200 flex justify-center items-center`

@@ -25,9 +25,9 @@ export default async function RootLayout({ children }) {
     <html lang="en">
       <head>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/datepicker.min.js"></script>
       </head>
-      <body className="flex flex-col gap-4 h-screen">
-
+      <body className="flex flex-col gap-4 h-screen text-pri-txtc">
         <AuthProvider>
           <Header burgerNavItems={navItems} />
           <div className="flex gap-5 h-full">
