@@ -1,5 +1,5 @@
-import { handleEmployeeLogin } from '../../utilities/db-utils';
-import * as res from '../../utilities/response-utils';
+import { handleEmployeeLogin } from '../../../utilities/db-utils';
+import * as res from '../../../utilities/response-utils';
 
 export async function POST(request) {
     try {
@@ -12,7 +12,7 @@ export async function POST(request) {
 
         const result = await handleEmployeeLogin(email, google_sub);
 
-        if (result.res === 'success') {
+        if (result?.res) {
             return res.success_res(201, "Employee Login Successful")
         } else {
             return res.failed_res(500, "Failed to log in the employee")

@@ -1,8 +1,8 @@
-import db from '../../config/db';
+import db from '../config/db';
 import * as res from './response-utils';
 
 
-async function execute(query, values) {
+async function execute(query, values = []) {
     const [res] = await db.execute(query, [...values])
     return res;
 }
@@ -43,6 +43,17 @@ export async function getLoggedInRole(google_sub) {
     const getRoleSQL = 'SELECT role_name , role_id  FROM employee_roles WHERE google_sub = ? '
     const roleRes = await execute(getRoleSQL, [google_sub])
     const { role_id, role_name } = roleRes[0]
-    
+
     return { role_id, role_name }
+}
+
+export async function getClients() {
+    try {
+        const clientsSQL = "SELECT client_id as value, client_name as label FROM client"
+        const results = await execute(clientsSQL)
+        return res.success_data(results);
+    } catch (ex) {
+        return res.failed()
+    }
+
 }

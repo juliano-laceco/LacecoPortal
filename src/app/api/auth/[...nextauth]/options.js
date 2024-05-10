@@ -1,4 +1,4 @@
-import { getLoggedInRole, handleEmployeeLogin } from "@/app/utilities/db-utils";
+import { getLoggedInRole, handleEmployeeLogin } from "@/utilities/db-utils";
 import GoogleProvider from "next-auth/providers/google"
 
 export const authOptions = {

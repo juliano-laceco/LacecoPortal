@@ -5,13 +5,13 @@ import Link from "next/link";
 
 function page() {
     return (
-        <div class="flex flex-col items-center justify-center w-screen ">
-            <Image src="/resources/logos/forbidden.svg" width="400" height="400" />
-            <div class="flex flex-col items-center gap-4">
-                <h1 class="text-2xl font-medium text-center">
+        <div className="flex flex-col items-center justify-center w-screen ">
+            <Image src="/resources/images/forbidden.svg" width="400" height="400" alt="forbidden" />
+            <div className="flex flex-col items-center gap-4">
+                <h1 className="text-2xl font-medium text-center">
                     You are not authorized
                 </h1>
-                <p class="text-lg text-center ">
+                <p className="text-lg text-center ">
                     You tried to access a page you do not have authorization for.
                 </p>
                 <Link href="/">

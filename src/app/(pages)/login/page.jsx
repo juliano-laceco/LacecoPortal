@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-function page() {
+function LoginPage() {
     const searchParams = useSearchParams();
     const callbackURL = searchParams.get("callbackUrl");
     const router = useRouter();
@@ -34,12 +34,12 @@ function page() {
                 <div className="mx-auto md:w-8/12 lg:w-6/12 xl:w-6/12">
                     <div className="rounded-xl bg-white shadow-2xl">
                         <div className="p-6 sm:p-16">
-                            <Image src="/resources/logos/laceco-gray.png" className="mb-10" alt="Laceco Logo" height="30" width="120" />
+                            <Image src="/resources/logos/laceco-gray.png" className="mb-10" alt="laceco-logo" height="30" width="120" />
                             <h2 className="mb-8 text-xl text-darkgrey font-semibold">Sign in with Google to proceed<br /> to your profile.</h2>
                             <div className="mt-10 grid gap-4">
                                 <button className="group h-12 px-6 border-2 border-gray-300 rounded-full transition duration-300 hover:border-primary" onClick={handleSignIn}>
                                     <div className="relative flex items-center justify-center">
-                                        <Image src="/resources/logos/google-icon.png" className="absolute left-0" alt="Google Logo" height="30" width="30" />
+                                        <Image src="/resources/icons/google-icon.png" className="absolute left-0" alt="google-logo" height="30" width="30" />
                                         <span className="block w-max font-semibold tracking-wide text-gray-700 text-sm transition duration-300 group-hover:text-gray-800 sm:text-base">Continue with Google</span>
                                     </div>
                                 </button>
@@ -56,4 +56,4 @@ function page() {
     );
 }
 
-export default page;
+export default LoginPage;

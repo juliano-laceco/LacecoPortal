@@ -2,12 +2,18 @@ import React from 'react'
 import Button from './Button'
 import { Google } from '@mui/icons-material'
 import Input from './Input'
+import DropdownLoader from './DropdownLoader'
+import { getClients } from '@/utilities/db-utils'
 
 
-function page() {
+async function CustomControlsPage() {
+
+  const { data } = await getClients();
+
   return (
     <>
-      <div className="flex flex-col gap-3" >
+      <div className="flex flex-col gap-3">
+
         <div>
           <p>PRIMARY</p>
           <div className="flex gap-5">
@@ -25,6 +31,7 @@ function page() {
             <Button name="large" variant="primary" size="large" loading />
           </div>
         </div>
+
         <div>
           <p>SECONDARY </p>
           <div className="flex gap-5">
@@ -61,9 +68,27 @@ function page() {
             <Input type="number" min="1" max="10" label="With Icon" placeholder="Placeholder value" Icon={Google} />
           </div>
         </div>
+
+        <div>
+          <p>DATE PICKER</p>
+          <div className="flex flex-col gap-5">
+            <Input type="date" label="Pick a Date" />
+            <Input type="date" label="Pick a Date" fit />
+            <Input type="date" label="Pick a Date" fit disabled />
+          </div>
+        </div>
+
+        <div>
+          <p>SELECT</p>
+          <div className="flex flex-col gap-5">
+            <DropdownLoader options={data} isSearchable fetch />
+            <DropdownLoader options={[{ value: "Juliano", label: "Juliano" }]} isSearchable fetch isDisabled />
+          </div>
+        </div>
+
       </div >
     </>
   )
 }
 
-export default page
+export default CustomControlsPage

@@ -2,3 +2,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.react-select-dd__input:focus {
+    box-shadow: none;
+}
+.react-select__control {
+    width: 100% !important;
+  }

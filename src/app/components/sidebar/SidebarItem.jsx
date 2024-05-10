@@ -11,12 +11,12 @@ function SidebarItem({ Icon, label, redirect }) {
 
     return (
         <div
-            className={`hover:bg-pri-hovc cursor-pointer rounded-lg overflow-hidden transition-colors duration-200 ${isActive ? 'bg-bg-primary-h' : ''
+            className={`hover:bg-pri-hovc cursor-pointer rounded-lg overflow-hidden transition-colors duration-200 ${isActive ? 'bg-pri-hovc' : ''
                 }`}
         >
             <Link href={redirect} passHref>
                 <div title={label} className={`flex items-center gap-6  p-2 ${isActive ? 'text-white' : ''}`}>
-                    <Icon className="min-w-7 h-7 fill-white" />
+                    {Icon}
                 </div>
             </Link>
         </div>
