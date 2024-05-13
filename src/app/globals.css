@@ -6,6 +6,12 @@
 .react-select-dd__input:focus {
     box-shadow: none;
 }
-.react-select__control {
+
+.react-select-dd__control {
+    border-radius : 6px ;
+    padding: 1.5px ;
+}
+
+div:has(.react-select-dd__control) {
     width: 100% !important;
-  }
+}

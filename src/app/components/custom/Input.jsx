@@ -20,7 +20,8 @@ const Input = forwardRef(
             min,
             max,
             onFocus,
-            fit = false
+            fit = false,
+            ...rest
         },
         ref
     ) => {
@@ -47,13 +48,14 @@ const Input = forwardRef(
                         min={min}
                         max={max}
                         onFocus={onFocus}
+                        {...rest}
                     />
                     {!!Icon && (
                         <div
                             onClick={!!onClickIcon && onClickIcon}
                             className={`absolute left-2 top-1/2 transform -translate-y-1/2 cursor-pointer ${!!onClickIcon && 'hover:opacity-70'}`}
                         >
-                            <Icon className="w-5 h-5 mob:w-3 mob:w-5" />
+                            <Icon className="w-5 h-5  mob:w-5" />
                         </div>
                     )}
                 </div>

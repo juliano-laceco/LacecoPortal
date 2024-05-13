@@ -2,8 +2,6 @@ import "./globals.css";
 import Header from "./components/header/Header";
 import AuthProvider from "../providers/AuthProvider"; // Import your AuthProvider component
 import Sidebar from "./components/sidebar/Sidebar";
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import GroupsIcon from '@mui/icons-material/Groups';
 import { getSession } from "../utilities/auth-utils";
 import Image from "next/image";
 

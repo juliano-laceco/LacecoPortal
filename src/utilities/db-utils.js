@@ -34,7 +34,7 @@ export async function handleEmployeeLogin(email, sub) {
 
     } catch (error) {
         console.error('Error executing query:', error);
-        throw error; // Rethrow the error to handle it at a higher level if needed
+        return res.failed()
     }
 }
 
@@ -50,6 +50,17 @@ export async function getLoggedInRole(google_sub) {
 export async function getClients() {
     try {
         const clientsSQL = "SELECT client_id as value, client_name as label FROM client"
+        const results = await execute(clientsSQL)
+        return res.success_data(results);
+    } catch (ex) {
+        return res.failed()
+    }
+
+}
+
+export async function getDisciplines() {
+    try {
+        const clientsSQL = "SELECT discipline_id as value, discipline_name as label FROM discipline"
         const results = await execute(clientsSQL)
         return res.success_data(results);
     } catch (ex) {

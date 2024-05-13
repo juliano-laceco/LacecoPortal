@@ -2,7 +2,6 @@
 
 import SidebarItem from './SidebarItem';
 import { signOut } from 'next-auth/react';
-import { Logout } from '@mui/icons-material';
 
 function Sidebar({ sidebarItems }) {
 
@@ -16,7 +15,7 @@ function Sidebar({ sidebarItems }) {
                 }
             </div>
             <div title="Sign Out" className="text-white p-2 hover:bg-pri-hovc cursor-pointer rounded-lg overflow-hidden transition-colors duration-500" onClick={() => signOut()}>
-                <Logout />
+                <button>  LOGOUT </button>
             </div>
         </div>
     )
