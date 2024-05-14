@@ -1,38 +1,60 @@
+"use client"
+
 import React, { useEffect } from 'react';
 import Select from 'react-select';
+import { useController } from 'react-hook-form';
+import { theme } from "../../../../tailwind.config"
 
-function Dropdown({ options, value, onChange, isSearchable, isDisabled, isLoading , defaultValue, label , error}) {
+function Dropdown({ options, input_name, isSearchable, isDisabled, isLoading, defaultValue, label, error, control }) {
 
-    const errorClasses = 'text-pric text-[1.5ex] ml-1';
-    const handleChange = (selectedOption) => {
-        onChange(selectedOption);
-    };
+    const { field: { value: ddValue, onChange: ddOnChange, ...rest } } = useController({ name: input_name, control });
 
     useEffect(() => {
-        handleChange(null);
+        if (defaultValue && !ddValue) {
+            ddOnChange(defaultValue);
+        }
     }, []);
 
+    const errorClasses = 'text-pric text-[1.5ex] ml-1';
+    const colors = theme.extend.colors
+
     return (
-        <div className="flex flex-col items-start gap-[3px] w-full">
-            <label className="mob:text-xs tablet:text-sm lap:text-base desk:text-base pr-3 mob:mt-1 ">{label}</label>
-            <div className="w-full flex relative">
+        <div className="flex flex-col  items-start gap-[3px] w-full">
+            <label className="mob:text-base tablet:text-base lap:text-base desk:text-base pr-3"> {label} </label>
+            <div className={`w-full flex mob:text-sm mob:p-0 relative ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
                 <Select
                     classNamePrefix="react-select-dd"
                     options={options}
-                    value={value}
-                    onChange={handleChange}
+                    value={ddValue ? options.find(x => x.value === ddValue) : ddValue}
+                    onChange={option => ddOnChange(option ? option.value : option)}
+                    defaultValue={options.find(x => x.value === defaultValue)}
                     isSearchable={isSearchable}
-                    isDisabled={isDisabled}
+                    isDisabled={isLoading || isDisabled}
                     isClearable
                     isLoading={isLoading}
-                    classNames={{
-                        control: (state) =>
-                            isDisabled ? "bg-input-dis border-input-b cursor-not-allowed" : state.isFocused ? 'border-pric bg-inputring-0 hover:border-pric cursor-pointer' : 'border-input-b cursor-pointer',
+                    styles={{
+                        control: (provided, state) => ({
+                            ...provided,
+                            boxShadow: "none",
+                            backgroundColor: state.isDisabled ? "#DADDE2" : colors["input-bg"],
+                            borderColor: state.isFocused ? colors["pric"] : colors["input-b"],
+                            "&:hover": {
+                                borderColor: colors["pric"]
+                            }
+                        }),
+                        option: (provided, state) => ({
+                            ...provided,
+                            backgroundColor: state.isSelected ? colors["pric"] : "white",
+                            "&:hover": {
+                                backgroundColor: !state.isSelected && colors["basic-item-hov"],
+                            }
+                        })
                     }}
+                    {...rest}
                 />
             </div>
             {error && <div className={errorClasses}>{error}</div>}
-        </div>
+        </div >
     );
 }
 

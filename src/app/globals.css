@@ -8,8 +8,8 @@
 }
 
 .react-select-dd__control {
-    border-radius : 6px ;
-    padding: 1.5px ;
+    border-radius: 6px !important;
+    padding: 1.5px !important;
 }
 
 div:has(.react-select-dd__control) {

@@ -1,3 +1,5 @@
+"use server"
+
 import db from '../config/db';
 import * as res from './response-utils';
 
@@ -40,8 +42,8 @@ export async function handleEmployeeLogin(email, sub) {
 
 export async function getLoggedInRole(google_sub) {
 
-    const getRoleSQL = 'SELECT role_name , role_id  FROM employee_roles WHERE google_sub = ? '
-    const roleRes = await execute(getRoleSQL, [google_sub])
+    const query = 'SELECT role_name , role_id  FROM employee_roles WHERE google_sub = ? '
+    const roleRes = await execute(query, [google_sub])
     const { role_id, role_name } = roleRes[0]
 
     return { role_id, role_name }
@@ -49,8 +51,8 @@ export async function getLoggedInRole(google_sub) {
 
 export async function getClients() {
     try {
-        const clientsSQL = "SELECT client_id as value, client_name as label FROM client"
-        const results = await execute(clientsSQL)
+        const query = "SELECT client_id as value, client_name as label FROM client"
+        const results = await execute(query)
         return res.success_data(results);
     } catch (ex) {
         return res.failed()
@@ -60,8 +62,53 @@ export async function getClients() {
 
 export async function getDisciplines() {
     try {
-        const clientsSQL = "SELECT discipline_id as value, discipline_name as label FROM discipline"
-        const results = await execute(clientsSQL)
+        const query = "SELECT discipline_id as value, discipline_name as label FROM discipline"
+        const results = await execute(query)
+        return res.success_data(results);
+    } catch (ex) {
+        return res.failed()
+    }
+}
+
+export async function getContractTypes() {
+    try {
+        const query = "SELECT contract_type_id as value, contract_type_name as label FROM contract_type"
+        const results = await execute(query)
+        return res.success_data(results);
+    } catch (ex) {
+        return res.failed()
+    }
+}
+
+export async function getPositions() {
+
+    try {
+        const query = "SELECT position_id as value, position_name as label FROM position"
+        const results = await execute(query)
+        return res.success_data(results);
+    } catch (ex) {
+        return res.failed()
+    }
+
+}
+
+export async function getGrades() {
+
+    try {
+        const query = "SELECT grade_id as value, grade_code as label FROM grade"
+        const results = await execute(query)
+        return res.success_data(results);
+    } catch (ex) {
+        return res.failed()
+    }
+
+}
+
+export async function getRoles() {
+
+    try {
+        const query = "SELECT role_id as value, role_name as label FROM role"
+        const results = await execute(query)
         return res.success_data(results);
     } catch (ex) {
         return res.failed()

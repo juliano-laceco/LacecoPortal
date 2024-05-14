@@ -1,5 +1,6 @@
 "use client"
-import React from 'react';
+
+import { React, useState, useEffect } from 'react';
 import Button from "../custom/Button";
 import Dropdown from "../custom/Dropdown";
 import Input from "../custom/Input";
@@ -7,38 +8,72 @@ import nationalities from "@/static-data/nationalities";
 import maritalStatuses from "@/static-data/marital-status";
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import { getDisciplines, getContractTypes, getPositions, getGrades, getRoles } from '@/utilities/db-utils';
+
 
 function AddEmployee() {
 
     const schema = yup.object().shape({
-        firstName: yup.string().required("First Name is a required field"),
-        lastName: yup.string().required("Last Name is a required field"),
-        dateOfBirth: yup.date().typeError("Date of Birth must be a valid date").max(new Date(), "Date of Birth cannot be in the future").required("Date of Birth is a required field"),
-        workEmail: yup.string().email("Invalid email format").required("Work Email is a required field"),
-        nationality: yup.object().nonNullable("Nationality is a required field").shape({
-            value: yup.string().required("Nationality is a required field"), // Allow null values for the value property
-        }),
-        maritalStatus: yup.object().nonNullable("Marital Status is a required field").shape({
-            value: yup.string().required("Marital Status is a required field"), // Allow null values for the value property
-        }),
-        hourlyCost: yup.number().typeError('Hourly Cost must be a number').required("Hourly Cost is a required field").positive("Hourly Cost must be a positive number"),
-        major: yup.string().required("Major is a required field"),
-        yearsOfExperience: yup.number().required("Years of Experience is a required field").min(0, "Years of Experience must be greater than or equal to 0").max(50, "Years of Experience must be less than or equal to 50")
+        firstName: yup.string().required("First Name is required"),
+        lastName: yup.string().required("Last Name is required"),
+        dateOfBirth: yup.date().typeError("Date of Birth must be a valid date").max(new Date(), "Date of Birth cannot be in the future").required("Date of Birth is required"),
+        workEmail: yup.string().email("Invalid email format").required("Work Email is required"),
+        discipline: yup.string().required("Discipline is required"),
+        nationality: yup.string().required("Nationality is required"),
+        maritalStatus: yup.string().required("Marital Status is required"),
+        contractType: yup.string().required("Contract Type is required"),
+        position: yup.string().required("Position is required"),
+        grade: yup.string().required("Grade is required"),
+        role: yup.string().required("Role is required"),
+        hourlyCost: yup.number().typeError('Hourly Cost must be a number').required("Hourly Cost is required").positive("Hourly Cost must be a positive number"),
+        major: yup.string().required("Major is required"),
+        yearsOfExperience: yup.number().typeError('Years of Experience must be a number').required("Years of Experience is required").min(0, "Years of Experience must be greater than or equal to 0").max(50, "Years of Experience must be less than or equal to 50")
     });
 
-    const { handleSubmit, register, control, formState: { errors }, setValue } = useForm({
+    const { handleSubmit, register, control, formState: { errors } } = useForm({
         resolver: yupResolver(schema)
     });
 
-    const onSubmit = (data) => {
-        try {
-            // Extract the value property from the selected maritalStatus object
-            data.maritalStatus = data.maritalStatus.value;
-            console.log(data);
-        } catch (error) {
-            console.error(error);
+    const [isLoading, setIsLoading] = useState(true)
+    const [disciplines, setDisciplines] = useState([])
+    const [contract_types, setContractTypes] = useState([])
+    const [positions, setPositions] = useState([])
+    const [grades, setGrades] = useState([])
+    const [roles, setRoles] = useState([])
+
+    useEffect(() => {
+
+        const fetchData = async () => {
+
+            // Fetching Disciplines
+            const disciplinesRes = await getDisciplines()
+            setDisciplines(disciplinesRes.data ?? [])
+
+            // Fetching Contract Types
+            const contractsTypesRes = await getContractTypes()
+            setContractTypes(contractsTypesRes.data ?? [])
+
+            // Fetching Positions
+            const positionsRes = await getPositions()
+            setPositions(positionsRes.data ?? [])
+
+            // Fetching Grades
+            const gradesRes = await getGrades()
+            setGrades(gradesRes.data ?? [])
+
+            // Fetching Roles
+            const rolesRes = await getRoles()
+            setRoles(rolesRes.data ?? [])
+
+            setIsLoading(false)
         }
+        fetchData()
+
+    }, [])
+
+    const onSubmit = async (data) => {
+        console.log(data)
     };
 
     return (
@@ -80,34 +115,93 @@ function AddEmployee() {
                     />
                 </div>
                 <div>
-                    <Controller
-                        name="nationality"
+                    <Dropdown
+                        className='select-input'
+                        label="Discipline"
+                        placeholder="Select Language"
+                        isClearable
+                        isLoading={isLoading}
+                        options={disciplines}
+                        input_name="discipline"
                         control={control}
-                        render={({ field }) => (
-                            <Dropdown
-                                label="Nationality"
-                                options={nationalities}
-                                value={field.value} // Pass the value prop
-                                onChange={(value) => setValue("nationality", value)} // Set the value using setValue
-                                error={errors.nationality?.message}
-                            />
-                        )}
+                        error={errors.discipline?.message}
                     />
                 </div>
                 <div>
-                    <Controller
-                        name="maritalStatus"
+                    <Dropdown
+                        className='select-input'
+                        label="Nationality"
+                        placeholder="Select Language"
+                        isClearable
+                        defaultValue="Saudi"
+                        options={nationalities}
+                        input_name="nationality"
                         control={control}
-                        defaultValue={maritalStatuses[0]}
-                        render={({ field }) => (
-                            <Dropdown
-                                label="Marital Status"
-                                options={maritalStatuses}
-                                value={field.value}
-                                onChange={(value) => setValue("maritalStatus", value)}
-                                error={errors.maritalStatus?.message}
-                            />
-                        )}
+                        error={errors.nationality?.message}
+                    />
+                </div>
+                <div>
+                    <Dropdown
+                        className='select-input'
+                        label="Marital Status"
+                        placeholder="Select Language"
+                        isClearable
+                        options={maritalStatuses}
+                        input_name="maritalStatus"
+                        control={control}
+                        error={errors.maritalStatus?.message}
+                    />
+                </div>
+                <div>
+                    <Dropdown
+                        className='select-input'
+                        label="Contract Type"
+                        placeholder="Select Language"
+                        isClearable
+                        isLoading={isLoading}
+                        options={contract_types}
+                        input_name="contractType"
+                        control={control}
+                        error={errors.contractType?.message}
+                    />
+                </div>
+                <div>
+                    <Dropdown
+                        className='select-input'
+                        label="Position"
+                        placeholder="Select Language"
+                        isClearable
+                        isLoading={isLoading}
+                        options={positions}
+                        input_name="position"
+                        control={control}
+                        error={errors.position?.message}
+                    />
+                </div>
+                <div>
+                    <Dropdown
+                        className='select-input'
+                        label="Grade"
+                        placeholder="Select Language"
+                        isClearable
+                        isLoading={isLoading}
+                        options={grades}
+                        input_name="grade"
+                        control={control}
+                        error={errors.grade?.message}
+                    />
+                </div>
+                <div>
+                    <Dropdown
+                        className='select-input'
+                        label="Role"
+                        placeholder="Select Language"
+                        isClearable
+                        isLoading={isLoading}
+                        options={roles}
+                        input_name="role"
+                        control={control}
+                        error={errors.role?.message}
                     />
                 </div>
                 <div>
@@ -129,17 +223,17 @@ function AddEmployee() {
                 <div>
                     <Input
                         label="Years of Experience"
-                        type="number"
-                        min="0"
-                        max="50"
+                        type="text"
                         {...register("yearsOfExperience")}
                         error={errors.yearsOfExperience?.message}
                     />
                 </div>
+
+
                 <div className="col-span-full">
-                    <input type="submit" name="Submit" />
+                    <Button name="Submit" submit />
                 </div>
-            </form>
+            </form >
         </div>
     );
 }

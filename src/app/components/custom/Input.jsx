@@ -32,11 +32,11 @@ const Input = forwardRef(
 
         return (
             <div className={`flex flex-col items-start gap-[3px] ${fit ? "w-fit" : "w-full"}`}>
-                {!!label && <label className={`mob:text-xs tablet:text-sm lap:text-base desk:text-base ${labelClasses}`}>{label}</label>}
+                {!!label && <label className={`mob:text-base tablet:text-base lap:text-base desk:text-base ${labelClasses}`}>{label}</label>}
                 <div className={`${fit ? "w-fit" : "w-full"} flex relative`}>
                     <input
                         id={id}
-                        className={`${baseClasses} ${inputClasses} mob:text-xs tablet:text-sm lap:text-base desk:text-base ${!!disabled ? (disabled && 'bg-input-dis opacity-80 cursor-not-allowed') : ""} ${!!className ? className : ""}`}
+                        className={`${baseClasses} ${inputClasses} mob:text-sm tablet:text-sm lap:text-base desk:text-base mob:p-[10px] tablet:p-[10px] ${!!disabled ? (disabled && 'bg-input-dis opacity-80 cursor-not-allowed') : "hover:border-pric"} ${!!className ? className : ""}`}
                         type={type}
                         onChange={onChange}
                         onKeyUp={onKeyUp}

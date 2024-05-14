@@ -31,7 +31,7 @@ export default async function RootLayout({ children }) {
           <Header burgerNavItems={navItems} />
           <div className="flex gap-5 h-full">
             {!!session && <Sidebar sidebarItems={navItems} />}
-            <div className="w-4/5 mx-auto  mob:w-10/12 tablet:w-11/12 desk:w-4/5">
+            <div className="w-3/5 mx-auto  mob:w-10/12 tablet:w-11/12 desk:w-3/5">
               {children}
             </div>
 

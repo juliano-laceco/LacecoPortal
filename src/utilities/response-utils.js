@@ -21,7 +21,7 @@ export function success_data(data) {
 }
 
 export function failed() {
-    return { res: 'failed' };
+    return { res: false };
 }
 
 export function failed_data(data) {

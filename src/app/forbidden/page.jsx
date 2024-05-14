@@ -1,6 +1,5 @@
 import Image from "next/image"
 import Button from "../components/custom/Button"
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Link from "next/link";
 
 function page() {
@@ -15,7 +14,7 @@ function page() {
                     You tried to access a page you do not have authorization for.
                 </p>
                 <Link href="/">
-                    <Button name="Back to Home" className="mt-6" primary medium Icon={ArrowBackIcon} ltr />
+                    <Button name="Back to Home" className="mt-6" primary medium  ltr />
                 </Link>
             </div>
         </div>

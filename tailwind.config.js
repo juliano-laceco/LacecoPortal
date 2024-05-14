@@ -10,7 +10,7 @@ module.exports = {
     extend: {
       colors: {
         "pric": "#e84a40",
-        "pri-lightc": "#ef4444",
+        "pri-lightc": "#ffa099",
         "sec-c": "transparent",
         "sec-lightc": "#f8faff",
         "pri-hovc": "#b91c1c",

@@ -3,7 +3,7 @@ import * as res from '../../../utilities/response-utils';
 
 export async function GET() {
     const result = await getClients();
-    if (result.res === "success") {
+    if (result.res) {
 
         const data = result.data;
         const message = (data.length > 0) ? "Clients List" : "No Clients Found"
