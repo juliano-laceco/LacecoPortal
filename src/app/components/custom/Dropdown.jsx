@@ -5,7 +5,7 @@ import Select from 'react-select';
 import { useController } from 'react-hook-form';
 import { theme } from "../../../../tailwind.config"
 
-function Dropdown({ options, input_name, isSearchable, isDisabled, isLoading, defaultValue, label, error, control }) {
+function Dropdown({ options, input_name, isSearchable, isDisabled, isLoading, defaultValue, label, error, control, handler }) {
 
     const { field: { value: ddValue, onChange: ddOnChange, ...rest } } = useController({ name: input_name, control });
 
@@ -18,6 +18,11 @@ function Dropdown({ options, input_name, isSearchable, isDisabled, isLoading, de
     const errorClasses = 'text-pric text-[1.5ex] ml-1';
     const colors = theme.extend.colors
 
+    const handleOnChange = (option) => {
+        ddOnChange(option ? option.value : option);
+        !!handler && handler(option?.value ?? null)
+    }
+
     return (
         <div className="flex flex-col  items-start gap-[3px] w-full">
             <label className="mob:text-base tablet:text-base lap:text-base desk:text-base pr-3"> {label} </label>
@@ -26,7 +31,7 @@ function Dropdown({ options, input_name, isSearchable, isDisabled, isLoading, de
                     classNamePrefix="react-select-dd"
                     options={options}
                     value={ddValue ? options.find(x => x.value === ddValue) : ddValue}
-                    onChange={option => ddOnChange(option ? option.value : option)}
+                    onChange={option => handleOnChange(option)}
                     defaultValue={options.find(x => x.value === defaultValue)}
                     isSearchable={isSearchable}
                     isDisabled={isLoading || isDisabled}

@@ -11,24 +11,31 @@ export const authOptions = {
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                await handleEmployeeLogin(user.email, user.sub)
-                const { role_name, role_id } = await getLoggedInRole(token?.sub)
-                token = { ...token, role_name, role_id }
 
-                console.log("Token", token)
+                try {
+                    const login_res = await handleEmployeeLogin(user.email, user.sub)
+                    if (login_res.res) {
+                        const roleRes = await getLoggedInRole(token?.sub)
+                        if (roleRes?.res) {
+                            const { role_name, role_id, employee_id } = roleRes.data
+                            token = { ...token, role_name, role_id, employee_id }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error during JWT callback:", error);
+                }
+                // console.log("Token", token)
             }
             return token
         },
         async session({ session, token }) {
             if (session?.user) {
-
-
                 session.user.role_name = token.role_name
                 session.user.role_id = token.role_id
+                session.user.employee_id = token.employee_id
                 session.user.image = token.image
                 session.user.sub = token.sub
-
-                console.log("Session", session)
+                //  console.log("Session", session)
             }
             return session;
         }

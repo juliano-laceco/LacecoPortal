@@ -10,10 +10,10 @@ async function Header({ burgerNavItems }) {
     const session = await getSession()
 
     return (
-        <nav className="bg-nav-c shadow-md mob:bg-pric">
+        <nav className="bg-nav-c shadow-md mob:bg-pric tablet:bg-pric">
             <div className="flex flex-wrap items-center justify-between mx-auto p-5 mob:p-2">
                 <Link href="/" className="flex items-center space-x-3">
-                    <Image src="/resources/logos/laceco-gray.png" width="160" height="20" className="mob:hidden" alt="laceco-logo" />
+                    <Image src="/resources/logos/laceco-gray.png" width="160" height="20" className="mob:hidden tablet:hidden" alt="laceco-logo" />
                 </Link>
                 {session &&
                     <>

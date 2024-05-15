@@ -12,6 +12,6 @@
     padding: 1.5px !important;
 }
 
-div:has(.react-select-dd__control) {
+div:has(.react-select-dd__control):not(.panel) {
     width: 100% !important;
 }

@@ -52,9 +52,9 @@ async function CustomControlsPage() {
         <div>
           <p>PRIMARY ICON</p>
           <div className="flex flex-wrap gap-5">
-            <Button name="small" variant="primary" size="small" Icon={Google} />
-            <Button name="medium" variant="primary" size="medium" Icon={Google} />
-            <Button name="large" variant="primary" size="large" Icon={Google} />
+            <Button name="small" variant="primary" size="small"  />
+            <Button name="medium" variant="primary" size="medium"  />
+            <Button name="large" variant="primary" size="large"  />
           </div>
         </div>
 
@@ -64,7 +64,7 @@ async function CustomControlsPage() {
             <Input type="text" label="Regular" placeholder="Placeholder value" />
             <Input type="text" label="Disabled" placeholder="Placeholder value" disabled />
             <Input type="number" min="1" max="10" label="Number" placeholder="Placeholder value" />
-            <Input type="number" min="1" max="10" label="With Icon" placeholder="Placeholder value" Icon={Google} />
+            <Input type="number" min="1" max="10" label="With Icon" placeholder="Placeholder value"  />
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 "use client"
 
+import Image from 'next/image';
 import SidebarItem from './SidebarItem';
 import { signOut } from 'next-auth/react';
 
@@ -15,7 +16,7 @@ function Sidebar({ sidebarItems }) {
                 }
             </div>
             <div title="Sign Out" className="text-white p-2 hover:bg-pri-hovc cursor-pointer rounded-lg overflow-hidden transition-colors duration-500" onClick={() => signOut()}>
-                <button>  LOGOUT </button>
+                <Image src="/resources/icons/logout.svg" height="30" width="30" alt="logout-icon" />
             </div>
         </div>
     )
