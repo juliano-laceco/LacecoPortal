@@ -1,8 +1,7 @@
 "use client"
 
-import { React, useState, useEffect } from 'react';
+import { React, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation'
-import Button from "../custom/Button";
 import Dropdown from "../custom/Dropdown";
 import Input from "../custom/Input";
 import nationalities from "@/static-data/nationalities";
@@ -11,12 +10,17 @@ import countries from '@/static-data/countries';
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
-import { getPositions, getGrades, getRoles, getEmployeeStatuses, checkEmailExists, createEmployee, getDisciplines, getContractTypes } from '@/utilities/db-utils';
+import { getPositions, getGrades, getRoles, getEmployeeStatuses, checkEmailExists, createEmployee, getDisciplines, getContractTypes, getDivisions } from '@/utilities/db-utils';
+import Form from '../custom/Form';
+import { showToast } from '@/utilities/toast-utils';
+
 
 function AddEmployee() {
+
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(true);
     const [selectedContractId, setSelectedContractId] = useState(null)
+    const [selectedDivision, setSelectedDivision] = useState(null)
     const [formData, setFormData] = useState({
         disciplines: [],
         contractTypes: [],
@@ -24,6 +28,7 @@ function AddEmployee() {
         grades: [],
         roles: [],
         statuses: [],
+        divisions: []
     });
 
     const schema = yup.object().shape({
@@ -50,6 +55,8 @@ function AddEmployee() {
             ),
         discipline_id: yup.string()
             .required("Discipline is required"),
+        division_id: yup.string()
+            .required("Division is required"),
         nationality: yup.string()
             .required("Nationality is required"),
         country: yup.string()
@@ -87,44 +94,74 @@ function AddEmployee() {
         })
     });
 
-    const { handleSubmit, register, control, formState: { errors } } = useForm({
+    const { handleSubmit, register, control, setValue, formState: { errors, isSubmitting } } = useForm({
         resolver: yupResolver(schema)
     });
 
-    useEffect(() => {
-        const fetchData = async () => {
+    const handleDivisionChange = async (division_id) => {
+
+        setValue("discipline_id", "")
+        setSelectedDivision(division_id)
+        const disciplinesRes = !!selectedDivision ? await getDisciplines(selectedDivision) : []
+
+        setFormData({
+            ...formData,
+            disciplines: disciplinesRes?.data ?? []
+        })
+    }
+
+    const fetchData = useMemo(
+        () => async () => {
             try {
-                const [disciplinesRes, contractTypesRes, positionsRes, gradesRes, rolesRes, statusesRes] = await Promise.all([
-                    getDisciplines(),
+                const [
+                    contractTypesRes,
+                    positionsRes,
+                    gradesRes,
+                    rolesRes,
+                    statusesRes,
+                    divisionsRes,
+                ] = await Promise.all([
                     getContractTypes(),
                     getPositions(),
                     getGrades(),
                     getRoles(),
-                    getEmployeeStatuses()
+                    getEmployeeStatuses(),
+                    getDivisions(),
                 ]);
 
                 setFormData({
-                    disciplines: disciplinesRes.data ?? [],
+                    disciplines: [],
                     contractTypes: contractTypesRes.data ?? [],
                     positions: positionsRes.data ?? [],
                     grades: gradesRes.data ?? [],
                     roles: rolesRes.data ?? [],
                     statuses: statusesRes.data ?? [],
+                    divisions: divisionsRes.data ?? [],
                 });
                 setIsLoading(false);
             } catch (error) {
-                console.error("Error fetching data:", error);
+                console.error('Error fetching data:', error);
             }
-        };
+        },
+        []
+    );
+
+    useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     const onSubmit = async (data) => {
 
         data.date_of_birth = formatDate(data.date_of_birth)
+
         !!data.contract_valid_till && (data.contract_valid_till = formatDate(data.contract_valid_till))
+
         const result = await createEmployee(data)
-        if (result.res) router.replace("/hr")
+
+        if (result.res) {
+            showToast("success", "Successfully Created Employee")
+            router.replace("/hr")
+        }
     };
 
     function formatDate(date) {
@@ -136,117 +173,120 @@ function AddEmployee() {
     }
 
     return (
-        <div className="rounded-xl shadow-2xl w-full bg-section-bg mob:bg-gray-100 p-8 mob:p-4 tablet:p-4 lap:p-4">
-            <p className="font-bold text-3xl mob:text-3xl py-6">Add Employee</p>
-            <form
-                className="w-full grid grid-cols-1 mob:grid-cols-1 tablet:grid-cols-2 lap:grid-cols-3 desk:grid-cols-3 gap-4"
-                onSubmit={handleSubmit(onSubmit)}
-            >
-                <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
-                <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
-                <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
-                <Input label="Work Email" type="text" {...register("work_email")} error={errors.work_email?.message} />
-                <Dropdown
-                    className="select-input"
-                    label="Discipline"
-                    isClearable
-                    isLoading={isLoading}
-                    options={formData.disciplines}
-                    input_name="discipline_id"
-                    control={control}
-                    error={errors.discipline_id?.message}
-                />
-                <Dropdown
-                    className="select-input"
-                    label="Nationality"
-                    isClearable
-                    defaultValue="Lebanese"
-                    options={nationalities}
-                    input_name="nationality"
-                    control={control}
-                    error={errors.nationality?.message}
-                />
-                <Dropdown
-                    className="select-input"
-                    label="Country"
-                    isClearable
-                    defaultValue="Lebanon"
-                    options={countries}
-                    input_name="country"
-                    control={control}
-                    error={errors.country?.message}
-                />
-                <Dropdown
-                    className="select-input"
-                    label="Marital Status"
-                    isClearable
-                    options={marital_statuses}
-                    input_name="marital_status"
-                    control={control}
-                    error={errors.marital_status?.message}
-                />
-                <Dropdown
-                    className="select-input"
-                    label="Contract Type"
-                    isClearable
-                    isLoading={isLoading}
-                    options={formData.contractTypes}
-                    handler={setSelectedContractId}
-                    input_name="contract_type_id"
-                    control={control}
-                    error={errors.contract_type_id?.message}
-                />
-                {selectedContractId === 2 && (
-                    <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
-                )}
-                <Dropdown
-                    className="select-input"
-                    label="Position"
-                    isClearable
-                    isLoading={isLoading}
-                    options={formData.positions}
-                    input_name="position_id"
-                    control={control}
-                    error={errors.position_id?.message}
-                />
-                <Dropdown
-                    className="select-input"
-                    label="Grade"
-                    isClearable
-                    isLoading={isLoading}
-                    options={formData.grades}
-                    input_name="grade_id"
-                    control={control}
-                    error={errors.grade_id?.message}
-                />
-                <Dropdown
-                    className="select-input"
-                    label="Role"
-                    isClearable
-                    isLoading={isLoading}
-                    options={formData.roles}
-                    input_name="role_id"
-                    control={control}
-                    error={errors.role_id?.message}
-                />
-                <Input label="Hourly Cost" type="number" {...register("employee_hourly_cost")} error={errors.employee_hourly_cost?.message} />
-                <Input label="Major" type="text" {...register("major")} error={errors.major?.message} />
-                <Input label="Years of Experience" type="text" {...register("years_of_experience")} error={errors.years_of_experience?.message} />
-                <Dropdown
-                    className="select-input"
-                    label="Status"
-                    isClearable
-                    isLoading={isLoading}
-                    options={formData.statuses}
-                    input_name="status_id"
-                    control={control}
-                    error={errors.status_id?.message}
-                />
-                <div className="col-span-full">
-                    <Button name="Submit" submit />
-                </div>
-            </form>
-        </div>
+
+        <Form title="Add Employee" handleSubmit={handleSubmit} onSubmit={onSubmit} submitText="Submit" isSubmitting={isSubmitting} submit >
+            <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
+            <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
+            <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
+            <Input label="Work Email" type="text" {...register("work_email")} error={errors.work_email?.message} />
+            <Dropdown
+                className="select-input"
+                label="Division"
+                isClearable
+                isLoading={isLoading}
+                options={formData.divisions}
+                handler={handleDivisionChange}
+                input_name="division_id"
+                control={control}
+                error={errors.division_id?.message}
+            />
+            <Dropdown
+                className="select-input"
+                label="Department"
+                isClearable
+                isLoading={isLoading}
+                options={formData.disciplines}
+                input_name="discipline_id"
+                control={control}
+                error={errors.discipline_id?.message}
+            />
+            <Dropdown
+                className="select-input"
+                label="Nationality"
+                isClearable
+                defaultValue="Lebanese"
+                options={nationalities}
+                input_name="nationality"
+                control={control}
+                error={errors.nationality?.message}
+            />
+            <Dropdown
+                className="select-input"
+                label="Country"
+                isClearable
+                defaultValue="Lebanon"
+                options={countries}
+                input_name="country"
+                control={control}
+                error={errors.country?.message}
+            />
+            <Dropdown
+                className="select-input"
+                label="Marital Status"
+                isClearable
+                options={marital_statuses}
+                input_name="marital_status"
+                control={control}
+                error={errors.marital_status?.message}
+            />
+            <Dropdown
+                className="select-input"
+                label="Contract Type"
+                isClearable
+                isLoading={isLoading}
+                options={formData.contractTypes}
+                handler={setSelectedContractId}
+                input_name="contract_type_id"
+                control={control}
+                error={errors.contract_type_id?.message}
+            />
+            {selectedContractId === 2 && (
+                <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
+            )}
+            <Dropdown
+                className="select-input"
+                label="Position"
+                isClearable
+                isLoading={isLoading}
+                options={formData.positions}
+                input_name="position_id"
+                control={control}
+                error={errors.position_id?.message}
+            />
+            <Dropdown
+                className="select-input"
+                label="Grade"
+                isClearable
+                isLoading={isLoading}
+                options={formData.grades}
+                input_name="grade_id"
+                control={control}
+                error={errors.grade_id?.message}
+            />
+            <Dropdown
+                className="select-input"
+                label="Role"
+                isClearable
+                isLoading={isLoading}
+                options={formData.roles}
+                input_name="role_id"
+                control={control}
+                error={errors.role_id?.message}
+            />
+            <Input label="Hourly Cost" type="number" {...register("employee_hourly_cost")} error={errors.employee_hourly_cost?.message} />
+            <Input label="Major" type="text" {...register("major")} error={errors.major?.message} />
+            <Input label="Years of Experience" type="text" {...register("years_of_experience")} error={errors.years_of_experience?.message} />
+            <Dropdown
+                className="select-input"
+                label="Status"
+                isClearable
+                isLoading={isLoading}
+                options={formData.statuses}
+                input_name="status_id"
+                control={control}
+                error={errors.status_id?.message}
+            />
+        </Form>
     );
 }
 

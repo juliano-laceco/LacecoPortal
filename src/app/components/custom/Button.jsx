@@ -11,14 +11,14 @@ function Button({
     variant = 'primary', // Default variant
     size = 'medium', // Default size
     loading = false,
-    disabled = false,
+    isDisabled = false,
     Icon = null,
     ltr = true,// Default direction
     submit = false
 
 }) {
 
-    const baseClasses = `rounded-[4px] ${(loading || disabled) && "opacity-60 cursor-not-allowed"} transition-all h-fit duration-200 flex justify-center items-center`
+    const baseClasses = `rounded-[4px] ${(loading || isDisabled) && "opacity-60 cursor-not-allowed"} transition-all h-fit duration-200 flex justify-center items-center`
     const sizeClasses = {
         small: `
             min-w-[10ex] p-2 text-xs 
@@ -44,8 +44,8 @@ function Button({
     };
 
     const variantClasses = {
-        primary: 'bg-pric text-pri-but-txtc border-[1px] border-pri-butb hover:bg-pri-hovc',
-        secondary: 'bg-sec-c text-sec-txtc border-[1px] border-sec-butb hover:bg-sec-hovc',
+        primary: `bg-pric text-pri-but-txtc border-[1px] border-pri-butb ${!isDisabled && "hover:bg-pri-hovc"}`,
+        secondary: `bg-sec-c text-sec-txtc border-[1px] border-sec-butb  ${!isDisabled && "hover:bg-sec-hovc"}`,
         plain: 'text-white',
     };
 
@@ -54,7 +54,7 @@ function Button({
     const combinedClasses = `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`;
 
     return (
-        <button type={`${submit ? "submit" : "button"}`} disabled={loading || disabled} onClick={onClick} className={combinedClasses}>
+        <button type={`${submit ? "submit" : "button"}`} isDisabled={loading || isDisabled} onClick={onClick} className={combinedClasses}>
             {loading ? (
                 <ClipLoader loading={loading} size={17} color={loadingColor} aria-label="Loading Spinner" data-testid="loader" />
             ) : (

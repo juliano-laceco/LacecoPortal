@@ -4,7 +4,10 @@ import AuthProvider from "../providers/AuthProvider"; // Import your AuthProvide
 import Sidebar from "./components/sidebar/Sidebar";
 import { getSession } from "../utilities/auth-utils";
 import Image from "next/image";
-
+import { ToastContainer, Slide } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import ReactQueryProvider from "@/providers/SWRProvider";
 
 export const metadata = {
   title: "Laceco Portal",
@@ -14,6 +17,7 @@ export const metadata = {
 export default async function RootLayout({ children }) {
 
   const session = await getSession()
+
   let navItems = []
   let userRole;
 
@@ -46,15 +50,32 @@ export default async function RootLayout({ children }) {
       </head>
       <body className="flex flex-col gap-4 h-screen text-pri-txtc bg-gray-100">
         <AuthProvider>
-          <Header burgerNavItems={navItems} />
-          <div className="flex gap-5 h-full sticky left-0">
-            {!!session && <Sidebar sidebarItems={navItems} />}
-            <div className="w-4/5 mx-auto mob:w-11/12 tablet:w-11/12 panel">
-              {children}
+          <ReactQueryProvider>
+            <Header burgerNavItems={navItems} />
+            <div className="flex gap-5 h-full sticky left-0">
+              {!!session && <Sidebar sidebarItems={navItems} />}
+              <div className="w-4/5 mob:w-11/12 mob:mx-auto tablet:w-11/12 tablet:mx-auto panel">
+                {children}
+              </div>
             </div>
-          </div>
+            <ReactQueryDevtools initialIsOpen={false} />
+          </ReactQueryProvider>
+
         </AuthProvider>
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          transition={Slide}
+        />
       </body>
-    </html>
+    </html >
   );
 }

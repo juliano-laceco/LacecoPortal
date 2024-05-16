@@ -1,13 +1,13 @@
+"use client"
+
 import React from 'react'
 import Button from './Button'
 import Input from './Input'
-import DropdownLoader from './DropdownLoader'
-import { getClients } from '@/utilities/db-utils'
+import { toast } from 'react-toastify'
 
+function CustomControlsPage() {
 
-async function CustomControlsPage() {
-
-  const { data } = await getClients();
+  const notify = () => toast("Hello coders it was easy!");
 
   return (
     <>
@@ -16,7 +16,7 @@ async function CustomControlsPage() {
         <div>
           <p>PRIMARY</p>
           <div className="flex gap-5">
-            <Button name="small" variant="primary" size="small" />
+            <Button name="small" variant="primary" size="small" onClick={notify} />
             <Button name="medium" variant="primary" size="medium" />
             <Button name="large" variant="primary" size="large" />
           </div>
@@ -52,9 +52,9 @@ async function CustomControlsPage() {
         <div>
           <p>PRIMARY ICON</p>
           <div className="flex flex-wrap gap-5">
-            <Button name="small" variant="primary" size="small"  />
-            <Button name="medium" variant="primary" size="medium"  />
-            <Button name="large" variant="primary" size="large"  />
+            <Button name="small" variant="primary" size="small" />
+            <Button name="medium" variant="primary" size="medium" />
+            <Button name="large" variant="primary" size="large" />
           </div>
         </div>
 
@@ -64,7 +64,7 @@ async function CustomControlsPage() {
             <Input type="text" label="Regular" placeholder="Placeholder value" />
             <Input type="text" label="Disabled" placeholder="Placeholder value" disabled />
             <Input type="number" min="1" max="10" label="Number" placeholder="Placeholder value" />
-            <Input type="number" min="1" max="10" label="With Icon" placeholder="Placeholder value"  />
+            <Input type="number" min="1" max="10" label="With Icon" placeholder="Placeholder value" />
           </div>
         </div>
 
@@ -77,13 +77,6 @@ async function CustomControlsPage() {
           </div>
         </div>
 
-        <div>
-          <p>SELECT</p>
-          <div className="flex flex-col gap-5">
-            <DropdownLoader options={data} isSearchable fetch />
-            <DropdownLoader options={[{ value: "Juliano", label: "Juliano" }]} isSearchable fetch isDisabled />
-          </div>
-        </div>
 
       </div >
     </>

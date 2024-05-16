@@ -3,9 +3,7 @@
 import db from '../config/db';
 import * as res from './response-utils';
 import { getSession } from "../utilities/auth-utils";
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/options';
-
+import { unstable_cache } from 'next/cache';
 
 async function execute(query, values = []) {
 
@@ -84,14 +82,26 @@ export async function getClients() {
 
 }
 
-export async function getDisciplines() {
+export async function getDisciplines(division_id = null) {
 
     try {
-        const query = "SELECT discipline_id as value, discipline_name as label FROM discipline"
-        const results = await execute(query)
+        const query = !!division_id ? "SELECT discipline_id as value, discipline_name as label FROM discipline WHERE division_id = ?" : "SELECT discipline_id as value, discipline_name as label FROM discipline"
+        const results = !!division_id ? await execute(query, [division_id]) : await execute(query)
         return res.success_data(results);
     } catch (error) {
         console.error('Error fetching disciplines:', error);
+        return res.failed()
+    }
+}
+
+export async function getDivisions() {
+
+    try {
+        const query = "SELECT division_id as value, division_name as label FROM division"
+        const results = await execute(query)
+        return res.success_data(results);
+    } catch (error) {
+        console.error('Error fetching divisions:', error);
         return res.failed()
     }
 }
@@ -102,7 +112,6 @@ export async function getContractTypes() {
         const query = "SELECT contract_type_id as value, contract_type_name as label FROM contract_type"
         const results = await execute(query)
 
-        console.log(results)
         return res.success_data(results);
     } catch (error) {
         console.error('Error fetching contract types:', error);
@@ -149,6 +158,17 @@ export async function getRoles() {
 
 }
 
+const getRolesCache = async () => {
+    try {
+        const query = "SELECT role_id as value, role_name as label FROM role";
+        const results = await execute(query);
+        return res.success_data(results);
+    } catch (error) {
+        console.error('Error fetching roles:', error);
+        return res.failed();
+    }
+}
+
 export async function getEmployeeStatuses(type = null) {
 
     try {
@@ -186,7 +206,6 @@ export async function checkEmailExists(email) {
 export async function createEmployee(data) {
 
     try {
-
         const sql = `
       INSERT INTO lacecodb.employee (
       first_name,
@@ -248,12 +267,11 @@ export async function createEmployee(data) {
     }
 }
 
-
 export async function createPositionHistoryRecord(data) {
 
     try {
 
-        const session = await getServerSession(authOptions)
+        const session = await getSession()
         const loggedInEmployee = session?.user?.employee_id
 
         const sql = `
@@ -289,3 +307,5 @@ export async function createPositionHistoryRecord(data) {
         return res.failed()
     }
 }
+
+export default getRolesCache ;

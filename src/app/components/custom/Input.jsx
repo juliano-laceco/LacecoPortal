@@ -11,7 +11,7 @@ const Input = forwardRef(
             className,
             label,
             error = false,
-            disabled = false,
+            isDisabled = false,
             Icon,
             value,
             labelStyle,
@@ -36,14 +36,14 @@ const Input = forwardRef(
                 <div className={`${fit ? "w-fit" : "w-full"} flex relative`}>
                     <input
                         id={id}
-                        className={`${baseClasses} ${inputClasses} mob:text-sm tablet:text-sm lap:text-base desk:text-base mob:p-[10px] tablet:p-[10px] ${!!disabled ? (disabled && 'bg-input-dis opacity-80 cursor-not-allowed') : "hover:border-pric"} ${!!className ? className : ""}`}
+                        className={`${baseClasses} ${inputClasses} mob:text-sm tablet:text-sm lap:text-base desk:text-base mob:p-[10px] tablet:p-[10px] ${!!isDisabled ? (isDisabled && 'bg-input-dis opacity-80 cursor-not-allowed') : "hover:border-pric"} ${!!className ? className : ""}`}
                         type={type}
                         onChange={onChange}
                         onKeyUp={onKeyUp}
                         ref={ref}
                         placeholder={placeholder}
                         onBlur={onBlur}
-                        disabled={disabled}
+                        disabled={isDisabled}
                         value={value}
                         min={min}
                         max={max}
