@@ -1,35 +1,26 @@
 "use client"
 
-import { React, useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'
 import Dropdown from "../custom/Dropdown";
 import Input from "../custom/Input";
-import nationalities from "@/static-data/nationalities";
-import marital_statuses from "@/static-data/marital-status";
-import countries from '@/static-data/countries';
+import nationalities from "@/data/static/nationalities";
+import marital_statuses from "@/data/static/marital-status";
+import countries from '@/data/static/countries';
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
-import { getPositions, getGrades, getRoles, getEmployeeStatuses, checkEmailExists, createEmployee, getDisciplines, getContractTypes, getDivisions } from '@/utilities/db-utils';
+import { checkEmailExists, createEmployee, getDisciplines, updateEmployee } from '@/utilities/db-utils';
 import Form from '../custom/Form';
 import { showToast } from '@/utilities/toast-utils';
+import { formatDate } from '@/utilities/date-utils';
 
-
-function AddEmployee() {
+function Employee({ isEdit, defaultValues = {}, optionsData }) {
 
     const router = useRouter()
-    const [isLoading, setIsLoading] = useState(true);
-    const [selectedContractId, setSelectedContractId] = useState(null)
-    const [selectedDivision, setSelectedDivision] = useState(null)
-    const [formData, setFormData] = useState({
-        disciplines: [],
-        contractTypes: [],
-        positions: [],
-        grades: [],
-        roles: [],
-        statuses: [],
-        divisions: []
-    });
+
+    const submitText = isEdit ? "Update" : "Submit"
+    const titleText = isEdit ? "Edit Employee" : "Add Employee"
 
     const schema = yup.object().shape({
         first_name: yup.string()
@@ -49,8 +40,11 @@ function AddEmployee() {
                 "is-unique-email",
                 "Email already exists",
                 async (value) => {
+                    if (isEdit) {
+                        return true;
+                    }
                     const response = await checkEmailExists(value)
-                    return response.res; // Check if email exists in the response
+                    return response.res;
                 }
             ),
         discipline_id: yup.string()
@@ -72,9 +66,9 @@ function AddEmployee() {
         role_id: yup.string()
             .required("Role is required"),
         employee_hourly_cost: yup.number()
-            .typeError('Hourly Cost must be a number')
-            .required("Hourly Cost is required")
-            .positive("Hourly Cost must be a positive number"),
+            .nullable()
+            .transform((curr, orig) => (orig === "" ? null : curr))
+            .positive("Hourly cost must be positive"),
         major: yup.string()
             .required("Major is required"),
         years_of_experience: yup.number()
@@ -82,8 +76,7 @@ function AddEmployee() {
             .required("Years of Experience is required")
             .min(0, "Years of Experience must be greater than or equal to 0")
             .max(50, "Years of Experience must be less than or equal to 50"),
-        status_id: yup.string()
-            .required("Status is required"),
+        status_id: isEdit ? yup.string().required("Status is required") : yup.string(),
         contract_valid_till: yup.string().when("contract_type_id", {
             is: "2",
             then: () => yup.date()
@@ -94,66 +87,48 @@ function AddEmployee() {
         })
     });
 
-    const { handleSubmit, register, control, setValue, formState: { errors, isSubmitting } } = useForm({
-        resolver: yupResolver(schema)
+    const { handleSubmit, register, watch, control, setValue, trigger, formState: { errors, isSubmitting } } = useForm({
+        resolver: yupResolver(schema),
+        defaultValues
+
     });
 
-    const handleDivisionChange = async (division_id) => {
+    // After setting defaultValues in useForm hook
+    useEffect(() => {
+        const divisionId = defaultValues.division_id; // Assuming division_id is part of defaultValues
+        if (divisionId) {
+            handleDivisionChange(divisionId);
+        }
+    }, [defaultValues.division_id]);
 
+    const selectedContractId = watch("contract_type_id")
+
+    const [loadingDisciplines, setLoadingDisciplines] = useState(false);
+    const [filteredDisciplines, setFilteredDisciplines] = useState([])
+
+
+
+    async function handleDivisionChange(division_id) {
+
+        setLoadingDisciplines(true)
         setValue("discipline_id", "")
-        setSelectedDivision(division_id)
-        const disciplinesRes = !!selectedDivision ? await getDisciplines(selectedDivision) : []
 
-        setFormData({
-            ...formData,
-            disciplines: disciplinesRes?.data ?? []
-        })
+        const disciplinesRes = await getDisciplines(division_id)
+        const disciplines = disciplinesRes.data ?? []
+
+        setFilteredDisciplines(disciplines)
+        setLoadingDisciplines(false)
+        setDefaultDiscipline()
     }
 
-    const fetchData = useMemo(
-        () => async () => {
-            try {
-                const [
-                    contractTypesRes,
-                    positionsRes,
-                    gradesRes,
-                    rolesRes,
-                    statusesRes,
-                    divisionsRes,
-                ] = await Promise.all([
-                    getContractTypes(),
-                    getPositions(),
-                    getGrades(),
-                    getRoles(),
-                    getEmployeeStatuses(),
-                    getDivisions(),
-                ]);
+    function setDefaultDiscipline() {
+        const defaultDiscipline = defaultValues?.discipline_id ?? null
+        if (!!defaultDiscipline) setValue("discipline_id", defaultDiscipline)
+    }
 
-                setFormData({
-                    disciplines: [],
-                    contractTypes: contractTypesRes.data ?? [],
-                    positions: positionsRes.data ?? [],
-                    grades: gradesRes.data ?? [],
-                    roles: rolesRes.data ?? [],
-                    statuses: statusesRes.data ?? [],
-                    divisions: divisionsRes.data ?? [],
-                });
-                setIsLoading(false);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        },
-        []
-    );
-
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    const onSubmit = async (data) => {
+    const onCreate = async (data) => {
 
         data.date_of_birth = formatDate(data.date_of_birth)
-
         !!data.contract_valid_till && (data.contract_valid_till = formatDate(data.contract_valid_till))
 
         const result = await createEmployee(data)
@@ -164,27 +139,45 @@ function AddEmployee() {
         }
     };
 
-    function formatDate(date) {
-        const parsedDate = new Date(date);
-        const year = parsedDate.getFullYear();
-        const month = ('0' + (parsedDate.getMonth() + 1)).slice(-2); // Adding 1 because months are zero-indexed
-        const day = ('0' + parsedDate.getDate()).slice(-2);
-        return `${year}-${month}-${day}`;
+    const onUpdate = async (data) => {
+
+        console.log(errors?.status_id.message)
+
+        data.date_of_birth = formatDate(data.date_of_birth)
+        !!data.contract_valid_till && (data.contract_valid_till = formatDate(data.contract_valid_till))
+
+        const flags = getFlags(data)
+
+        const result = await updateEmployee({ ...data, ...flags })
+
+        if (result.res) {
+            showToast("success", "Successfully Updated Employee")
+            router.replace("/hr")
+        }
+
     }
 
-    return (
+    function getFlags(data) {
 
-        <Form title="Add Employee" handleSubmit={handleSubmit} onSubmit={onSubmit} submitText="Submit" isSubmitting={isSubmitting} submit >
+        const grade_changed = data.grade_id != defaultValues.grade_id
+        const position_changed = data.position_id != defaultValues.position_id
+        const employee_id = defaultValues.employee_id
+
+        return { grade_changed, position_changed, employee_id }
+    }
+
+
+    return (
+        <Form title={titleText} handleSubmit={handleSubmit} onSubmit={isEdit ? onUpdate : onCreate} submitText={submitText} isSubmitting={isSubmitting} submit  >
             <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
             <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
             <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
-            <Input label="Work Email" type="text" {...register("work_email")} error={errors.work_email?.message} />
+            <Input label="Work Email" type="text" {...register("work_email")} error={errors.work_email?.message} isDisabled={isEdit} />
             <Dropdown
                 className="select-input"
                 label="Division"
                 isClearable
-                isLoading={isLoading}
-                options={formData.divisions}
+                options={optionsData.divisions}
                 handler={handleDivisionChange}
                 input_name="division_id"
                 control={control}
@@ -194,8 +187,8 @@ function AddEmployee() {
                 className="select-input"
                 label="Department"
                 isClearable
-                isLoading={isLoading}
-                options={formData.disciplines}
+                options={filteredDisciplines}
+                isLoading={loadingDisciplines}
                 input_name="discipline_id"
                 control={control}
                 error={errors.discipline_id?.message}
@@ -204,7 +197,6 @@ function AddEmployee() {
                 className="select-input"
                 label="Nationality"
                 isClearable
-                defaultValue="Lebanese"
                 options={nationalities}
                 input_name="nationality"
                 control={control}
@@ -214,7 +206,6 @@ function AddEmployee() {
                 className="select-input"
                 label="Country"
                 isClearable
-                defaultValue="Lebanon"
                 options={countries}
                 input_name="country"
                 control={control}
@@ -233,9 +224,7 @@ function AddEmployee() {
                 className="select-input"
                 label="Contract Type"
                 isClearable
-                isLoading={isLoading}
-                options={formData.contractTypes}
-                handler={setSelectedContractId}
+                options={optionsData.contractTypes}
                 input_name="contract_type_id"
                 control={control}
                 error={errors.contract_type_id?.message}
@@ -247,8 +236,7 @@ function AddEmployee() {
                 className="select-input"
                 label="Position"
                 isClearable
-                isLoading={isLoading}
-                options={formData.positions}
+                options={optionsData.positions}
                 input_name="position_id"
                 control={control}
                 error={errors.position_id?.message}
@@ -257,8 +245,7 @@ function AddEmployee() {
                 className="select-input"
                 label="Grade"
                 isClearable
-                isLoading={isLoading}
-                options={formData.grades}
+                options={optionsData.grades}
                 input_name="grade_id"
                 control={control}
                 error={errors.grade_id?.message}
@@ -267,8 +254,7 @@ function AddEmployee() {
                 className="select-input"
                 label="Role"
                 isClearable
-                isLoading={isLoading}
-                options={formData.roles}
+                options={optionsData.roles}
                 input_name="role_id"
                 control={control}
                 error={errors.role_id?.message}
@@ -276,18 +262,19 @@ function AddEmployee() {
             <Input label="Hourly Cost" type="number" {...register("employee_hourly_cost")} error={errors.employee_hourly_cost?.message} />
             <Input label="Major" type="text" {...register("major")} error={errors.major?.message} />
             <Input label="Years of Experience" type="text" {...register("years_of_experience")} error={errors.years_of_experience?.message} />
-            <Dropdown
-                className="select-input"
-                label="Status"
-                isClearable
-                isLoading={isLoading}
-                options={formData.statuses}
-                input_name="status_id"
-                control={control}
-                error={errors.status_id?.message}
-            />
+            {isEdit &&
+                <Dropdown
+                    className="select-input"
+                    label="Status"
+                    isClearable
+                    options={optionsData.statuses}
+                    input_name="status_id"
+                    control={control}
+                    error={errors.status_id?.message}
+                />
+            }
         </Form>
     );
 }
 
-export default AddEmployee;
+export default Employee;

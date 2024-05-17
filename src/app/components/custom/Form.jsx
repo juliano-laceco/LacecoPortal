@@ -4,15 +4,15 @@ import React from 'react'
 
 function Form({ title, children, handleSubmit, onSubmit, submitText, submit, isSubmitting, isDisabled }) {
 
-    const renderChildrenWithProps = () => {
-        return React.Children.map(children, (child) => {
-            if (React.isValidElement(child)) {
-                const disabledProp = isDisabled || isSubmitting;
-                return React.cloneElement(child, { ...child.props, isDisabled: disabledProp });
-            }
-            return child;
-        });
-    };
+    // const renderChildrenWithProps = () => {
+    //     return React.Children.map(children, (child) => {
+    //         if (React.isValidElement(child)) {
+    //             const disabledProp = isDisabled || isSubmitting;
+    //             return React.cloneElement(child, { ...child.props, isDisabled: disabledProp });
+    //         }
+    //         return child;
+    //     });
+    // };
 
     return (
         <>
@@ -22,7 +22,7 @@ function Form({ title, children, handleSubmit, onSubmit, submitText, submit, isS
                     className="w-full grid grid-cols-1 mob:grid-cols-1 tablet:grid-cols-2 lap:grid-cols-3 desk:grid-cols-3 gap-4"
                     onSubmit={handleSubmit(onSubmit)}
                 >
-                    {renderChildrenWithProps()}
+                    {children}
                     <div className="col-span-full">
                         <Button name={submitText} submit={submit} isDisabled={isDisabled || isSubmitting} />
                     </div>

@@ -22,7 +22,6 @@ function Perf() {
         await refetchRoles(); // Trigger the initial fetch
         const endTime = performance.now();
         setLoadTimeFirstSearch(endTime - startTime);
-     
     };
 
     const handleSecondSearch = async () => {

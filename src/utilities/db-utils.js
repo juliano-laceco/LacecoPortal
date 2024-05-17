@@ -3,7 +3,14 @@
 import db from '../config/db';
 import * as res from './response-utils';
 import { getSession } from "../utilities/auth-utils";
-import { unstable_cache } from 'next/cache';
+
+async function getLoggedInId() {
+
+    const session = await getSession()
+    const loggedInId = session?.user?.employee_id
+
+    return loggedInId
+}
 
 async function execute(query, values = []) {
 
@@ -223,11 +230,9 @@ export async function createEmployee(data) {
       position_id,  
       grade_id, 
       country, 
-      status_id,  
-      created_on,
       role_id
     )
-    VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? , CURRENT_TIMESTAMP, ?)`;
+    VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         const {
             first_name,
@@ -245,17 +250,27 @@ export async function createEmployee(data) {
             position_id,
             grade_id,
             country,
-            status_id,
             role_id
         } = data;
 
-        const result = await execute(sql, [first_name, last_name, work_email, date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost, major, years_of_experience, contract_type_id, contract_valid_till ?? null, position_id, grade_id, country, status_id, role_id])
+        const result = await execute(sql, [first_name, last_name, work_email, date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost ?? null, major, years_of_experience, contract_type_id, contract_valid_till ?? null, position_id, grade_id, country, role_id])
 
         if (result.affectedRows > 0) {
-            let insertedId = result.insertId;
-            const history_result = await createPositionHistoryRecord({ ...data, insertedId })
-            if (history_result.res) {
-                return res.success()
+            let employee_id = result.insertId;
+            let positionHistorySuccess = true;
+            let gradeHistorySuccess = true;
+
+
+            const positionHistory = await createPositionHistoryRecord({ employee_hourly_cost, position_id, employee_id });
+            positionHistorySuccess = positionHistory.res;
+
+
+            const gradeHistory = await createGradeHistoryRecord({ grade_id, employee_id });
+            gradeHistorySuccess = gradeHistory.res;
+
+
+            if (positionHistorySuccess && gradeHistorySuccess) {
+                return res.success();
             }
         }
 
@@ -267,34 +282,120 @@ export async function createEmployee(data) {
     }
 }
 
+export async function updateEmployee(data) {
+    try {
+        const sql = `
+        UPDATE lacecodb.employee
+        SET
+            first_name = ?,
+            last_name = ?,
+            date_of_birth = ?,  
+            nationality = ?,  
+            marital_status = ?,  
+            discipline_id = ?,  
+            employee_hourly_cost = ?,  
+            major = ?, 
+            years_of_experience = ?, 
+            contract_type_id = ?, 
+            contract_valid_till = ?, 
+            position_id = ?,  
+            grade_id = ?, 
+            country = ?, 
+            status_id = ?,  
+            role_id = ?
+        WHERE employee_id = ?`;
+
+        const {
+            employee_id,
+            first_name,
+            last_name,
+            date_of_birth,
+            nationality,
+            marital_status,
+            discipline_id,
+            employee_hourly_cost,
+            major,
+            years_of_experience,
+            contract_type_id,
+            contract_valid_till,
+            position_id,
+            grade_id,
+            country,
+            status_id,
+            role_id,
+            grade_changed,
+            position_changed
+        } = data;
+
+        const result = await execute(sql, [
+            first_name,
+            last_name,
+            date_of_birth,
+            nationality,
+            marital_status,
+            discipline_id,
+            employee_hourly_cost ?? null,
+            major,
+            years_of_experience,
+            contract_type_id,
+            contract_valid_till ?? null,
+            position_id,
+            grade_id,
+            country,
+            status_id,
+            role_id,
+            employee_id
+        ]);
+
+        if (result.affectedRows > 0) {
+            let positionHistorySuccess = true;
+            let gradeHistorySuccess = true;
+
+            if (position_changed) {
+                const positionHistory = await createPositionHistoryRecord({ employee_hourly_cost, position_id, employee_id });
+                positionHistorySuccess = positionHistory.res;
+            }
+
+            if (grade_changed) {
+                const gradeHistory = await createGradeHistoryRecord({ grade_id, employee_id });
+                gradeHistorySuccess = gradeHistory.res;
+            }
+
+            if (positionHistorySuccess && gradeHistorySuccess) {
+                return res.success();
+            }
+        }
+
+        return res.failed();
+    } catch (error) {
+        console.error('Error updating employee:', error);
+        return res.failed();
+    }
+}
+
 export async function createPositionHistoryRecord(data) {
 
     try {
 
-        const session = await getSession()
-        const loggedInEmployee = session?.user?.employee_id
+        const initiatorId = await getLoggedInId()
 
         const sql = `
     INSERT INTO lacecodb.position_history (
         employee_id,
-        position_change_type,
-        old_position_id,
         new_position_id,
-        old_employee_hourly_cost,
         new_employee_hourly_cost,
-        changed_on,
         changed_by
     )
-    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+    VALUES (?, ?, ?, ?)
 `;
 
         const {
             employee_hourly_cost,
             position_id,
-            insertedId
+            employee_id
         } = data;
 
-        const result = await execute(sql, [insertedId, "New Employee", position_id, position_id, employee_hourly_cost, employee_hourly_cost, loggedInEmployee])
+        const result = await execute(sql, [employee_id, position_id, employee_hourly_cost ?? null, initiatorId])
 
         if (result.affectedRows > 0) {
             return res.success()
@@ -308,4 +409,55 @@ export async function createPositionHistoryRecord(data) {
     }
 }
 
-export default getRolesCache ;
+export async function createGradeHistoryRecord(data) {
+
+    try {
+
+        const initiatorId = await getLoggedInId()
+
+        const sql = `
+    INSERT INTO lacecodb.grade_history (
+        employee_id,
+        new_grade_id,
+        changed_by
+    )
+    VALUES (?, ? , ?)
+`;
+
+        const {
+            grade_id,
+            employee_id
+        } = data;
+
+        const result = await execute(sql, [employee_id, grade_id, initiatorId])
+
+        if (result.affectedRows > 0) {
+            return res.success()
+        }
+
+        return res.failed()
+
+    } catch (error) {
+        console.error('Error creating grade history record:', error);
+        return res.failed()
+    }
+}
+
+export async function getEmployeeData(employee_id) {
+    try {
+        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, position_id, grade_id, country, status_id, role_id, division_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
+        FROM employee NATURAL JOIN discipline NATURAL JOIN division
+        WHERE employee_id = ?`;
+
+        const results = await execute(query, [employee_id])
+        return res.success_data(results);
+    } catch (error) {
+        console.error('Error fetching employee details:', error);
+        return res.failed()
+    }
+}
+
+
+
+
+export default getRolesCache;

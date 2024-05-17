@@ -4,8 +4,7 @@ import AuthProvider from "../providers/AuthProvider"; // Import your AuthProvide
 import Sidebar from "./components/sidebar/Sidebar";
 import { getSession } from "../utilities/auth-utils";
 import Image from "next/image";
-import { ToastContainer, Slide } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer} from 'react-toastify';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import ReactQueryProvider from "@/providers/SWRProvider";
 
@@ -25,12 +24,10 @@ export default async function RootLayout({ children }) {
     userRole = (session?.user?.role_name).trim();
   }
 
-
-
   const commonOptions = [{ id: crypto.randomUUID(), icon: <Image src="/resources/icons/home.svg" height="30" width="30" alt="nav-icon" />, label: "Home Page", redirectTo: "/" }]
   const HROptions = [
-    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/add-employee.svg" height="30" width="30" alt="nav-icon" />, label: "Add Employee", redirectTo: "/hr/add-employee" },
-    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/employee-list.svg" height="30" width="30" alt="nav-icon" />, label: "Employee Management", redirectTo: "/hr/employee-management" },
+    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/add-employee.svg" height="30" width="30" alt="nav-icon" />, label: "Add Employee", redirectTo: "/hr/employee/add" },
+    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/employee-list.svg" height="30" width="30" alt="nav-icon" />, label: "Employee Management", redirectTo: "/hr/employee/all" },
   ];
 
 
@@ -60,21 +57,8 @@ export default async function RootLayout({ children }) {
             </div>
             <ReactQueryDevtools initialIsOpen={false} />
           </ReactQueryProvider>
-
         </AuthProvider>
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-          transition={Slide}
-        />
+        <ToastContainer />
       </body>
     </html >
   );

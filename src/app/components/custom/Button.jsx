@@ -54,7 +54,7 @@ function Button({
     const combinedClasses = `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`;
 
     return (
-        <button type={`${submit ? "submit" : "button"}`} isDisabled={loading || isDisabled} onClick={onClick} className={combinedClasses}>
+        <button type={`${submit ? "submit" : "button"}`} disabled={loading || isDisabled} onClick={onClick} className={combinedClasses}>
             {loading ? (
                 <ClipLoader loading={loading} size={17} color={loadingColor} aria-label="Loading Spinner" data-testid="loader" />
             ) : (
