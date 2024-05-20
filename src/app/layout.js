@@ -2,11 +2,11 @@ import "./globals.css";
 import Header from "./components/header/Header";
 import AuthProvider from "../providers/AuthProvider"; // Import your AuthProvider component
 import Sidebar from "./components/sidebar/Sidebar";
-import { getSession } from "../utilities/auth-utils";
+import { getSession } from "../utilities/auth/auth-utils";
 import Image from "next/image";
-import { ToastContainer} from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import ReactQueryProvider from "@/providers/SWRProvider";
+import ReactQueryProvider from "@/providers/RQProvider";
 
 export const metadata = {
   title: "Laceco Portal",

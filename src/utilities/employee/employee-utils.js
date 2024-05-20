@@ -1,8 +1,10 @@
 "use server"
 
-import db from '../config/db';
-import * as res from './response-utils';
-import { getSession } from "../utilities/auth-utils";
+
+import * as res from '../response-utils';
+import { getSession } from "../auth/auth-utils";
+import { nullifyEmpty } from '../misc-utils';
+import { execute } from '../db/db-utils';
 
 async function getLoggedInId() {
 
@@ -10,16 +12,6 @@ async function getLoggedInId() {
     const loggedInId = session?.user?.employee_id
 
     return loggedInId
-}
-
-async function execute(query, values = []) {
-
-    try {
-        const [res] = await db.execute(query, [...values])
-        return res;
-    } catch (error) {
-        console.error("Error in executing SQL query:", error)
-    }
 }
 
 export async function handleEmployeeLogin(email, sub) {
@@ -76,119 +68,6 @@ export async function getLoggedInRole(google_sub) {
     }
 }
 
-export async function getClients() {
-
-    try {
-        const query = "SELECT client_id as value, client_name as label FROM client"
-        const results = await execute(query)
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching clients:', error);
-        return res.failed()
-    }
-
-}
-
-export async function getDisciplines(division_id = null) {
-
-    try {
-        const query = !!division_id ? "SELECT discipline_id as value, discipline_name as label FROM discipline WHERE division_id = ?" : "SELECT discipline_id as value, discipline_name as label FROM discipline"
-        const results = !!division_id ? await execute(query, [division_id]) : await execute(query)
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching disciplines:', error);
-        return res.failed()
-    }
-}
-
-export async function getDivisions() {
-
-    try {
-        const query = "SELECT division_id as value, division_name as label FROM division"
-        const results = await execute(query)
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching divisions:', error);
-        return res.failed()
-    }
-}
-
-export async function getContractTypes() {
-
-    try {
-        const query = "SELECT contract_type_id as value, contract_type_name as label FROM contract_type"
-        const results = await execute(query)
-
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching contract types:', error);
-        return res.failed()
-    }
-}
-
-export async function getPositions() {
-
-    try {
-        const query = "SELECT position_id as value, position_name as label FROM position"
-        const results = await execute(query)
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching positions:', error);
-        return res.failed()
-    }
-
-}
-
-export async function getGrades() {
-
-    try {
-        const query = "SELECT grade_id as value, grade_code as label FROM grade"
-        const results = await execute(query)
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching grades:', error);
-        return res.failed()
-    }
-
-}
-
-export async function getRoles() {
-
-    try {
-        const query = "SELECT role_id as value, role_name as label FROM role"
-        const results = await execute(query)
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching roles:', error);
-        return res.failed()
-    }
-
-}
-
-const getRolesCache = async () => {
-    try {
-        const query = "SELECT role_id as value, role_name as label FROM role";
-        const results = await execute(query);
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching roles:', error);
-        return res.failed();
-    }
-}
-
-export async function getEmployeeStatuses(type = null) {
-
-    try {
-        const query = type === "all" ? "SELECT employee_status_id as value, employee_status_name as label FROM employee_status" : "SELECT employee_status_id as value, employee_status_name as label FROM employee_status WHERE employee_status_name IN ('Active','On Probation')"
-        const results = await execute(query)
-
-        return res.success_data(results);
-    } catch (error) {
-        console.error('Error fetching employee statuses:', error);
-        return res.failed()
-    }
-}
-
 export async function checkEmailExists(email) {
 
     try {
@@ -212,6 +91,7 @@ export async function checkEmailExists(email) {
 
 export async function createEmployee(data) {
 
+    console.log(nullifyEmpty(data))
     try {
         const sql = `
       INSERT INTO lacecodb.employee (
@@ -251,7 +131,7 @@ export async function createEmployee(data) {
             grade_id,
             country,
             role_id
-        } = data;
+        } = nullifyEmpty(data);
 
         const result = await execute(sql, [first_name, last_name, work_email, date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost ?? null, major, years_of_experience, contract_type_id, contract_valid_till ?? null, position_id, grade_id, country, role_id])
 
@@ -283,6 +163,8 @@ export async function createEmployee(data) {
 }
 
 export async function updateEmployee(data) {
+
+    console.log("Updating Employee")
     try {
         const sql = `
         UPDATE lacecodb.employee
@@ -325,7 +207,7 @@ export async function updateEmployee(data) {
             role_id,
             grade_changed,
             position_changed
-        } = data;
+        } = nullifyEmpty(data);
 
         const result = await execute(sql, [
             first_name,
@@ -346,6 +228,9 @@ export async function updateEmployee(data) {
             role_id,
             employee_id
         ]);
+
+
+        console.log(result)
 
         if (result.affectedRows > 0) {
             let positionHistorySuccess = true;
@@ -457,7 +342,53 @@ export async function getEmployeeData(employee_id) {
     }
 }
 
+export async function getAllEmployees(qs) { // qs is the query string that could contain role_id , status_id , first_name , last_name etc ...
 
 
+    console.log(qs)
+    const allowedKeys = new Set([
+        'employee_id', 'google_sub', 'first_name', 'last_name', 'work_email',
+        'date_of_birth', 'nationality', 'marital_status', 'discipline_id',
+        'employee_hourly_cost', 'major', 'years_of_experience', 'contract_type_id',
+        'contract_valid_till', 'position_id', 'grade_id', 'country', 'status_id',
+        'created_on', 'role_id'
+    ]);
 
-export default getRolesCache;
+    try {
+        // Base query
+        let query = `SELECT * 
+            FROM employee NATURAL JOIN role   NATURAL JOIN position   NATURAL JOIN grade NATURAL JOIN discipline   NATURAL JOIN division  NATURAL JOIN employee_status`;
+           
+
+        
+        // Array to hold the WHERE conditions
+        let whereConditions = [];
+        // Array to hold the query parameter values
+        let queryParams = [];
+
+        // Loop through the query string parameters and build the WHERE clause
+        for (const [key, value] of Object.entries(qs)) {
+            if (allowedKeys.has(key) && value) { // Only add conditions for allowed parameters with values
+                whereConditions.push(`${key} = ?`);
+                queryParams.push(value);
+            }
+        }
+
+        // If we have any WHERE conditions, append them to the query
+        if (whereConditions.length > 0) {
+            query += ' WHERE ' + whereConditions.join(' AND ');
+        }
+
+        // Execute the query with the parameter values
+        const results = await execute(query, queryParams);
+
+       console.log(query)
+
+        return res.success_data(results);
+    } catch (error) {
+        console.error('Error fetching employee details:', error);
+        return res.failed();
+    }
+}
+
+

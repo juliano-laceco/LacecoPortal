@@ -1,4 +1,4 @@
-import { getPositions, getGrades, getRoles, getEmployeeStatuses, getContractTypes, getDivisions } from '@/utilities/db-utils'
+import { getPositions, getGrades, getRoles, getEmployeeStatuses, getContractTypes, getDivisions } from '@/utilities/lookups/lookup-utils'
 
 export default async function getDropdownData() {
     const positionsRes = await getPositions()

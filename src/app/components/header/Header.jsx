@@ -2,7 +2,7 @@
 import Image from "next/image"
 import Link from "next/link";
 import ProfileDropdown from "./Avatar";
-import { getSession } from "@/utilities/auth-utils";
+import { getSession } from "@/utilities/auth/auth-utils";
 import BurgerNav from "./BurgerNav";
 
 async function Header({ burgerNavItems }) {

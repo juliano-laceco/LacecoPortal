@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getRoles } from '@/utilities/db-utils';
+import { getRoles } from '@/utilities/employee/employee-utils';
 
 const getRolesKey = 'roles'; // Define a unique key for the cached data
 

@@ -1,7 +1,6 @@
 "use client"
 
 import { signIn, useSession } from "next-auth/react";
-import React from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from "next/navigation";
 import Image from "next/image";

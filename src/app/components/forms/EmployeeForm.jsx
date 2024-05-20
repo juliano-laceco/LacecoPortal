@@ -1,27 +1,39 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+
+// React + Next Hooks
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'
+// Components
 import Dropdown from "../custom/Dropdown";
 import Input from "../custom/Input";
+import Form from '../custom/Form';
+// Data
 import nationalities from "@/data/static/nationalities";
 import marital_statuses from "@/data/static/marital-status";
 import countries from '@/data/static/countries';
+// Form Utils
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
-import { checkEmailExists, createEmployee, getDisciplines, updateEmployee } from '@/utilities/db-utils';
-import Form from '../custom/Form';
+// Backend Functions
+import { checkEmailExists, createEmployee, updateEmployee } from '@/utilities/employee/employee-utils';
+import { getDisciplines } from '@/utilities/lookups/lookup-utils';
+// Utilities
 import { showToast } from '@/utilities/toast-utils';
-import { formatDate } from '@/utilities/date-utils';
+import { formatDate } from '@/utilities/date/date-utils';
+
 
 function Employee({ isEdit, defaultValues = {}, optionsData }) {
 
     const router = useRouter()
 
+    // Setting  Title and Submit Texts
     const submitText = isEdit ? "Update" : "Submit"
     const titleText = isEdit ? "Edit Employee" : "Add Employee"
 
+
+    // Defining Validation Schema
     const schema = yup.object().shape({
         first_name: yup.string()
             .required("First Name is required")
@@ -83,11 +95,11 @@ function Employee({ isEdit, defaultValues = {}, optionsData }) {
                 .typeError("Contract Valid Till must be a valid date")
                 .min(new Date(), "Contract Valid Till must be in the future")
                 .required("Contract Valid Till is required"),
-            otherwise: () => yup.string()
+            otherwise: () => yup.string().nullable()
         })
     });
 
-    const { handleSubmit, register, watch, control, setValue, trigger, formState: { errors, isSubmitting } } = useForm({
+    const { handleSubmit, register, watch, control, setValue, formState: { errors, isSubmitting, } } = useForm({
         resolver: yupResolver(schema),
         defaultValues
 
@@ -121,6 +133,10 @@ function Employee({ isEdit, defaultValues = {}, optionsData }) {
         setDefaultDiscipline()
     }
 
+    function handleContractTypeChange() {
+        setValue("contract_valid_till", "")
+    }
+
     function setDefaultDiscipline() {
         const defaultDiscipline = defaultValues?.discipline_id ?? null
         if (!!defaultDiscipline) setValue("discipline_id", defaultDiscipline)
@@ -131,6 +147,7 @@ function Employee({ isEdit, defaultValues = {}, optionsData }) {
         data.date_of_birth = formatDate(data.date_of_birth)
         !!data.contract_valid_till && (data.contract_valid_till = formatDate(data.contract_valid_till))
 
+
         const result = await createEmployee(data)
 
         if (result.res) {
@@ -140,8 +157,6 @@ function Employee({ isEdit, defaultValues = {}, optionsData }) {
     };
 
     const onUpdate = async (data) => {
-
-        console.log(errors?.status_id.message)
 
         data.date_of_birth = formatDate(data.date_of_birth)
         !!data.contract_valid_till && (data.contract_valid_till = formatDate(data.contract_valid_till))
@@ -225,6 +240,7 @@ function Employee({ isEdit, defaultValues = {}, optionsData }) {
                 label="Contract Type"
                 isClearable
                 options={optionsData.contractTypes}
+                handler={handleContractTypeChange}
                 input_name="contract_type_id"
                 control={control}
                 error={errors.contract_type_id?.message}

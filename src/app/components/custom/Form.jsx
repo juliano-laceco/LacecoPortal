@@ -1,18 +1,8 @@
+"use client"
 
 import Button from "./Button"
-import React from 'react'
 
 function Form({ title, children, handleSubmit, onSubmit, submitText, submit, isSubmitting, isDisabled }) {
-
-    // const renderChildrenWithProps = () => {
-    //     return React.Children.map(children, (child) => {
-    //         if (React.isValidElement(child)) {
-    //             const disabledProp = isDisabled || isSubmitting;
-    //             return React.cloneElement(child, { ...child.props, isDisabled: disabledProp });
-    //         }
-    //         return child;
-    //     });
-    // };
 
     return (
         <>

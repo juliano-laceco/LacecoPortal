@@ -1,11 +1,14 @@
-import Image from 'next/image'
-import React from 'react'
+import { formatDate } from "@/utilities/date/date-utils"
+import { getAllEmployees } from "@/utilities/employee/employee-utils"
+import EmployeeTable from "./EmployeeTable"
 
-function page() {
+async function page() {
+
+  const results = await getAllEmployees({})
+  const data = results.data
+  
   return (
-    <div className="flex flex-col">
-      <h1 className="font-bold text-section-title">This is the Employee Management Page</h1>
-    </div>
+    <EmployeeTable data={data} />
   )
 }
 

@@ -1,6 +1,5 @@
 "use client"
 
-import React from 'react'
 import { ClipLoader } from 'react-spinners'; // Assuming ClipLoader import
 import { theme } from "../../../../tailwind.config";
 

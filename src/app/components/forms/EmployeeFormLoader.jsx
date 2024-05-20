@@ -1,6 +1,5 @@
 import Employee from '@/app/components/forms/EmployeeForm'
-import React from 'react'
-import { getEmployeeData } from '@/utilities/db-utils'
+import { getEmployeeData } from '@/utilities/employee/employee-utils'
 import getDropdownData from '@/data/dynamic/dropdownOptions'
 
 async function EmployeeFormLoader({ params, isEdit }) {
