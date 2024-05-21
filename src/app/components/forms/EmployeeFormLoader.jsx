@@ -1,6 +1,6 @@
 import Employee from '@/app/components/forms/EmployeeForm'
 import { getEmployeeData } from '@/utilities/employee/employee-utils'
-import getDropdownData from '@/data/dynamic/dropdownOptions'
+import getDropdownData from '@/data/dynamic/NewEmployeeDDOptions'
 
 async function EmployeeFormLoader({ params, isEdit }) {
 

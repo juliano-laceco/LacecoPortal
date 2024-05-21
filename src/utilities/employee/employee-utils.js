@@ -4,7 +4,7 @@
 import * as res from '../response-utils';
 import { getSession } from "../auth/auth-utils";
 import { nullifyEmpty } from '../misc-utils';
-import { execute } from '../db/db-utils';
+import { dynamicQuery, execute, getTableFields } from '../db/db-utils';
 
 async function getLoggedInId() {
 
@@ -183,7 +183,7 @@ export async function updateEmployee(data) {
             position_id = ?,  
             grade_id = ?, 
             country = ?, 
-            status_id = ?,  
+            employee_status_id = ?,  
             role_id = ?
         WHERE employee_id = ?`;
 
@@ -330,9 +330,11 @@ export async function createGradeHistoryRecord(data) {
 
 export async function getEmployeeData(employee_id) {
     try {
-        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, position_id, grade_id, country, status_id, role_id, division_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
-        FROM employee NATURAL JOIN discipline NATURAL JOIN division
-        WHERE employee_id = ?`;
+        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, position_id, grade_id, country, employee_status_id, role_id, division_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
+                       FROM employee
+                       NATURAL JOIN discipline
+                       NATURAL JOIN division
+                       WHERE employee_id = ?`;
 
         const results = await execute(query, [employee_id])
         return res.success_data(results);
@@ -342,49 +344,26 @@ export async function getEmployeeData(employee_id) {
     }
 }
 
-export async function getAllEmployees(qs) { // qs is the query string that could contain role_id , status_id , first_name , last_name etc ...
+export async function getAllEmployees(qs = {}) { // qs is the query string that could contain role_id , status_id , first_name , last_name etc ...
 
+    const resp = await getTableFields("employee", ["employee_status", "role", "position", "grade", "discipline", "division"])
 
-    console.log(qs)
-    const allowedKeys = new Set([
-        'employee_id', 'google_sub', 'first_name', 'last_name', 'work_email',
-        'date_of_birth', 'nationality', 'marital_status', 'discipline_id',
-        'employee_hourly_cost', 'major', 'years_of_experience', 'contract_type_id',
-        'contract_valid_till', 'position_id', 'grade_id', 'country', 'status_id',
-        'created_on', 'role_id'
-    ]);
+    const allowedKeys = resp.res ? new Set(resp.data) : new Set([])
 
     try {
         // Base query
         let query = `SELECT * 
-            FROM employee NATURAL JOIN role   NATURAL JOIN position   NATURAL JOIN grade NATURAL JOIN discipline   NATURAL JOIN division  NATURAL JOIN employee_status`;
-           
+                     FROM employee
+                     NATURAL JOIN employee_status
+                     NATURAL JOIN role
+                     NATURAL JOIN position
+                     NATURAL JOIN grade
+                     NATURAL JOIN discipline
+                     NATURAL JOIN division`;
 
-        
-        // Array to hold the WHERE conditions
-        let whereConditions = [];
-        // Array to hold the query parameter values
-        let queryParams = [];
+        const result = await dynamicQuery(qs, query, allowedKeys)
+        return result
 
-        // Loop through the query string parameters and build the WHERE clause
-        for (const [key, value] of Object.entries(qs)) {
-            if (allowedKeys.has(key) && value) { // Only add conditions for allowed parameters with values
-                whereConditions.push(`${key} = ?`);
-                queryParams.push(value);
-            }
-        }
-
-        // If we have any WHERE conditions, append them to the query
-        if (whereConditions.length > 0) {
-            query += ' WHERE ' + whereConditions.join(' AND ');
-        }
-
-        // Execute the query with the parameter values
-        const results = await execute(query, queryParams);
-
-       console.log(query)
-
-        return res.success_data(results);
     } catch (error) {
         console.error('Error fetching employee details:', error);
         return res.failed();

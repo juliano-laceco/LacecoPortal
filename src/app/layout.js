@@ -7,6 +7,7 @@ import Image from "next/image";
 import { ToastContainer } from 'react-toastify';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import ReactQueryProvider from "@/providers/RQProvider";
+import { getAllEmployees } from "@/utilities/employee/employee-utils";
 
 export const metadata = {
   title: "Laceco Portal",
@@ -23,6 +24,7 @@ export default async function RootLayout({ children }) {
   if (!!session) {
     userRole = (session?.user?.role_name).trim();
   }
+
 
   const commonOptions = [{ id: crypto.randomUUID(), icon: <Image src="/resources/icons/home.svg" height="30" width="30" alt="nav-icon" />, label: "Home Page", redirectTo: "/" }]
   const HROptions = [

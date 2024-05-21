@@ -1,23 +1,30 @@
-"use client"
+'use client'
 
+import React from 'react';
 import Select from 'react-select';
-import { theme } from "../../../../tailwind.config"
-import { useRouter } from "next/navigation"
+import { theme } from '../../../../tailwind.config';
 
 function DropdownFilter({ options, isSearchable, isDisabled, isLoading, label, stateVal, pushQS }) {
+    const colors = theme.extend.colors;
 
+    // Find the default option based on the stateVal
+    const defaultOption = options.find(x => x.value == stateVal);
 
-    const colors = theme.extend.colors
-    const router = useRouter()
+    // Handle onChange event
+    const handleChange = (option) => {
+        const value = option ? option.value : '';
+        pushQS(value);
+    };
+
     return (
-        <div className="flex flex-col  items-start gap-[3px] w-full">
+        <div className="flex flex-col items-start gap-[3px] w-full">
             <label className="mob:text-base tablet:text-base lap:text-base desk:text-base pr-3"> {label} </label>
             <div className={`w-full flex mob:text-sm mob:p-0 relative ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
                 <Select
                     classNamePrefix="react-select-dd"
                     options={options}
-                    value={options.find(x => x.value === stateVal)}
-                    onChange={(option) => pushQS(option?.value ?? "")}
+                    defaultValue={defaultOption}
+                    onChange={(option) => handleChange(option)}
                     isSearchable={isSearchable}
                     isDisabled={isLoading || isDisabled}
                     isClearable

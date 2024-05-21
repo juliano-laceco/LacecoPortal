@@ -3,7 +3,7 @@ import { getEmployeeStatuses, getDivisions, getDisciplines } from '@/utilities/l
 export default async function getDropdownData() {
 
 
-    const statusesRes = await getEmployeeStatuses()
+    const statusesRes = await getEmployeeStatuses("all")
     const statuses = statusesRes.data
 
     const disciplinesRes = await getDisciplines()

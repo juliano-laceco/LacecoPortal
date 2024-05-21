@@ -1,4 +1,4 @@
-import  { forwardRef } from 'react';
+import { forwardRef } from 'react';
 
 const Input = forwardRef(
     (
@@ -6,6 +6,7 @@ const Input = forwardRef(
             type,
             onChange,
             onKeyUp,
+            onKeyDown,
             onBlur,
             placeholder,
             className,
@@ -20,13 +21,14 @@ const Input = forwardRef(
             min,
             max,
             onFocus,
+            ltr = true,
             fit = false,
             ...rest
         },
         ref
     ) => {
         const baseClasses = 'border-1 rounded-md p-2 w-full border-input-b bg-input-bg';
-        const inputClasses = `focus:ring-0 focus:border-pric g p-1 rounded-md ${!!Icon ? "pl-12" : ""}`;
+        const inputClasses = `focus:ring-0 focus:border-pric p-1 rounded-md ${!!Icon ? `p${ltr ? "r" : "l" }-12` : ""}`;
         const labelClasses = `pr-3 mob:mt-1 ${!!labelStyle ? labelStyle : ""}`;
         const errorClasses = 'text-pric text-[1.5ex] ml-1';
 
@@ -40,6 +42,7 @@ const Input = forwardRef(
                         type={type}
                         onChange={onChange}
                         onKeyUp={onKeyUp}
+                        onKeyDown={onKeyDown}
                         ref={ref}
                         placeholder={placeholder}
                         onBlur={onBlur}
@@ -53,9 +56,9 @@ const Input = forwardRef(
                     {!!Icon && (
                         <div
                             onClick={!!onClickIcon && onClickIcon}
-                            className={`absolute left-2 top-1/2 transform -translate-y-1/2 cursor-pointer ${!!onClickIcon && 'hover:opacity-70'}`}
+                            className={`absolute bg-input-bg  ${ltr ? "right-2":"left-2"} top-1/2 transform -translate-y-1/2 cursor-pointer ${!!onClickIcon && 'hover:opacity-70'}`}
                         >
-                            <Icon className="w-5 h-5  mob:w-5" />
+                            {Icon}
                         </div>
                     )}
                 </div>
