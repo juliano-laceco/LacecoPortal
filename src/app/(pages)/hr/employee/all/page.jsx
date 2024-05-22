@@ -2,6 +2,8 @@ import { getAllEmployees } from "@/utilities/employee/employee-utils"
 import EmployeeTableWrapper from "./EmployeeTableWrapper"
 import getDropdownData from "@/data/dynamic/EmployeeFilterDDOptions"
 import { formatDate } from "@/utilities/date/date-utils"
+import Image from "next/image"
+import Link from "next/link"
 
 
 
@@ -53,20 +55,52 @@ async function TablePage({ searchParams }) {
     const preprocessData = (data) => {
         return data.map(row => ({
             ...row,
+            employee_status: createStatusDiv(row.employee_status_name),
             fullName: `${row.first_name} ${row.last_name}`,
             created_on: formatDate(row.created_on),
+            actions: (
+                <Link href={`/hr/employee/${row.employee_id}`}>
+                    <Image
+                        src="/resources/icons/edit.svg"
+                        height="25"
+                        width="25"
+                        alt="Search"
+                    />
+                </Link>
+            ),
         }));
     };
 
+    function createStatusDiv(status) {
+
+        let bg;
+        console.log(status)
+        switch (status) {
+            case "Active":
+                bg = "bg-active"
+                break;
+            case "On Probation" || "On Temporary Leave":
+                bg = "bg-probation"
+                break;
+            case "Suspended" || "Terminated":
+                bg = "bg-terminated"
+                break;
+        }
+
+
+        return (<div className={`p-2 w-32 rounded-md text-xs text-center text-white ${bg}`}>{status}</div>)
+
+    }
+
     const tableHeaders = [
         { Header: 'Name', accessor: 'fullName', mobile: true },
-        { Header: 'Email', accessor: 'work_email' }, 
-        { Header: 'Division', accessor: 'division_name', mobile: true },
-        { Header: 'Discipline', accessor: 'discipline_name' },
+        { Header: 'Division', accessor: 'division_name' },
+        { Header: 'Department', accessor: 'discipline_name' },
         { Header: 'Position', accessor: 'position_name', mobile: true },
         { Header: 'Grade', accessor: 'grade_code' },
-        { Header: 'Created On', accessor: 'created_on' },
-        { Header: 'Status', accessor: 'employee_status_name' },
+        { Header: 'Joined On', accessor: 'created_on' },
+        { Header: 'Status', accessor: 'employee_status' },
+        { Header: 'Actions', accessor: 'actions', mobile: true },
     ];
 
     return (

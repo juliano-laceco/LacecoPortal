@@ -203,7 +203,7 @@ export async function updateEmployee(data) {
             position_id,
             grade_id,
             country,
-            status_id,
+            employee_status_id,
             role_id,
             grade_changed,
             position_changed
@@ -224,7 +224,7 @@ export async function updateEmployee(data) {
             position_id,
             grade_id,
             country,
-            status_id,
+            employee_status_id,
             role_id,
             employee_id
         ]);
@@ -344,7 +344,7 @@ export async function getEmployeeData(employee_id) {
     }
 }
 
-export async function getAllEmployees(qs = {}) { // qs is the query string that could contain role_id , status_id , first_name , last_name etc ...
+export async function getAllEmployees(qs = {}) { 
 
     const resp = await getTableFields("employee", ["employee_status", "role", "position", "grade", "discipline", "division"])
 

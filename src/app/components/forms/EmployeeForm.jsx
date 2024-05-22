@@ -88,7 +88,7 @@ function Employee({ isEdit, defaultValues = {}, optionsData }) {
             .required("Years of Experience is required")
             .min(0, "Years of Experience must be greater than or equal to 0")
             .max(50, "Years of Experience must be less than or equal to 50"),
-        status_id: isEdit ? yup.string().required("Status is required") : yup.string(),
+        employee_status_id: isEdit ? yup.string().required("Status is required") : yup.string(),
         contract_valid_till: yup.string().when("contract_type_id", {
             is: "2",
             then: () => yup.date()
@@ -284,7 +284,7 @@ function Employee({ isEdit, defaultValues = {}, optionsData }) {
                     label="Status"
                     isClearable
                     options={optionsData.statuses}
-                    input_name="status_id"
+                    input_name="employee_status_id"
                     control={control}
                     error={errors.status_id?.message}
                 />

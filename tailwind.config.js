@@ -27,7 +27,7 @@ module.exports = {
         "pri-but-txtc": "#fff",
         "sec-but-txtc": "#1f2937",
         "th-txtc": "#1f2937",
-        "basic-item-hov" : "#f3f4f6",
+        "basic-item-hov": "#f3f4f6",
         "error-txt-c": "#dc2626",
         "success-txt-c": "#22c55e",
         "pri-butb": "#e84a40",
@@ -38,10 +38,14 @@ module.exports = {
         "input-b": "#9ca3af",
         "input-focb": "#ef4444",
         "input-bg": "#f7f8f9",
-        "input-dis" : "#d1d5db",
-        "gray-active" : "#9ca3af",
-        "section-bg" : "#f4f4f5",
-        "form-title" : "text-xl"
+        "input-dis": "#d1d5db",
+        "gray-active": "#9ca3af",
+        "section-bg": "#f4f4f5",
+        "form-title": "text-xl",
+        "active": "#6ABE6B",
+        "terminated": "#e84a40",
+        "probation": "#feb247"
+
       },
       screens: {
         mob: { min: '320px', max: '480px' },  // Mobile devices
