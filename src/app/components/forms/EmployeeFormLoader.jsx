@@ -1,4 +1,4 @@
-import Employee from '@/app/components/forms/EmployeeForm'
+import EmployeeForm from '@/app/components/forms/EmployeeForm'
 import { getEmployeeData } from '@/utilities/employee/employee-utils'
 import getDropdownData from '@/data/dynamic/NewEmployeeDDOptions'
 
@@ -17,7 +17,7 @@ async function EmployeeFormLoader({ params, isEdit }) {
     }
 
     return (
-        isEdit ? employeeCount > 0 ? <Employee isEdit={isEdit} defaultValues={employeeData} optionsData={optionsData} /> : <div>No Employee Found</div> : <Employee isEdit={isEdit} defaultValues={employeeData} optionsData={optionsData} />
+        isEdit ? employeeCount > 0 ? <EmployeeForm isEdit={isEdit} defaultValues={employeeData} optionsData={optionsData} /> : <div>No Employee Found</div> : <EmployeeForm isEdit={isEdit} defaultValues={employeeData} optionsData={optionsData} />
     )
 }
 

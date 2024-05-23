@@ -3,9 +3,9 @@
 import { useEffect } from 'react';
 import Select from 'react-select';
 import { useController } from 'react-hook-form';
-import { theme } from "../../../../tailwind.config"
+import { theme } from "../../../../../tailwind.config"
 
-function Dropdown({ options, input_name, isSearchable, isDisabled, isLoading, defaultValue, label, error, control, handler }) {
+function DropdownLookup({ options, input_name, isSearchable, isDisabled, isLoading, defaultValue, label, error, control, handler }) {
 
     const { field: { value: ddValue, onChange: ddOnChange, ...rest } } = useController({ name: input_name, control });
 
@@ -63,4 +63,4 @@ function Dropdown({ options, input_name, isSearchable, isDisabled, isLoading, de
     );
 }
 
-export default Dropdown;
+export default DropdownLookup;

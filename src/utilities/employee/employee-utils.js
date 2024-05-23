@@ -91,7 +91,6 @@ export async function checkEmailExists(email) {
 
 export async function createEmployee(data) {
 
-    console.log(nullifyEmpty(data))
     try {
         const sql = `
       INSERT INTO lacecodb.employee (
@@ -230,8 +229,6 @@ export async function updateEmployee(data) {
         ]);
 
 
-        console.log(result)
-
         if (result.affectedRows > 0) {
             let positionHistorySuccess = true;
             let gradeHistorySuccess = true;
@@ -344,7 +341,7 @@ export async function getEmployeeData(employee_id) {
     }
 }
 
-export async function getAllEmployees(qs = {}) { 
+export async function getAllEmployees(qs = {}) {
 
     const resp = await getTableFields("employee", ["employee_status", "role", "position", "grade", "discipline", "division"])
 

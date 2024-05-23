@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Select from 'react-select';
-import { theme } from '../../../../tailwind.config';
+import { theme } from '../../../../../tailwind.config';
 
-function DropdownFilter({ options, isSearchable, isDisabled, isLoading, label, stateVal, pushQS }) {
+function DropdownFilter({ options, isSearchable, isDisabled, isLoading, label, stateVal, filterFunction }) {
     const colors = theme.extend.colors;
 
     // Find the default option based on the stateVal
@@ -13,7 +13,7 @@ function DropdownFilter({ options, isSearchable, isDisabled, isLoading, label, s
     // Handle onChange event
     const handleChange = (option) => {
         const value = option ? option.value : '';
-        pushQS(value);
+        filterFunction(value);
     };
 
     return (
@@ -49,7 +49,7 @@ function DropdownFilter({ options, isSearchable, isDisabled, isLoading, label, s
                     }}
                 />
             </div>
-        </div >
+        </div>
     );
 }
 

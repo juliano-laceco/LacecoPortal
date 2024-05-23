@@ -12,6 +12,7 @@ export default async function getDropdownData() {
 
     const divisionsRes = await getDivisions()
     const divisions = divisionsRes.data
+    
 
     return { statuses, disciplines, divisions }
 }

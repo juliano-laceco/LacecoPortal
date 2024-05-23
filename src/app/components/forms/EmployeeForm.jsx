@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'
 // Components
-import Dropdown from "../custom/Dropdown";
+import Dropdown from "../custom/Dropdowns/DropdownLookup";
 import Input from "../custom/Input";
 import Form from '../custom/Form';
 // Data
@@ -24,7 +24,7 @@ import { showToast } from '@/utilities/toast-utils';
 import { formatDate } from '@/utilities/date/date-utils';
 
 
-function Employee({ isEdit, defaultValues = {}, optionsData }) {
+function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
     const router = useRouter()
 
@@ -287,10 +287,11 @@ function Employee({ isEdit, defaultValues = {}, optionsData }) {
                     input_name="employee_status_id"
                     control={control}
                     error={errors.status_id?.message}
+
                 />
             }
         </Form>
     );
 }
 
-export default Employee;
+export default EmployeeForm;

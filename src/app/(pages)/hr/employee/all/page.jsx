@@ -1,5 +1,5 @@
 import { getAllEmployees } from "@/utilities/employee/employee-utils"
-import EmployeeTableWrapper from "./EmployeeTableWrapper"
+import EmployeeTableWrapper from "../../../../components/custom/TableWrappers/EmployeeTableWrapper"
 import getDropdownData from "@/data/dynamic/EmployeeFilterDDOptions"
 import { formatDate } from "@/utilities/date/date-utils"
 import Image from "next/image"
@@ -74,12 +74,12 @@ async function TablePage({ searchParams }) {
     function createStatusDiv(status) {
 
         let bg;
-        console.log(status)
+
         switch (status) {
             case "Active":
                 bg = "bg-active"
                 break;
-            case "On Probation" || "On Temporary Leave":
+            case "On Temporary Leave":
                 bg = "bg-probation"
                 break;
             case "Suspended" || "Terminated":
@@ -105,7 +105,7 @@ async function TablePage({ searchParams }) {
 
     return (
         <>
-            <EmployeeTableWrapper data={preprocessData(data)} searchParams={searchParams} filterItems={filterItems} tableHeaders={tableHeaders} />
+            <EmployeeTableWrapper data={preprocessData(data)} searchParams={searchParams} filterItems={filterItems} tableHeaders={tableHeaders} minPageSize={2} maxPageSize={10} pageSizeStep={2} isPaginated isFilterable />
         </>
     )
 }

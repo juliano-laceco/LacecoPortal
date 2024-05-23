@@ -93,10 +93,10 @@ export async function getRoles() {
 
 }
 
-export async function getEmployeeStatuses(type = null) {
+export async function getEmployeeStatuses() {
 
     try {
-        const query = type === "all" ? "SELECT employee_status_id as value, employee_status_name as label FROM employee_status" : "SELECT employee_status_id as value, employee_status_name as label FROM employee_status WHERE employee_status_name IN ('Active','On Probation')"
+        const query =  "SELECT employee_status_id as value, employee_status_name as label FROM employee_status"
         const results = await execute(query)
 
         return res.success_data(results);

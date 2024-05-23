@@ -12,6 +12,7 @@ export default async function getDropdownData() {
 
     const statusesRes = await getEmployeeStatuses()
     const statuses = statusesRes.data
+    
 
     const contractTypesRes = await getContractTypes();
     const contractTypes = contractTypesRes.data
