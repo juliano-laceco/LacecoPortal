@@ -24,6 +24,7 @@ function DropdownFilter({ options, isSearchable, isDisabled, isLoading, label, s
                     classNamePrefix="react-select-dd"
                     options={options}
                     defaultValue={defaultOption}
+                    value={defaultOption || ""}
                     onChange={(option) => handleChange(option)}
                     isSearchable={isSearchable}
                     isDisabled={isLoading || isDisabled}

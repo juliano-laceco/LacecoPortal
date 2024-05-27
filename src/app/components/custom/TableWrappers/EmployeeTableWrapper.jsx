@@ -69,12 +69,19 @@ function EmployeeTableWrapper({ data, filterItems, tableHeaders, isPaginated, is
 
   return (
     <div className="container mx-auto min-w-full">
+      <div className="table-wrapper bg-white p-5 mob:p-4 rounded-lg">
 
-      {isFilterable && <TableFilter filterItems={filterItems} filterFunction={pushQS} clearFunction={clearFunction} keywordRef={keywordRef} />}
-      <TableBody {...tableInstance} tableHeaders={tableHeaders} />
-      {(isPaginated && data.length > 0) && <TablePagination {...tableInstance} pageSize={pageSize} pageIndex={pageIndex} pageSizeOptions={pageSizeOptions} />}
+        <h1 className="font-bold text-3xl">Employees List</h1>
+        <h3 className="py-2 mb-3">Displays all employee information</h3>
+
+        {isFilterable && <TableFilter filterItems={filterItems} filterFunction={pushQS} clearFunction={clearFunction} keywordRef={keywordRef} />}
+        <TableBody {...tableInstance} tableHeaders={tableHeaders} />
+        {(isPaginated && data.length > 0) && <TablePagination {...tableInstance} pageSize={pageSize} pageIndex={pageIndex} pageSizeOptions={pageSizeOptions} />}
+      </div>
 
     </div>
+
+
   );
 }
 

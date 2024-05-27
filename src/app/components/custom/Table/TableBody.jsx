@@ -1,13 +1,13 @@
 function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroups, page, prepareRow }) {
     return (
-      <table {...getTableProps()} className="min-w-full divide-y rounded-lg shadow-xl overflow-hidden divide-gray-200 table-auto">
+      <table {...getTableProps()} className="min-w-full divide-y rounded-lg shadow-lg overflow-hidden divide-gray-200 table-auto">
         <thead>
           {headerGroups.map((headerGroup) => (
-            <tr {...headerGroup.getHeaderGroupProps()} key={crypto.randomUUID()}>
+            <tr {...headerGroup.getHeaderGroupProps()} key={crypto.randomUUID()} className="border overflow-hidden">
               {headerGroup.headers.map((column) => (
                 <th
                   {...column.getHeaderProps(column.getSortByToggleProps())}
-                  className={`px-6 py-3 bg-white text-black text-center font-bold text-xs uppercase tracking-wider ${column && !column.mobile && 'mob:hidden'}`}
+                  className={`px-6 py-3 bg-gray-100 text-black text-center font-bold text-xs uppercase tracking-wider ${column && !column.mobile && 'mob:hidden'}`}
                   key={crypto.randomUUID()}
                 >
                   {column.render('Header')}
@@ -24,7 +24,7 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
             page.map((row) => {
               prepareRow(row);
               return (
-                <tr {...row.getRowProps()} className="bg-white" key={crypto.randomUUID()}>
+                <tr {...row.getRowProps()} className="bg-white border-t" key={crypto.randomUUID()}>
                   {row.cells.map((cell) => {
                     const column = tableHeaders.find((col) => col.accessor === cell.column.id);
                     return (

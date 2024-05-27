@@ -6,6 +6,7 @@ import { getSession } from "../auth/auth-utils";
 import { nullifyEmpty } from '../misc-utils';
 import { dynamicQuery, execute, getTableFields } from '../db/db-utils';
 
+
 async function getLoggedInId() {
 
     const session = await getSession()
@@ -107,11 +108,10 @@ export async function createEmployee(data) {
       contract_type_id, 
       contract_valid_till, 
       position_id,  
-      grade_id, 
       country, 
       role_id
     )
-    VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    VALUES ( ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?,  ?)`;
 
         const {
             first_name,
@@ -132,25 +132,10 @@ export async function createEmployee(data) {
             role_id
         } = nullifyEmpty(data);
 
-        const result = await execute(sql, [first_name, last_name, work_email, date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost ?? null, major, years_of_experience, contract_type_id, contract_valid_till ?? null, position_id, grade_id, country, role_id])
+        const result = await execute(sql, [first_name, last_name, work_email, date_of_birth, nationality, marital_status,  employee_hourly_cost ?? null, major, years_of_experience, contract_type_id, contract_valid_till ?? null, position_id,  country, role_id])
 
         if (result.affectedRows > 0) {
-            let employee_id = result.insertId;
-            let positionHistorySuccess = true;
-            let gradeHistorySuccess = true;
-
-
-            const positionHistory = await createPositionHistoryRecord({ employee_hourly_cost, position_id, employee_id });
-            positionHistorySuccess = positionHistory.res;
-
-
-            const gradeHistory = await createGradeHistoryRecord({ grade_id, employee_id });
-            gradeHistorySuccess = gradeHistory.res;
-
-
-            if (positionHistorySuccess && gradeHistorySuccess) {
-                return res.success();
-            }
+            return res.success();
         }
 
         return res.failed()
@@ -163,7 +148,7 @@ export async function createEmployee(data) {
 
 export async function updateEmployee(data) {
 
-    console.log("Updating Employee")
+  
     try {
         const sql = `
         UPDATE lacecodb.employee
@@ -172,15 +157,13 @@ export async function updateEmployee(data) {
             last_name = ?,
             date_of_birth = ?,  
             nationality = ?,  
-            marital_status = ?,  
-            discipline_id = ?,  
+            marital_status = ?,   
             employee_hourly_cost = ?,  
             major = ?, 
             years_of_experience = ?, 
             contract_type_id = ?, 
             contract_valid_till = ?, 
             position_id = ?,  
-            grade_id = ?, 
             country = ?, 
             employee_status_id = ?,  
             role_id = ?
@@ -193,14 +176,12 @@ export async function updateEmployee(data) {
             date_of_birth,
             nationality,
             marital_status,
-            discipline_id,
             employee_hourly_cost,
             major,
             years_of_experience,
             contract_type_id,
             contract_valid_till,
             position_id,
-            grade_id,
             country,
             employee_status_id,
             role_id,
@@ -214,14 +195,12 @@ export async function updateEmployee(data) {
             date_of_birth,
             nationality,
             marital_status,
-            discipline_id,
             employee_hourly_cost ?? null,
             major,
             years_of_experience,
             contract_type_id,
             contract_valid_till ?? null,
             position_id,
-            grade_id,
             country,
             employee_status_id,
             role_id,
@@ -230,22 +209,7 @@ export async function updateEmployee(data) {
 
 
         if (result.affectedRows > 0) {
-            let positionHistorySuccess = true;
-            let gradeHistorySuccess = true;
-
-            if (position_changed) {
-                const positionHistory = await createPositionHistoryRecord({ employee_hourly_cost, position_id, employee_id });
-                positionHistorySuccess = positionHistory.res;
-            }
-
-            if (grade_changed) {
-                const gradeHistory = await createGradeHistoryRecord({ grade_id, employee_id });
-                gradeHistorySuccess = gradeHistory.res;
-            }
-
-            if (positionHistorySuccess && gradeHistorySuccess) {
-                return res.success();
-            }
+            return res.success();
         }
 
         return res.failed();
@@ -327,9 +291,10 @@ export async function createGradeHistoryRecord(data) {
 
 export async function getEmployeeData(employee_id) {
     try {
-        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, position_id, grade_id, country, employee_status_id, role_id, division_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
+        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, position_id, grade_id, country, employee_status_id, role_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
                        FROM employee
                        NATURAL JOIN discipline
+                       NATURAL JOIN position
                        NATURAL JOIN division
                        WHERE employee_id = ?`;
 
@@ -359,6 +324,8 @@ export async function getAllEmployees(qs = {}) {
                      NATURAL JOIN division`;
 
         const result = await dynamicQuery(qs, query, allowedKeys)
+
+        console.log(result)
         return result
 
     } catch (error) {

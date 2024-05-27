@@ -5,7 +5,7 @@ import Button from "../Button";
 
 function TableFilter({ filterItems, filterFunction, keywordRef , clearFunction }) {
     return (
-        <div className="flex justify-between mb-4">
+        <div className="flex justify-between mb-4 border mob:border-none rounded-md p-3">
             <div className="flex gap-4 mob:flex-col mob:justify-center tablet:flex-col tablet:justify-center mob:gap-1">
                 {filterItems.map((item, index) => (
                     item.type === "keyword" ? (
