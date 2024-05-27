@@ -27,13 +27,6 @@ async function TablePage({ searchParams }) {
             filterKey: "keyword",
             filterLabel: "Search",
             filterValue: keyword ?? ""
-        }, {
-            type: "dd",
-            filterKey: "discipline_id",
-            filterLabel: "Department",
-            filterDataKey: "discipline_name",
-            filterOptions: optionsData.disciplines,
-            filterValue: discipline ?? ""
         },
         {
             type: "dd",
@@ -42,6 +35,14 @@ async function TablePage({ searchParams }) {
             filterDataKey: "division_name",
             filterOptions: optionsData.divisions,
             filterValue: division ?? ""
+        },
+        {
+            type: "dd",
+            filterKey: "discipline_id",
+            filterLabel: "Department",
+            filterDataKey: "discipline_name",
+            filterOptions: optionsData.disciplines,
+            filterValue: discipline ?? ""
         },
         {
             type: "dd",
@@ -59,14 +60,26 @@ async function TablePage({ searchParams }) {
             fullName: `${row.first_name} ${row.last_name}`,
             created_on: formatDate(row.created_on),
             actions: (
-                <Link href={`/hr/employee/${row.employee_id}`}>
-                    <Image
-                        src="/resources/icons/edit.svg"
-                        height="25"
-                        width="25"
-                        alt="Search"
-                    />
-                </Link>
+
+                <div className="flex justify-center items-center gap-2">
+                    <Link title="Edit Employee" href={`/hr/employee/${row.employee_id}`}>
+                        <Image
+                            src="/resources/icons/edit.svg"
+                            height="25"
+                            width="25"
+                            alt="edit"
+                        />
+                    </Link>
+                    <Link title="New Leave" href={`/hr/employee/leave/${row.employee_id}`}>
+                        <Image
+                            src="/resources/icons/leave.svg"
+                            height="28"
+                            width="28"
+                            alt="leave"
+                            className="mt-1"
+                        />
+                    </Link>
+                </div>
             ),
         }));
     };

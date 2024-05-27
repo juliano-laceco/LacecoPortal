@@ -54,17 +54,28 @@ export async function getContractTypes() {
     }
 }
 
-export async function getPositions() {
+export async function getPositions(discipline_id = null) {
 
     try {
-        const query = "SELECT position_id as value, position_name as label FROM position"
-        const results = await execute(query)
+        const query = !!discipline_id ? "SELECT position_id as value, position_name as label FROM position where discipline_id = ?" : "SELECT position_id as value, position_name as label FROM position"
+        const results = !!discipline_id ? await execute(query, [discipline_id]) : await execute(query)
         return res.success_data(results);
     } catch (error) {
         console.error('Error fetching positions:', error);
         return res.failed()
     }
 
+}
+
+export async function getPositionDetails(position_id) {
+    try {
+        const query = "SELECT level_of_management_name , grade_code  FROM position NATURAL JOIN level_of_management NATURAL JOIN grade where position_id = ?"
+        const results = await execute(query, [position_id])
+        return res.success_data(results);
+    } catch (error) {
+        console.error('Error fetching position details:', error);
+        return res.failed()
+    }
 }
 
 export async function getGrades() {
@@ -96,7 +107,7 @@ export async function getRoles() {
 export async function getEmployeeStatuses() {
 
     try {
-        const query =  "SELECT employee_status_id as value, employee_status_name as label FROM employee_status"
+        const query = "SELECT employee_status_id as value, employee_status_name as label FROM employee_status"
         const results = await execute(query)
 
         return res.success_data(results);

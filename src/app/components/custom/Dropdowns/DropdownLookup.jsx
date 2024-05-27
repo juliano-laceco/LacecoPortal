@@ -5,7 +5,7 @@ import Select from 'react-select';
 import { useController } from 'react-hook-form';
 import { theme } from "../../../../../tailwind.config"
 
-function DropdownLookup({ options, input_name, isSearchable, isDisabled, isLoading, defaultValue, label, error, control, handler }) {
+function DropdownLookup({ options, input_name, isSearchable, isDisabled, isLoading, isClearable, defaultValue, label, error, control, handler }) {
 
     const { field: { value: ddValue, onChange: ddOnChange, ...rest } } = useController({ name: input_name, control });
 
@@ -35,7 +35,7 @@ function DropdownLookup({ options, input_name, isSearchable, isDisabled, isLoadi
                     defaultValue={options.find(x => x.value === defaultValue)}
                     isSearchable={isSearchable}
                     isDisabled={isLoading || isDisabled}
-                    isClearable
+                    isClearable={isClearable}
                     isLoading={isLoading}
                     styles={{
                         control: (provided, state) => ({

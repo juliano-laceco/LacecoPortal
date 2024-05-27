@@ -91,27 +91,25 @@ export async function checkEmailExists(email) {
 }
 
 export async function createEmployee(data) {
-
     try {
         const sql = `
-      INSERT INTO lacecodb.employee (
-      first_name,
-      last_name,
-      work_email,
-      date_of_birth,  
-      nationality,  
-      marital_status,
-      discipline_id,  
-      employee_hourly_cost,  
-      major, 
-      years_of_experience, 
-      contract_type_id, 
-      contract_valid_till, 
-      position_id,  
-      country, 
-      role_id
-    )
-    VALUES ( ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?,  ?)`;
+            INSERT INTO lacecodb.employee (
+                first_name,
+                last_name,
+                work_email,
+                date_of_birth,  
+                nationality,  
+                marital_status,
+                employee_hourly_cost,  
+                major, 
+                years_of_experience, 
+                contract_type_id, 
+                contract_valid_till, 
+                position_id,  
+                country, 
+                role_id,
+                created_on
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         const {
             first_name,
@@ -120,54 +118,74 @@ export async function createEmployee(data) {
             date_of_birth,
             nationality,
             marital_status,
-            discipline_id,
             employee_hourly_cost,
             major,
             years_of_experience,
             contract_type_id,
             contract_valid_till,
             position_id,
-            grade_id,
             country,
-            role_id
+            role_id,
+            created_on
         } = nullifyEmpty(data);
 
-        const result = await execute(sql, [first_name, last_name, work_email, date_of_birth, nationality, marital_status,  employee_hourly_cost ?? null, major, years_of_experience, contract_type_id, contract_valid_till ?? null, position_id,  country, role_id])
+        const result = await execute(sql, [
+            first_name,
+            last_name,
+            work_email,
+            date_of_birth,
+            nationality,
+            marital_status,
+            employee_hourly_cost ?? null,
+            major,
+            years_of_experience,
+            contract_type_id,
+            contract_valid_till ?? null,
+            position_id,
+            country,
+            role_id,
+            created_on
+        ]);
 
         if (result.affectedRows > 0) {
-            return res.success();
+            const insertId = result.insertId; // Get the inserted employee ID
+
+            // Assuming createPositionHistoryRecord is a function that takes employee_hourly_cost, position_id, and employee_id
+            const positionRecord = await createPositionHistoryRecord({ employee_hourly_cost: employee_hourly_cost ?? null, position_id, employee_id: insertId });
+            const statusRecord = await createStatusHistoryRecord({ employee_id: insertId, status_id: 1 })
+            return (positionRecord.res && statusRecord.res);
+
+
         }
 
-        return res.failed()
-
+        return res.failed();
     } catch (error) {
         console.error('Error creating employee:', error);
-        return res.failed()
+        return res.failed();
     }
 }
 
 export async function updateEmployee(data) {
-
-  
     try {
+
         const sql = `
-        UPDATE lacecodb.employee
-        SET
-            first_name = ?,
-            last_name = ?,
-            date_of_birth = ?,  
-            nationality = ?,  
-            marital_status = ?,   
-            employee_hourly_cost = ?,  
-            major = ?, 
-            years_of_experience = ?, 
-            contract_type_id = ?, 
-            contract_valid_till = ?, 
-            position_id = ?,  
-            country = ?, 
-            employee_status_id = ?,  
-            role_id = ?
-        WHERE employee_id = ?`;
+            UPDATE lacecodb.employee
+            SET
+                first_name = ?,
+                last_name = ?,
+                date_of_birth = ?,  
+                nationality = ?,  
+                marital_status = ?,   
+                employee_hourly_cost = ?,  
+                major = ?, 
+                years_of_experience = ?, 
+                contract_type_id = ?, 
+                contract_valid_till = ?, 
+                position_id = ?,  
+                country = ?, 
+                employee_status_id = ?,  
+                role_id = ?
+            WHERE employee_id = ?`;
 
         const {
             employee_id,
@@ -185,7 +203,7 @@ export async function updateEmployee(data) {
             country,
             employee_status_id,
             role_id,
-            grade_changed,
+            status_changed,
             position_changed
         } = nullifyEmpty(data);
 
@@ -207,12 +225,32 @@ export async function updateEmployee(data) {
             employee_id
         ]);
 
-
-        if (result.affectedRows > 0) {
-            return res.success();
+        if (result.affectedRows === 0) {
+            return res.failed();
         }
 
-        return res.failed();
+        if (position_changed) {
+            const positionRecord = await createPositionHistoryRecord({
+                employee_hourly_cost: employee_hourly_cost ?? null,
+                position_id,
+                employee_id
+            });
+
+            if (!positionRecord.res) {
+                return res.failed();
+            }
+        }
+
+        if (status_changed) {
+
+            const statusRecord = await createStatusHistoryRecord({ employee_id: employee_id, status_id: 1 })
+
+            if (!statusRecord.res) {
+                return res.failed();
+            }
+        }
+
+        return res.success();
     } catch (error) {
         console.error('Error updating employee:', error);
         return res.failed();
@@ -255,27 +293,27 @@ export async function createPositionHistoryRecord(data) {
     }
 }
 
-export async function createGradeHistoryRecord(data) {
+export async function createStatusHistoryRecord(data) {
 
     try {
 
         const initiatorId = await getLoggedInId()
 
         const sql = `
-    INSERT INTO lacecodb.grade_history (
+    INSERT INTO lacecodb.employee_status_history (
         employee_id,
-        new_grade_id,
+        new_status_id,
         changed_by
     )
     VALUES (?, ? , ?)
 `;
 
         const {
-            grade_id,
+            status_id,
             employee_id
         } = data;
 
-        const result = await execute(sql, [employee_id, grade_id, initiatorId])
+        const result = await execute(sql, [employee_id, status_id, initiatorId])
 
         if (result.affectedRows > 0) {
             return res.success()
@@ -284,21 +322,26 @@ export async function createGradeHistoryRecord(data) {
         return res.failed()
 
     } catch (error) {
-        console.error('Error creating grade history record:', error);
+        console.error('Error creating employee status history record:', error);
         return res.failed()
     }
 }
 
 export async function getEmployeeData(employee_id) {
     try {
-        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, discipline_id, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, position_id, grade_id, country, employee_status_id, role_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
+        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, position_id, country, division_id , discipline_id ,  employee_status_id, role_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
                        FROM employee
-                       NATURAL JOIN discipline
                        NATURAL JOIN position
+                       NATURAL JOIN discipline
                        NATURAL JOIN division
+                       NATURAL JOIN grade
+                       NATURAL JOIN level_of_management
+                    
                        WHERE employee_id = ?`;
 
         const results = await execute(query, [employee_id])
+
+        console.log(results)
         return res.success_data(results);
     } catch (error) {
         console.error('Error fetching employee details:', error);

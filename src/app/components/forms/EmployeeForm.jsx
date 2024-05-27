@@ -1,9 +1,8 @@
-"use client"
-
+"use client";
 
 // React + Next Hooks
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation';
 // Components
 import Dropdown from "../custom/Dropdowns/DropdownLookup";
 import Input from "../custom/Input";
@@ -13,25 +12,22 @@ import nationalities from "@/data/static/nationalities";
 import marital_statuses from "@/data/static/marital-status";
 import countries from '@/data/static/countries';
 // Form Utils
-import { yupResolver } from "@hookform/resolvers/yup"
+import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useForm } from "react-hook-form";
 // Backend Functions
 import { checkEmailExists, createEmployee, updateEmployee } from '@/utilities/employee/employee-utils';
-import { getDisciplines } from '@/utilities/lookups/lookup-utils';
+import { getDisciplines, getPositions, getPositionDetails } from '@/utilities/lookups/lookup-utils';
 // Utilities
 import { showToast } from '@/utilities/toast-utils';
 import { formatDate } from '@/utilities/date/date-utils';
 
-
 function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
+    const router = useRouter();
 
-    const router = useRouter()
-
-    // Setting  Title and Submit Texts
-    const submitText = isEdit ? "Update" : "Submit"
-    const titleText = isEdit ? "Edit Employee" : "Add Employee"
-
+    // Setting Title and Submit Texts
+    const submitText = isEdit ? "Update" : "Submit";
+    const titleText = isEdit ? "Edit Employee" : "Add Employee";
 
     // Defining Validation Schema
     const schema = yup.object().shape({
@@ -47,22 +43,26 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             .max(new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()), "Invalid Birth Date"),
         work_email: yup.string()
             .email("Invalid email format")
+            .matches(/@laceco\.me$/, "Work email must be from @laceco.me domain")
             .required("Work Email is required")
             .test(
                 "is-unique-email",
                 "Email already exists",
                 async (value) => {
                     if (isEdit) {
-                        return true;
+                        return true; // No uniqueness check needed in edit mode
                     }
-                    const response = await checkEmailExists(value)
+                    const response = await checkEmailExists(value);
                     return response.res;
                 }
-            ),
-        discipline_id: yup.string()
-            .required("Discipline is required"),
+            )
+        ,
         division_id: yup.string()
             .required("Division is required"),
+        discipline_id: yup.string()
+            .required("Discipline is required"),
+        position_id: yup.string()
+            .required("Position is required"),
         nationality: yup.string()
             .required("Nationality is required"),
         country: yup.string()
@@ -71,10 +71,14 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             .required("Marital Status is required"),
         contract_type_id: yup.string()
             .required("Contract Type is required"),
-        position_id: yup.string()
-            .required("Position is required"),
-        grade_id: yup.string()
-            .required("Grade is required"),
+        contract_valid_till: yup.string().when("contract_type_id", {
+            is: "2",
+            then: () => yup.date()
+                .typeError("Contract Valid Till must be a valid date")
+                .min(new Date(), "Contract Valid Till must be in the future")
+                .required("Contract Valid Till is required"),
+            otherwise: () => yup.string().nullable()
+        }),
         role_id: yup.string()
             .required("Role is required"),
         employee_hourly_cost: yup.number()
@@ -89,101 +93,191 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             .min(0, "Years of Experience must be greater than or equal to 0")
             .max(50, "Years of Experience must be less than or equal to 50"),
         employee_status_id: isEdit ? yup.string().required("Status is required") : yup.string(),
-        contract_valid_till: yup.string().when("contract_type_id", {
-            is: "2",
-            then: () => yup.date()
-                .typeError("Contract Valid Till must be a valid date")
-                .min(new Date(), "Contract Valid Till must be in the future")
-                .required("Contract Valid Till is required"),
-            otherwise: () => yup.string().nullable()
-        })
+        created_on: isEdit
+            ? yup.date().nullable() // No validation for edit mode
+            : yup.date()
+                .typeError("Work Start Date must be a valid date")
+                .min(new Date(new Date().setHours(0, 0, 0, 0)), "Work Start Date must be today or in the future")
+                .required("Work Start Date is required")
     });
 
+    // Defining useForm Hook to link custom components for validation
     const { handleSubmit, register, watch, control, setValue, formState: { errors, isSubmitting, } } = useForm({
         resolver: yupResolver(schema),
         defaultValues
-
     });
 
-    // After setting defaultValues in useForm hook
+    // Watching values for changes
+    const selectedContractId = watch("contract_type_id");
+    const selectedDivision = watch("division_id");
+    const selectedDiscipline = watch("discipline_id");
+
+    // Defining loading State Variables
+    const [loadingDisciplines, setLoadingDisciplines] = useState(false);
+    const [filteredDisciplines, setFilteredDisciplines] = useState([]);
+    const [loadingPositions, setLoadingPositions] = useState(false);
+    const [filteredPositions, setFilteredPositions] = useState([]);
+
+
+    // DEFAULT VALUE TRIGGERS 
     useEffect(() => {
         const divisionId = defaultValues.division_id; // Assuming division_id is part of defaultValues
         if (divisionId) {
             handleDivisionChange(divisionId);
+            setDefaultDiscipline();
         }
-    }, [defaultValues.division_id]);
+    }, [defaultValues.division_id]
+    );
 
-    const selectedContractId = watch("contract_type_id")
+    useEffect(() => {
 
-    const [loadingDisciplines, setLoadingDisciplines] = useState(false);
-    const [filteredDisciplines, setFilteredDisciplines] = useState([])
+        const disciplineId = defaultValues.discipline_id; // Assuming division_id is part of defaultValues
+        if (disciplineId) {
+            handleDisciplineChange(disciplineId);
+            setDefaultPosition();
+        }
+    }, [defaultValues.discipline_id]
+    );
+
+    useEffect(() => {
+        const positionId = defaultValues.position_id; // Assuming division_id is part of defaultValues
+        if (positionId) {
+            handlePositionChange(positionId);
+        }
+    }, [defaultValues.position_id]
+    );
 
 
-
+    /* CHANGE HANDLERS */
     async function handleDivisionChange(division_id) {
 
-        setLoadingDisciplines(true)
-        setValue("discipline_id", "")
+        setLoadingDisciplines(true);
 
-        const disciplinesRes = await getDisciplines(division_id)
-        const disciplines = disciplinesRes.data ?? []
+        clearDiscipline();
+        clearPosition();
+        clearPositionDetails();
 
-        setFilteredDisciplines(disciplines)
-        setLoadingDisciplines(false)
-        setDefaultDiscipline()
+        const disciplinesRes = await getDisciplines(division_id);
+        const disciplines = disciplinesRes?.data ?? [];
+
+        setFilteredDisciplines(disciplines);
+        setLoadingDisciplines(false);
     }
 
-    function handleContractTypeChange() {
-        setValue("contract_valid_till", "")
+    async function handleDisciplineChange(discipline_id) {
+
+        setLoadingPositions(true);
+
+        clearPosition();
+        clearPositionDetails();
+
+        const positionsRes = await getPositions(discipline_id);
+        const positions = positionsRes?.data ?? [];
+
+        setFilteredPositions(positions);
+        setLoadingPositions(false);
     }
 
+    async function handlePositionChange(position_id) {
+
+        if (!position_id) {
+            clearPositionDetails()
+            return;
+        }
+
+        const positionDetails = await getPositionDetails(position_id);
+        if (positionDetails) {
+            const { level_of_management_name, grade_code } = positionDetails.data[0];
+            setValue("level_of_management_name", level_of_management_name);
+            setValue("grade_name", grade_code);
+        }
+    }
+
+
+    /* VALUE CLEARER FUNCTIONS */
+
+    function clearPositionDetails() {
+        setValue("level_of_management_name", "");
+        setValue("grade_name", "");
+    }
+
+    function clearPosition() {
+        setValue("position_id", "");
+    }
+
+    function clearDiscipline() {
+        setValue("discipline_id", "");
+        setFilteredPositions([])
+    }
+
+    function clearContractValidity() {
+        setValue("contract_valid_till", "");
+    }
+
+
+    /* DEFAULT VALUE SETTERS */
     function setDefaultDiscipline() {
-        const defaultDiscipline = defaultValues?.discipline_id ?? null
-        if (!!defaultDiscipline) setValue("discipline_id", defaultDiscipline)
+        const defaultDiscipline = defaultValues?.discipline_id ?? null;
+        if (defaultDiscipline) setValue("discipline_id", defaultDiscipline);
     }
 
+    function setDefaultPosition() {
+        const defaultPosition = defaultValues?.position_id ?? null;
+        if (defaultPosition) setValue("position_id", defaultPosition);
+    }
+
+
+    /* SUBMISSION FUNCTIONS */
     const onCreate = async (data) => {
 
-        data.date_of_birth = formatDate(data.date_of_birth)
-        !!data.contract_valid_till && (data.contract_valid_till = formatDate(data.contract_valid_till))
+        data = formatFieldDates(data)
 
+        const result = await createEmployee(data);
 
-        const result = await createEmployee(data)
-
-        if (result.res) {
-            showToast("success", "Successfully Created Employee")
-            router.replace("/hr")
+        if (result) {
+            showToast("success", "Successfully Created Employee");
+            router.replace("/hr/employee/all");
+            router.refresh();
         }
     };
 
     const onUpdate = async (data) => {
 
-        data.date_of_birth = formatDate(data.date_of_birth)
-        !!data.contract_valid_till && (data.contract_valid_till = formatDate(data.contract_valid_till))
+        data = formatFieldDates(data)
 
-        const flags = getFlags(data)
+        const flags = getFlags(data);
 
-        const result = await updateEmployee({ ...data, ...flags })
+        const result = await updateEmployee({ ...data, ...flags });
 
-        if (result.res) {
-            showToast("success", "Successfully Updated Employee")
-            router.replace("/hr")
+        if (result) {
+            showToast("success", "Successfully Updated Employee");
+            router.replace("/hr/employee/all");
+            router.refresh();
         }
+    };
 
+
+    function formatFieldDates(data) {
+        data.date_of_birth = formatDate(data.date_of_birth);
+        if (data.contract_valid_till) {
+            data.contract_valid_till = formatDate(data.contract_valid_till);
+        }
+        data.created_on = formatDate(data.created_on);
+
+        return data
     }
 
     function getFlags(data) {
+        const position_changed = data.position_id != defaultValues.position_id;
+        const status_changed = data.employee_status_id != defaultValues.employee_status_id;
+        const employee_id = defaultValues.employee_id;
 
-        const grade_changed = data.grade_id != defaultValues.grade_id
-        const position_changed = data.position_id != defaultValues.position_id
-        const employee_id = defaultValues.employee_id
-
-        return { grade_changed, position_changed, employee_id }
+        return { position_changed, status_changed, employee_id };
     }
 
 
     return (
-        <Form title={titleText} handleSubmit={handleSubmit} onSubmit={isEdit ? onUpdate : onCreate} submitText={submitText} isSubmitting={isSubmitting} submit  >
+        <Form title={titleText} handleSubmit={handleSubmit} onSubmit={isEdit ? onUpdate : onCreate} submitText={submitText} isSubmitting={isSubmitting} submit>
             <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
             <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
             <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
@@ -191,7 +285,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             <Dropdown
                 className="select-input"
                 label="Division"
-                isClearable
                 options={optionsData.divisions}
                 handler={handleDivisionChange}
                 input_name="division_id"
@@ -201,13 +294,25 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             <Dropdown
                 className="select-input"
                 label="Department"
-                isClearable
                 options={filteredDisciplines}
                 isLoading={loadingDisciplines}
                 input_name="discipline_id"
                 control={control}
+                handler={handleDisciplineChange}
                 error={errors.discipline_id?.message}
             />
+            <Dropdown
+                className="select-input"
+                label="Position"
+                options={filteredPositions}
+                isLoading={loadingPositions}
+                input_name="position_id"
+                control={control}
+                handler={handlePositionChange}
+                error={errors.position_id?.message}
+            />
+            <Input type="text" label="Level Of Management" {...register("level_of_management_name")} isDisabled />
+            <Input type="text" label="Grade" {...register("grade_name")} isDisabled />
             <Dropdown
                 className="select-input"
                 label="Nationality"
@@ -240,32 +345,14 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 label="Contract Type"
                 isClearable
                 options={optionsData.contractTypes}
-                handler={handleContractTypeChange}
+                handler={clearContractValidity}
                 input_name="contract_type_id"
                 control={control}
                 error={errors.contract_type_id?.message}
             />
-            {selectedContractId === 2 && (
+            {selectedContractId == "2" && (
                 <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
             )}
-            <Dropdown
-                className="select-input"
-                label="Position"
-                isClearable
-                options={optionsData.positions}
-                input_name="position_id"
-                control={control}
-                error={errors.position_id?.message}
-            />
-            <Dropdown
-                className="select-input"
-                label="Grade"
-                isClearable
-                options={optionsData.grades}
-                input_name="grade_id"
-                control={control}
-                error={errors.grade_id?.message}
-            />
             <Dropdown
                 className="select-input"
                 label="Role"
@@ -287,9 +374,9 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                     input_name="employee_status_id"
                     control={control}
                     error={errors.status_id?.message}
-
                 />
             }
+            <Input label="Work Start Date" type="date" {...register("created_on")} error={errors.created_on?.message} isDisabled={isEdit} />
         </Form>
     );
 }
