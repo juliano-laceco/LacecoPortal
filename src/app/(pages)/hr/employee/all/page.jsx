@@ -1,25 +1,27 @@
-import { getAllEmployees } from "@/utilities/employee/employee-utils"
-import EmployeeTableWrapper from "../../../../components/custom/TableWrappers/EmployeeTableWrapper"
-import getDropdownData from "@/data/dynamic/EmployeeFilterDDOptions"
-import { formatDate } from "@/utilities/date/date-utils"
-import Image from "next/image"
-import Link from "next/link"
-
-
+import { getAllEmployees } from "@/utilities/employee/employee-utils";
+import EmployeeTableWrapper from "../../../../components/custom/TableWrappers/EmployeeTableWrapper";
+import getDropdownData from "@/data/dynamic/EmployeeFilterDDOptions";
+import { formatDate } from "@/utilities/date/date-utils";
+import Image from "next/image";
+import Link from "next/link";
+import Modal from "@/app/components/custom/Modal";
+import { headers } from "next/headers";
+import LeaveForm from "@/app/components/forms/LeaveRequestForm";
 
 async function TablePage({ searchParams }) {
 
-    const results = await getAllEmployees(searchParams)
+    const results = await getAllEmployees(searchParams);
 
     // Query String Parameters
-    const discipline = searchParams.discipline_id
-    const division = searchParams.division_id
-    const employee_status = searchParams.employee_status_id
-    const keyword = searchParams.keyword
+    const discipline = searchParams.discipline_id;
+    const division = searchParams.division_id;
+    const employee_status = searchParams.employee_status_id;
+    const keyword = searchParams.keyword;
+    const identifier = searchParams.identifier;
+    const modalIsOpen = searchParams.showModal;
 
-    const optionsData = await getDropdownData()
-
-    const data = results.data
+    const optionsData = await getDropdownData();
+    const data = results.data;
 
     const filterItems = [
         {
@@ -51,7 +53,8 @@ async function TablePage({ searchParams }) {
             filterDataKey: "employee_status_name",
             filterOptions: optionsData.statuses,
             filterValue: employee_status ?? ""
-        }]
+        }
+    ];
 
     const preprocessData = (data) => {
         return data.map(row => ({
@@ -60,7 +63,6 @@ async function TablePage({ searchParams }) {
             fullName: `${row.first_name} ${row.last_name}`,
             created_on: formatDate(row.created_on),
             actions: (
-
                 <div className="flex justify-center items-center gap-2">
                     <Link title="Edit Employee" href={`/hr/employee/${row.employee_id}`}>
                         <Image
@@ -70,7 +72,7 @@ async function TablePage({ searchParams }) {
                             alt="edit"
                         />
                     </Link>
-                    <Link title="New Leave" href={`/hr/employee/leave/${row.employee_id}`}>
+                    <Link title="New Leave" href={`/hr/employee/all?${new URLSearchParams({ ...searchParams, identifier: row.employee_id, showModal: 'true' })}`}>
                         <Image
                             src="/resources/icons/leave.svg"
                             height="28"
@@ -85,43 +87,65 @@ async function TablePage({ searchParams }) {
     };
 
     function createStatusDiv(status) {
-
         let bg;
-
         switch (status) {
             case "Active":
-                bg = "bg-active"
+                bg = "bg-active";
                 break;
             case "On Temporary Leave":
-                bg = "bg-probation"
+                bg = "bg-probation";
                 break;
-            case "Suspended" || "Terminated":
-                bg = "bg-terminated"
+            case "Suspended":
+            case "Terminated":
+                bg = "bg-terminated";
+                break;
+            default:
+                bg = "bg-default";
                 break;
         }
-
-
         return (<div className={`p-2 w-32 rounded-md text-xs text-center text-white ${bg}`}>{status}</div>)
 
     }
 
     const tableHeaders = [
-        { Header: 'Name', accessor: 'fullName', mobile: true },
-        { Header: 'Division', accessor: 'division_name' },
-        { Header: 'Department', accessor: 'discipline_name' },
-        { Header: 'Position', accessor: 'position_name', mobile: true },
+        { Header: 'Name', accessor: 'fullName', mobile: true, tablet: true },
+        { Header: 'Division', accessor: 'division_name' ,  tablet: true },
+        { Header: 'Department', accessor: 'discipline_name' ,  tablet: true },
+        { Header: 'Position', accessor: 'position_name', mobile: true , tablet: true  },
         { Header: 'Grade', accessor: 'grade_code' },
         { Header: 'Joined On', accessor: 'created_on' },
         { Header: 'Status', accessor: 'employee_status' },
-        { Header: 'Actions', accessor: 'actions', mobile: true },
+        { Header: 'Actions', accessor: 'actions', mobile: true , tablet: true },
     ];
+
+    const constructNewPath = () => {
+        const params = new URLSearchParams(searchParams);
+        params.delete("showModal");
+        params.delete("identifier");
+        return `/hr/employee/all?${params.toString()}`;
+    };
 
     return (
         <>
-            <EmployeeTableWrapper data={preprocessData(data)} searchParams={searchParams} filterItems={filterItems} tableHeaders={tableHeaders} minPageSize={2} maxPageSize={10} pageSizeStep={2} isPaginated isFilterable />
+            <EmployeeTableWrapper
+                modal={<Modal />}
+                data={preprocessData(data)}
+                searchParams={searchParams}
+                filterItems={filterItems}
+                tableHeaders={tableHeaders}
+                minPageSize={2}
+                maxPageSize={10}
+                pageSizeStep={2}
+                isPaginated
+                isFilterable
+            />
+            {identifier && modalIsOpen == "true" &&
+                (<Modal title="Leave Request" open={true} type="server" newPath={constructNewPath()}>
+                    <LeaveForm />
+                </Modal>)
+            }
         </>
-    )
+    );
 }
 
-
-export default TablePage
+export default TablePage;

@@ -2,7 +2,7 @@
 
 import { signOut } from 'next-auth/react'
 
-function SignOutListItem() {
+ function SignOutListItem() {
     return (
         <div>
             <li>

@@ -277,7 +277,13 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
 
     return (
-        <Form title={titleText} handleSubmit={handleSubmit} onSubmit={isEdit ? onUpdate : onCreate} submitText={submitText} isSubmitting={isSubmitting} submit>
+        <Form title={titleText}
+            handleSubmit={handleSubmit}
+            onSubmit={isEdit ? onUpdate : onCreate}
+            submitText={submitText} isSubmitting={isSubmitting}
+            submit
+            columns={{ default: 1, mob: 1, tablet: 2, lap: 3, desk: 3 }}
+        >
             <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
             <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
             <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
@@ -350,9 +356,11 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 control={control}
                 error={errors.contract_type_id?.message}
             />
-            {selectedContractId == "2" && (
-                <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
-            )}
+            {
+                selectedContractId == "2" && (
+                    <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
+                )
+            }
             <Dropdown
                 className="select-input"
                 label="Role"
@@ -365,7 +373,8 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             <Input label="Hourly Cost" type="number" {...register("employee_hourly_cost")} error={errors.employee_hourly_cost?.message} />
             <Input label="Major" type="text" {...register("major")} error={errors.major?.message} />
             <Input label="Years of Experience" type="text" {...register("years_of_experience")} error={errors.years_of_experience?.message} />
-            {isEdit &&
+            {
+                isEdit &&
                 <Dropdown
                     className="select-input"
                     label="Status"
@@ -377,7 +386,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 />
             }
             <Input label="Work Start Date" type="date" {...register("created_on")} error={errors.created_on?.message} isDisabled={isEdit} />
-        </Form>
+        </Form >
     );
 }
 

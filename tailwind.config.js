@@ -48,10 +48,10 @@ module.exports = {
 
       },
       screens: {
-        mob: { min: '320px', max: '480px' },  // Mobile devices
-        tablet: { min: '481px', max: '768px' },  // iPads, Tablets
-        lap: { min: '769px', max: '1024px' },    // Small screens, laptops
-        desk: { min: '1025px', max: '3000px' },
+        mob: { min: '320px', max: '730px' },  // Mobile devices
+        tablet: { min: '731px', max: '1300px' },  // iPads, Tablets
+        lap: { min: '1301px', max: '1600px' },    // Small screens, laptops
+        desk: { min: '1601px', max: '3000px' },
       },
       fontFamily: {
         sans: ['Poppins', "Arial"],

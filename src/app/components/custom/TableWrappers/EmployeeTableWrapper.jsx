@@ -68,7 +68,7 @@ function EmployeeTableWrapper({ data, filterItems, tableHeaders, isPaginated, is
   }
 
   return (
-    <div className="container mx-auto min-w-full">
+    <div className="container mx-auto min-w-full z-100 ">
       <div className="table-wrapper bg-white p-5 mob:p-4 rounded-lg">
 
         <h1 className="font-bold text-3xl">Employees List</h1>
