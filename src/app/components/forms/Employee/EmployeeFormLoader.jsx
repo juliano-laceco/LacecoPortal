@@ -1,4 +1,4 @@
-import EmployeeForm from '@/app/components/forms/EmployeeForm'
+import EmployeeForm from '@/app/components/forms/Employee/EmployeeForm'
 import { getEmployeeData } from '@/utilities/employee/employee-utils'
 import getDropdownData from '@/data/dynamic/NewEmployeeDDOptions'
 

@@ -4,9 +4,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // Components
-import Dropdown from "../custom/Dropdowns/DropdownLookup";
-import Input from "../custom/Input";
-import Form from '../custom/Form';
+import DropdownLookup from "../../custom/Dropdowns/DropdownLookup";
+import Input from "../../custom/Input";
+import Form from '../../custom/Form';
 // Data
 import nationalities from "@/data/static/nationalities";
 import marital_statuses from "@/data/static/marital-status";
@@ -98,7 +98,15 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             : yup.date()
                 .typeError("Work Start Date must be a valid date")
                 .min(new Date(new Date().setHours(0, 0, 0, 0)), "Work Start Date must be today or in the future")
-                .required("Work Start Date is required")
+                .required("Work Start Date is required"),
+        work_end_date: yup.string().when("employee_status_id", {
+            is: "2",
+            then: () => yup.date()
+                .typeError("Work End Date must be a valid date")
+                .min(new Date(), "Work End Date must be in the future")
+                .required("Work End Date is required"),
+            otherwise: () => yup.string().nullable()
+        }),
     });
 
     // Defining useForm Hook to link custom components for validation
@@ -109,8 +117,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
     // Watching values for changes
     const selectedContractId = watch("contract_type_id");
-    const selectedDivision = watch("division_id");
-    const selectedDiscipline = watch("discipline_id");
+    const selectedStatus = watch("employee_status_id");
 
     // Defining loading State Variables
     const [loadingDisciplines, setLoadingDisciplines] = useState(false);
@@ -214,6 +221,10 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
         setValue("contract_valid_till", "");
     }
 
+    function clearWorkEndDate() {
+        setValue("work_end_date", "");
+    }
+
 
     /* DEFAULT VALUE SETTERS */
     function setDefaultDiscipline() {
@@ -230,7 +241,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
     /* SUBMISSION FUNCTIONS */
     const onCreate = async (data) => {
 
-        data = formatFieldDates(data)
+        data = preprocessData(data)
 
         const result = await createEmployee(data);
 
@@ -243,7 +254,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
     const onUpdate = async (data) => {
 
-        data = formatFieldDates(data)
+        data = preprocessData(data)
 
         const flags = getFlags(data);
 
@@ -257,10 +268,13 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
     };
 
 
-    function formatFieldDates(data) {
+    function preprocessData(data) {
         data.date_of_birth = formatDate(data.date_of_birth);
         if (data.contract_valid_till) {
             data.contract_valid_till = formatDate(data.contract_valid_till);
+        }
+        if (data.work_end_date) {
+            data.work_end_date = formatDate(data.work_end_date);
         }
         data.created_on = formatDate(data.created_on);
 
@@ -277,116 +291,123 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
 
     return (
-        <Form title={titleText}
-            handleSubmit={handleSubmit}
-            onSubmit={isEdit ? onUpdate : onCreate}
-            submitText={submitText} isSubmitting={isSubmitting}
-            submit
-            columns={{ default: 1, mob: 1, tablet: 2, lap: 3, desk: 3 }}
-        >
-            <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
-            <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
-            <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
-            <Input label="Work Email" type="text" {...register("work_email")} error={errors.work_email?.message} isDisabled={isEdit} />
-            <Dropdown
-                className="select-input"
-                label="Division"
-                options={optionsData.divisions}
-                handler={handleDivisionChange}
-                input_name="division_id"
-                control={control}
-                error={errors.division_id?.message}
-            />
-            <Dropdown
-                className="select-input"
-                label="Department"
-                options={filteredDisciplines}
-                isLoading={loadingDisciplines}
-                input_name="discipline_id"
-                control={control}
-                handler={handleDisciplineChange}
-                error={errors.discipline_id?.message}
-            />
-            <Dropdown
-                className="select-input"
-                label="Position"
-                options={filteredPositions}
-                isLoading={loadingPositions}
-                input_name="position_id"
-                control={control}
-                handler={handlePositionChange}
-                error={errors.position_id?.message}
-            />
-            <Input type="text" label="Level Of Management" {...register("level_of_management_name")} isDisabled />
-            <Input type="text" label="Grade" {...register("grade_name")} isDisabled />
-            <Dropdown
-                className="select-input"
-                label="Nationality"
-                isClearable
-                options={nationalities}
-                input_name="nationality"
-                control={control}
-                error={errors.nationality?.message}
-            />
-            <Dropdown
-                className="select-input"
-                label="Country"
-                isClearable
-                options={countries}
-                input_name="country"
-                control={control}
-                error={errors.country?.message}
-            />
-            <Dropdown
-                className="select-input"
-                label="Marital Status"
-                isClearable
-                options={marital_statuses}
-                input_name="marital_status"
-                control={control}
-                error={errors.marital_status?.message}
-            />
-            <Dropdown
-                className="select-input"
-                label="Contract Type"
-                isClearable
-                options={optionsData.contractTypes}
-                handler={clearContractValidity}
-                input_name="contract_type_id"
-                control={control}
-                error={errors.contract_type_id?.message}
-            />
-            {
-                selectedContractId == "2" && (
-                    <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
-                )
-            }
-            <Dropdown
-                className="select-input"
-                label="Role"
-                isClearable
-                options={optionsData.roles}
-                input_name="role_id"
-                control={control}
-                error={errors.role_id?.message}
-            />
-            <Input label="Hourly Cost" type="number" {...register("employee_hourly_cost")} error={errors.employee_hourly_cost?.message} />
-            <Input label="Major" type="text" {...register("major")} error={errors.major?.message} />
-            <Input label="Years of Experience" type="text" {...register("years_of_experience")} error={errors.years_of_experience?.message} />
-            {
-                isEdit &&
-                <Dropdown
+        <div className="shadow-2xl rounded-lg border bg-white">
+            <Form title={titleText}
+                handleSubmit={handleSubmit}
+                onSubmit={isEdit ? onUpdate : onCreate}
+                submitText={submitText} isSubmitting={isSubmitting}
+                submit
+                columns={{ default: 3, mob: 1, tablet: 2, lap: 3, desk: 3 }}
+            >
+                <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
+                <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
+                <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
+                <Input label="Work Email" type="text" {...register("work_email")} error={errors.work_email?.message} isDisabled={isEdit} />
+                <DropdownLookup
                     className="select-input"
-                    label="Status"
-                    isClearable
-                    options={optionsData.statuses}
-                    input_name="employee_status_id"
+                    label="Division"
+                    options={optionsData.divisions}
+                    handler={handleDivisionChange}
+                    input_name="division_id"
                     control={control}
-                    error={errors.status_id?.message}
+                    error={errors.division_id?.message}
                 />
-            }
-            <Input label="Work Start Date" type="date" {...register("created_on")} error={errors.created_on?.message} isDisabled={isEdit} />
-        </Form >
+                <DropdownLookup
+                    className="select-input"
+                    label="Department"
+                    options={filteredDisciplines}
+                    isLoading={loadingDisciplines}
+                    input_name="discipline_id"
+                    control={control}
+                    handler={handleDisciplineChange}
+                    error={errors.discipline_id?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Position"
+                    options={filteredPositions}
+                    isLoading={loadingPositions}
+                    input_name="position_id"
+                    control={control}
+                    handler={handlePositionChange}
+                    error={errors.position_id?.message}
+                />
+                <Input type="text" label="Level Of Management" {...register("level_of_management_name")} isDisabled />
+                <Input type="text" label="Grade" {...register("grade_name")} isDisabled />
+                <DropdownLookup
+                    className="select-input"
+                    label="Nationality"
+                    isClearable
+                    options={nationalities}
+                    input_name="nationality"
+                    control={control}
+                    error={errors.nationality?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Country"
+                    isClearable
+                    options={countries}
+                    input_name="country"
+                    control={control}
+                    error={errors.country?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Marital Status"
+                    isClearable
+                    options={marital_statuses}
+                    input_name="marital_status"
+                    control={control}
+                    error={errors.marital_status?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Contract Type"
+                    isClearable
+                    options={optionsData.contractTypes}
+                    handler={clearContractValidity}
+                    input_name="contract_type_id"
+                    control={control}
+                    error={errors.contract_type_id?.message}
+                />
+                {
+                    selectedContractId == "2" && (
+                        <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
+                    )
+                }
+                <DropdownLookup
+                    className="select-input"
+                    label="Role"
+                    isClearable
+                    options={optionsData.roles}
+                    input_name="role_id"
+                    control={control}
+                    error={errors.role_id?.message}
+                />
+                <Input label="Hourly Cost" type="number" {...register("employee_hourly_cost")} error={errors.employee_hourly_cost?.message} />
+                <Input label="Major" type="text" {...register("major")} error={errors.major?.message} />
+                <Input label="Years of Experience" type="text" {...register("years_of_experience")} error={errors.years_of_experience?.message} />
+                {
+                    isEdit &&
+                    <DropdownLookup
+                        className="select-input"
+                        label="Status"
+                        isClearable
+                        handler={clearWorkEndDate}
+                        options={optionsData.statuses}
+                        input_name="employee_status_id"
+                        control={control}
+                        error={errors.status_id?.message}
+                    />
+                }
+                <Input label="Work Start Date" type="date" {...register("created_on")} error={errors.created_on?.message} isDisabled={isEdit} />
+                {
+                    isEdit && selectedStatus == "2" &&
+                    <Input label="Work End Date" type="date" {...register("work_end_date")} error={errors.work_end_date?.message} />
+                }
+            </Form >
+        </div>
     );
 }
 

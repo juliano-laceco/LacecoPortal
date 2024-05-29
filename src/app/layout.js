@@ -7,7 +7,6 @@ import Image from "next/image";
 import { ToastContainer } from 'react-toastify';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import ReactQueryProvider from "@/providers/RQProvider";
-import { getAllEmployees } from "@/utilities/employee/employee-utils";
 
 export const metadata = {
   title: "Laceco Portal",
@@ -30,6 +29,7 @@ export default async function RootLayout({ children }) {
   const HROptions = [
     { id: crypto.randomUUID(), icon: <Image src="/resources/icons/add-employee.svg" height="30" width="30" alt="nav-icon" />, label: "Add Employee", redirectTo: "/hr/employee/add" },
     { id: crypto.randomUUID(), icon: <Image src="/resources/icons/employee-list.svg" height="30" width="30" alt="nav-icon" />, label: "Employee Management", redirectTo: "/hr/employee/all" },
+    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/calendar-off.svg" height="30" width="30" alt="nav-icon" />, label: "Employee Leaves", redirectTo: "/hr/employee/leaves" },
   ];
 
 
@@ -53,7 +53,7 @@ export default async function RootLayout({ children }) {
             <Header burgerNavItems={navItems} />
             <div className="flex gap-5 h-full sticky left-0">
               {!!session && <Sidebar sidebarItems={navItems} />}
-              <div className="w-4/5 mob:w-11/12 mob:mx-auto tablet:w-11/12 tablet:mx-auto panel">
+              <div className="w-full mr-4 mob:w-11/12 mob:mx-auto tablet:w-11/12 tablet:mx-auto panel">
                 {children}
               </div>
             </div>

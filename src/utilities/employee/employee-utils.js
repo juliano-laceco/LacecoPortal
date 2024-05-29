@@ -184,6 +184,7 @@ export async function updateEmployee(data) {
                 position_id = ?,  
                 country = ?, 
                 employee_status_id = ?,  
+                work_end_date = ? ,
                 role_id = ?
             WHERE employee_id = ?`;
 
@@ -204,7 +205,8 @@ export async function updateEmployee(data) {
             employee_status_id,
             role_id,
             status_changed,
-            position_changed
+            position_changed,
+            work_end_date
         } = nullifyEmpty(data);
 
         const result = await execute(sql, [
@@ -221,6 +223,7 @@ export async function updateEmployee(data) {
             position_id,
             country,
             employee_status_id,
+            work_end_date ?? null,
             role_id,
             employee_id
         ]);
@@ -329,19 +332,17 @@ export async function createStatusHistoryRecord(data) {
 
 export async function getEmployeeData(employee_id) {
     try {
-        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, position_id, country, division_id , discipline_id ,  employee_status_id, role_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
+        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, CASE WHEN work_end_date IS NULL THEN NULL ELSE DATE_FORMAT(work_end_date, '%Y-%m-%d') END AS work_end_date ,  position_id, country, division_id , discipline_id ,  employee_status_id, role_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
                        FROM employee
                        NATURAL JOIN position
                        NATURAL JOIN discipline
                        NATURAL JOIN division
                        NATURAL JOIN grade
                        NATURAL JOIN level_of_management
-                    
                        WHERE employee_id = ?`;
 
         const results = await execute(query, [employee_id])
 
-        console.log(results)
         return res.success_data(results);
     } catch (error) {
         console.error('Error fetching employee details:', error);
@@ -368,7 +369,6 @@ export async function getAllEmployees(qs = {}) {
 
         const result = await dynamicQuery(qs, query, allowedKeys)
 
-        console.log(result)
         return result
 
     } catch (error) {

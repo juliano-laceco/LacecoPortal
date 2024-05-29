@@ -43,15 +43,13 @@ module.exports = {
         "section-bg": "#f4f4f5",
         "form-title": "text-xl",
         "active": "#6ABE6B",
-        "terminated": "#e84a40",
-        "probation": "#feb247"
-
+        "resigned": "#e84a40"
       },
       screens: {
         mob: { min: '320px', max: '730px' },  // Mobile devices
         tablet: { min: '731px', max: '1300px' },  // iPads, Tablets
         lap: { min: '1301px', max: '1600px' },    // Small screens, laptops
-        desk: { min: '1601px', max: '3000px' },
+        desk: { min: '1601px', max: '4000px' },
       },
       fontFamily: {
         sans: ['Poppins', "Arial"],

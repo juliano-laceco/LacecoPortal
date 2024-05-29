@@ -4,7 +4,7 @@ import Link from "next/link";
 
 function page() {
     return (
-        <div className="flex flex-col items-center justify-center w-screen ">
+        <div className="flex flex-col items-center justify-center w-full ">
             <Image src="/resources/images/forbidden.svg" width="400" height="400" alt="forbidden" />
             <div className="flex flex-col items-center gap-4">
                 <h1 className="text-2xl font-medium text-center">

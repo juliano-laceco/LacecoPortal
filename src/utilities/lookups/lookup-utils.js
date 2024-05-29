@@ -91,6 +91,19 @@ export async function getGrades() {
 
 }
 
+export async function getLeaveTypes() {
+
+    try {
+        const query = "SELECT leave_type_id as value, leave_type_name as label FROM leave_type"
+        const results = await execute(query)
+        return res.success_data(results);
+    } catch (error) {
+        console.error('Error fetching leave types:', error);
+        return res.failed()
+    }
+
+}
+
 export async function getRoles() {
 
     try {

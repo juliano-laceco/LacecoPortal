@@ -1,12 +1,12 @@
 import { getAllEmployees } from "@/utilities/employee/employee-utils";
-import EmployeeTableWrapper from "../../../../components/custom/TableWrappers/EmployeeTableWrapper";
+import TableWrapper from "../../../../components/custom/TableWrappers/TableWrapper"
 import getDropdownData from "@/data/dynamic/EmployeeFilterDDOptions";
 import { formatDate } from "@/utilities/date/date-utils";
 import Image from "next/image";
 import Link from "next/link";
-import Modal from "@/app/components/custom/Modal";
-import { headers } from "next/headers";
-import LeaveForm from "@/app/components/forms/LeaveRequestForm";
+import Modal from "@/app/components/custom/Modals/Modal";
+import LeaveForm from "@/app/components/forms/Leave/LeaveForm";
+import { getLeaveTypes } from "@/utilities/lookups/lookup-utils";
 
 async function TablePage({ searchParams }) {
 
@@ -20,8 +20,10 @@ async function TablePage({ searchParams }) {
     const identifier = searchParams.identifier;
     const modalIsOpen = searchParams.showModal;
 
+    // Fetching dropdown data for the filters
     const optionsData = await getDropdownData();
     const data = results.data;
+
 
     const filterItems = [
         {
@@ -72,15 +74,18 @@ async function TablePage({ searchParams }) {
                             alt="edit"
                         />
                     </Link>
-                    <Link title="New Leave" href={`/hr/employee/all?${new URLSearchParams({ ...searchParams, identifier: row.employee_id, showModal: 'true' })}`}>
-                        <Image
-                            src="/resources/icons/leave.svg"
-                            height="28"
-                            width="28"
-                            alt="leave"
-                            className="mt-1"
-                        />
-                    </Link>
+                    {row.employee_status_name != "Resigned" &&
+                        <Link title="New Leave" href={`/hr/employee/all?${new URLSearchParams({ ...searchParams, identifier: row.employee_id, showModal: 'true' })}`}>
+                            <Image
+                                src="/resources/icons/leave.svg"
+                                height="28"
+                                width="28"
+                                alt="leave"
+                                className="mt-1"
+                            />
+                        </Link>
+                    }
+
                 </div>
             ),
         }));
@@ -92,16 +97,10 @@ async function TablePage({ searchParams }) {
             case "Active":
                 bg = "bg-active";
                 break;
-            case "On Temporary Leave":
-                bg = "bg-probation";
+            case "Resigned":
+                bg = "bg-resigned";
                 break;
-            case "Suspended":
-            case "Terminated":
-                bg = "bg-terminated";
-                break;
-            default:
-                bg = "bg-default";
-                break;
+
         }
         return (<div className={`p-2 w-32 rounded-md text-xs text-center text-white ${bg}`}>{status}</div>)
 
@@ -109,13 +108,13 @@ async function TablePage({ searchParams }) {
 
     const tableHeaders = [
         { Header: 'Name', accessor: 'fullName', mobile: true, tablet: true },
-        { Header: 'Division', accessor: 'division_name' ,  tablet: true },
-        { Header: 'Department', accessor: 'discipline_name' ,  tablet: true },
-        { Header: 'Position', accessor: 'position_name', mobile: true , tablet: true  },
+        { Header: 'Division', accessor: 'division_name', tablet: true },
+        { Header: 'Department', accessor: 'discipline_name', tablet: true },
+        { Header: 'Position', accessor: 'position_name', mobile: true, tablet: true },
         { Header: 'Grade', accessor: 'grade_code' },
         { Header: 'Joined On', accessor: 'created_on' },
         { Header: 'Status', accessor: 'employee_status' },
-        { Header: 'Actions', accessor: 'actions', mobile: true , tablet: true },
+        { Header: 'Actions', accessor: 'actions', mobile: true, tablet: true },
     ];
 
     const constructNewPath = () => {
@@ -125,23 +124,31 @@ async function TablePage({ searchParams }) {
         return `/hr/employee/all?${params.toString()}`;
     };
 
+    let leaveTypesOptions;
+
+    if (identifier && modalIsOpen) {
+        const leaveTypesRes = await getLeaveTypes()
+        leaveTypesOptions = leaveTypesRes.data
+    }
+
     return (
         <>
-            <EmployeeTableWrapper
-                modal={<Modal />}
+            <TableWrapper
                 data={preprocessData(data)}
+                title="Employee List"
+                subTitle="Displays all employee information"
                 searchParams={searchParams}
                 filterItems={filterItems}
                 tableHeaders={tableHeaders}
-                minPageSize={2}
-                maxPageSize={10}
-                pageSizeStep={2}
+                minPageSize={5}
+                maxPageSize={20}
+                pageSizeStep={5}
                 isPaginated
                 isFilterable
             />
             {identifier && modalIsOpen == "true" &&
                 (<Modal title="Leave Request" open={true} type="server" newPath={constructNewPath()}>
-                    <LeaveForm />
+                    <LeaveForm leaveTypesOptions={leaveTypesOptions} employee_id={identifier} newPath={constructNewPath()} />
                 </Modal>)
             }
         </>

@@ -1,4 +1,4 @@
-import EmployeeFormLoader from "@/app/components/forms/EmployeeFormLoader"
+import EmployeeFormLoader from "@/app/components/forms/Employee/EmployeeFormLoader"
 
 async function EditEmployee({ params }) {
 

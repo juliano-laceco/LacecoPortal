@@ -9,6 +9,7 @@ export async function execute(query, values = []) {
         return res;
     } catch (error) {
         console.error("Error in executing SQL query:", error)
+        throw error;
     }
 }
 
@@ -76,7 +77,7 @@ export async function dynamicQuery(qs, query, allowedKeys) {
             query += keywordConditions.join(' OR ');
         }
 
-        console.log(query)
+        // console.log(query)
 
         // Execute the query with the parameter values
         const results = await execute(query, queryParams);

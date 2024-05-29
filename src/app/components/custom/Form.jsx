@@ -1,6 +1,8 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import Button from "./Button";
+import { theme } from "../../../../tailwind.config";
 
 function Form({
     title,
@@ -15,49 +17,60 @@ function Form({
     AdditionalButton,
     columns = { default: 1, mob: 1, tablet: 2, lap: 3, desk: 3 } // default column values
 }) {
+    const screens = theme.extend.screens;
 
-    const screens = {
-        mob: { min: '320px', max: '480px' },
-        tablet: { min: '481px', max: '768px' },
-        lap: { min: '769px', max: '1024px' },
-        desk: { min: '1025px', max: '3000px' }
+    const [gridColumns, setGridColumns] = useState(columns.default);
+
+    const getGridColumns = (width) => {
+        if (width >= parseInt(screens.desk.min)) {
+            return columns.desk;
+        } else if (width >= parseInt(screens.lap.min)) {
+            return columns.lap;
+        } else if (width >= parseInt(screens.tablet.min)) {
+            return columns.tablet;
+        } else if (width >= parseInt(screens.mob.min)) {
+            return columns.mob;
+        } else {
+            return columns.default;
+        }
     };
+
+    const updateGridColumns = () => {
+        const width = window.innerWidth;
+        setGridColumns(getGridColumns(width));
+    };
+
+    useEffect(() => {
+        updateGridColumns();
+        window.addEventListener("resize", updateGridColumns);
+        return () => {
+            window.removeEventListener("resize", updateGridColumns);
+        };
+    }, []);
 
     const inlineGridCols = {
         display: 'grid',
-        gridTemplateColumns: `repeat(${columns.default}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
         gap: '1rem',
     };
 
-    const mediaStyles = Object.entries(screens).map(([key, value]) => {
-        return `@media (min-width: ${value.min}) and (max-width: ${value.max}) {
-            grid-template-columns: repeat(${columns[key]}, minmax(0, 1fr));
-        }`;
-    }).join(" ");
-
-    const styleElement = document.createElement("style");
-    styleElement.innerHTML = `
-        .responsive-grid {
-            ${Object.entries(inlineGridCols).map(([key, value]) => `${key}: ${value};`).join(" ")}
-            ${mediaStyles}
-        }
-    `;
-    document.head.appendChild(styleElement);
-
     return (
         <>
-            <div className={`rounded-xl shadow-2xl p-6 mob:p-4 tablet:p-4 lap:p-4 ${className}`}>
+            <div className={`p-6 mob:p-4 tablet:p-4 lap:p-4 ${className}`}>
                 {!!title && <p className="font-bold text-3xl mob:text-3xl py-6">{title}</p>}
                 <form
-                    className="responsive-grid"
                     onSubmit={handleSubmit(onSubmit)}
                 >
-                    {children}
-                    <div className="flex items-center gap-2">
+                    <div style={inlineGridCols} >
+                        {children}
+                    </div>
+                    <div className="flex items-center gap-2 mt-3">
                         <div className="col-span-full">
                             <Button name={submitText} submit={submit} isDisabled={isDisabled || isSubmitting} />
                         </div>
-                        {AdditionalButton}
+                        <div>
+                            {AdditionalButton}
+                        </div>
                     </div>
                 </form>
             </div>
