@@ -7,6 +7,7 @@ import Image from "next/image"
 const Modal = ({ open = false, type, title, newPath, onClose, children, className }) => {
 
     const router = useRouter()
+    
     function closeServerSide() {
         router.push(newPath)
         router.refresh()

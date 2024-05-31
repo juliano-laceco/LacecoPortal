@@ -16,7 +16,7 @@ function Sidebar({ sidebarItems }) {
                 }
             </div>
             <div title="Sign Out" className="text-white p-2 hover:bg-pri-hovc cursor-pointer rounded-lg overflow-hidden transition-colors duration-500" onClick={() => signOut()}>
-                <Image src="/resources/icons/logout.svg" height="30" width="30" alt="logout-icon" />
+                <Image src="/resources/icons/logout.svg" height="30" width="30" alt="logout-icon" className="fill-green-500"/>
             </div>
         </div>
     )

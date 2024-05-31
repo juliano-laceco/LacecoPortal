@@ -23,6 +23,7 @@ import { showToast } from '@/utilities/toast-utils';
 import { formatDate } from '@/utilities/date/date-utils';
 
 function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
+    
     const router = useRouter();
 
     // Setting Title and Submit Texts
@@ -345,7 +346,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 />
                 <DropdownLookup
                     className="select-input"
-                    label="Country"
+                    label="Deployment Country"
                     isClearable
                     options={countries}
                     input_name="country"
@@ -378,7 +379,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 }
                 <DropdownLookup
                     className="select-input"
-                    label="Role"
+                    label="Clearance Level"
                     isClearable
                     options={optionsData.roles}
                     input_name="role_id"

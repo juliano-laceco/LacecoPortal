@@ -64,13 +64,14 @@ function Form({
                     <div style={inlineGridCols} >
                         {children}
                     </div>
-                    <div className="flex items-center gap-2 mt-3">
-                        <div className="col-span-full">
-                            <Button name={submitText} submit={submit} isDisabled={isDisabled || isSubmitting} />
-                        </div>
+                    <div className="flex items-center justify-between gap-2 mt-3">
                         <div>
                             {AdditionalButton}
                         </div>
+                        <div className="col-span-full">
+                            <Button name={submitText} submit={submit} isDisabled={isDisabled || isSubmitting} />
+                        </div>
+
                     </div>
                 </form>
             </div>
