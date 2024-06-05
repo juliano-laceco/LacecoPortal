@@ -7,8 +7,12 @@ import Button from '../../custom/Button';
 import Input from '../../custom/Input';
 import DropdownLookup from '../../custom/Dropdowns/DropdownLookup';
 import Image from 'next/image';
+import { addDays, addMonths, addYears } from 'date-fns';
+import { formatDate } from '@/utilities/date/date-utils';
 
 const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }) => {
+
+    console.log("DATA", data)
 
     const schema = yup.object().shape({
         phases: yup.array().of(
@@ -22,14 +26,24 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }
                         const { startDate } = this.parent;
                         return new Date(value) > new Date(startDate);
                     }),
-                startOnCreation: yup.boolean()
+                durationValue: yup.string().when('startDate', {
+                    is: (startDate) => !!startDate,
+                    then: () => yup.string().typeError("Duration must be a number").required('Duration value is required'),
+                    otherwise: () => yup.string().notRequired(),
+                }),
+                durationUnit: yup.string().when('startDate', {
+                    is: (startDate) => !!startDate,
+                    then: () => yup.string().required('Duration unit is required'),
+                    otherwise: () => yup.string().notRequired(),
+                })
             })
         ).min(1, 'At least one phase is required')
     });
 
-    const { control, handleSubmit, formState: { errors }, reset } = useForm({
+
+    const { control, handleSubmit, formState: { errors }, reset, watch, trigger, setValue } = useForm({
         resolver: yupResolver(schema),
-        defaultValues: { phases: data?.phases || [{ name: '', startDate: '', endDate: '', startOnCreation: false }] }
+        defaultValues: { phases: data || [{ name: '', startDate: '', endDate: '', durationValue: '', durationUnit: '' }] }
     });
 
     const { fields, append, remove } = useFieldArray({
@@ -38,12 +52,67 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }
     });
 
     useEffect(() => {
-        reset(data);
+        if (data && data.phases && data.phases.length > 0) {
+            reset(data);
+        }
     }, [data, reset]);
 
     const onSubmit = (formData) => {
-        console.log(formData);
-        goNext({ projectPhases: formData });
+        goNext({ phases: preprocessData(formData.phases) });
+    };
+
+
+
+    function preprocessData(data) {
+        return data.map(item => {
+            return {
+                ...item,
+                startDate: formatDate(item.startDate),
+                endDate: formatDate(item.endDate)
+            };
+        });
+    }
+
+    const addDuration = (startDate, duration, unit) => {
+        const date = new Date(startDate);
+        switch (unit) {
+            case 'days':
+                return addDays(date, duration);
+            case 'months':
+                return addMonths(date, duration);
+            case 'years':
+                return addYears(date, duration);
+            default:
+                return date;
+        }
+    };
+
+    const handleStartDateChange = (index) => {
+        const startDate = watch(`phases.${index}.startDate`);
+        const durationValue = watch(`phases.${index}.durationValue`);
+        const durationUnit = watch(`phases.${index}.durationUnit`);
+
+        if (!startDate || isNaN(new Date(startDate))) {
+            setValue(`phases.${index}.durationValue`, '');
+            setValue(`phases.${index}.endDate`, '');
+        } else if (durationValue && durationUnit) {
+            const newEndDate = addDuration(startDate, parseInt(durationValue, 10), durationUnit);
+            setValue(`phases.${index}.endDate`, formatDate(newEndDate));
+            trigger(`phases.${index}.endDate`)
+        }
+    };
+
+    const handleDurationChange = (index) => {
+        const startDate = watch(`phases.${index}.startDate`);
+        const durationValue = watch(`phases.${index}.durationValue`);
+        const durationUnit = watch(`phases.${index}.durationUnit`);
+
+
+        if (startDate && !isNaN(new Date(startDate)) && durationValue && durationUnit) {
+            const newEndDate = addDuration(startDate, parseInt(durationValue, 10), durationUnit);
+            setValue(`phases.${index}.endDate`, formatDate(newEndDate));
+            trigger(`phases.${index}.endDate`)
+        }
     };
 
     return (
@@ -51,7 +120,7 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }
             handleSubmit={handleSubmit}
             onSubmit={onSubmit}
             submitText="Next"
-            columns={{ default: 4, mob: 1, lap: 4, desk: 4, tablet: 2 }}
+            columns={{ default: 1, mob: 1, lap: 4, desk: 4, tablet: 2 }}
             AdditionalButton={
                 !isFirstStep && (
                     <Button variant="secondary" medium name="Back" onClick={goBack}>
@@ -61,56 +130,87 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }
             }
             submit
         >
-            {fields.map((phase, index) => (
-                <div key={phase.id} className="space-y-6 border border-gray-300 p-3 rounded-lg shadow-xl">
-                    <div className="font-bold text-black text-xl mb-2">Phase {index + 1}</div>
-                    <DropdownLookup
-                        className="select-input"
-                        label="Phase Name"
-                        options={dropdowns}
-                        input_name={`phases.${index}.name`}
-                        control={control}
-                        isCreatable
-                        error={errors.phases?.[index]?.name?.message}
-                    />
-                    <Input
-                        label={`Expected Start Date`}
-                        type="date"
-                        error={errors.phases?.[index]?.startDate?.message}
-                        {...control.register(`phases.${index}.startDate`)}
-                    />
-                    <Input
-                        label={`Expected End Date`}
-                        type="date"
-                        error={errors.phases?.[index]?.endDate?.message}
-                        {...control.register(`phases.${index}.endDate`)}
-                    />
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <input
-                                id={`start_on_creation_${index}`}
-                                type="checkbox"
-                                className="mr-2"
-                                {...control.register(`phases.${index}.startOnCreation`)}
-                            />
-                            <label htmlFor={`start_on_creation_${index}`} className="text-gray-700 text-sm">Start on Creation</label>
+            {fields.map((phase, index) => {
+                const startDate = watch(`phases.${index}.startDate`);
+                const isStartDateValid = !!startDate && !errors.phases?.[index]?.startDate;
+
+                return (
+                    <div key={phase.id} className="space-y-2 border border-gray-300 p-4 rounded-lg shadow-xl">
+                        <div className="flex justify-between items-center">
+                            <div className="font-bold text-xl">Phase {index + 1}</div>
+                            <Image height="30" width="30" src="/resources/icons/bin.svg" className="bg-pric p-2 rounded-md cursor-pointer transition-all duration-200 ease hover:bg-pri-hovc" onClick={() => fields.length > 1 && remove(index)} alt="delete-icon" />
                         </div>
-                        <Image height="30" width="30" src="/resources/icons/bin.svg" className="bg-pric p-2 rounded-md cursor-pointer" onClick={() => remove(index)} />
+                        <DropdownLookup
+                            className="select-input"
+                            label="Phase Name"
+                            options={dropdowns}
+                            input_name={`phases.${index}.name`}
+                            control={control}
+                            isCreatable
+                            error={errors.phases?.[index]?.name?.message}
+                        />
+                        <Input
+                            label={`Expected Start Date`}
+                            type="date"
+                            error={errors.phases?.[index]?.startDate?.message}
+                            {...control.register(`phases.${index}.startDate`, {
+                                onChange: () => handleStartDateChange(index)
+                            })}
+                        />
+                        <Input
+                            label={`Expected End Date`}
+                            type="date"
+                            isDisabled
+                            error={errors.phases?.[index]?.endDate?.message}
+                            {...control.register(`phases.${index}.endDate`)}
+                        />
+                        <div className="flex space-x-4 justify-center items-end">
+                            <Input
+                                label="Duration"
+                                type="number"
+                                error={errors.phases?.[index]?.durationValue?.message}
+                                isDisabled={!isStartDateValid}
+                                {...control.register(`phases.${index}.durationValue`, {
+                                    onChange: () => handleDurationChange(index)
+                                })}
+                            />
+                            {isStartDateValid ? (
+                                <DropdownLookup
+                                    options={[
+                                        { value: 'days', label: 'Days' },
+                                        { value: 'months', label: 'Months' },
+                                        { value: 'years', label: 'Years' },
+                                    ]}
+                                    input_name={`phases.${index}.durationUnit`}
+                                    control={control}
+                                    isSearchable={false}
+                                    isClearable={false}
+                                    isCreatable={false}
+                                    label="Duration Unit"
+                                    error={errors.phases?.[index]?.durationUnit?.message}
+                                    handler={(value) => handleDurationChange(index, watch(`phases.${index}.durationValue`), value)}
+                                />
+                            ) : (
+                                <DropdownLookup
+                                    options={[]}
+                                    input_name={`phases.${index}.durationUnit`}
+                                    control={control}
+                                    isDisabled
+                                    label="Duration Unit"
+                                />
+                            )}
+                        </div>
                     </div>
+                );
 
-
-
-                </div>
-            ))}
+            })}
             <div
-                className="space-y-6 border shadow-xl border-dashed grid grid-center border-red-300 bg-red-100 p-3 rounded-lg cursor-pointer hover:bg-red-200"
-                onClick={() => append({ name: '', startDate: '', endDate: '', startOnCreation: false })}
+                className="space-y-6 border shadow-xl border-dashed grid grid-center border-red-300 bg-red-100 p-3 rounded-lg cursor-pointer hover:bg-red-200 transition-all duration-200"
+                onClick={() => append({ name: '', startDate: '', endDate: '', durationValue: '', durationUnit: 'days' })}
             >
-                <div className="flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" fill="" className="w6 h-6" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 4a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5a1 1 0 0 1 1-1z" fill="#0D0D0D" />
-                    </svg>
-                    <span className="text-gray-900">Add Phase</span>
+                <div className="flex items-center justify-center gap-2">
+                    <Image height="25" width="25" src="/resources/icons/add-phase.svg" className="cursor-pointer" alt="add-phase-icon" />
+                    <span className="text-pric font-semibold">Add Phase</span>
                 </div>
             </div>
         </Form>

@@ -6,7 +6,7 @@ import ProjectInfoForm from '@/app/components/forms/Project/ProjectInfoForm';
 import ProjectPhasesForm from '@/app/components/forms/Project/ProjectPhasesForm';
 import Stepper from '@/app/components/custom/Flow/Stepper';
 
-const ProjectForm = ({projectDropdowns}) => {
+const ProjectForm = ({ projectDropdowns, isEdit, defaultValues }) => {
 
     const [data, setData] = useState({});
 
@@ -45,7 +45,8 @@ const ProjectForm = ({projectDropdowns}) => {
             <Stepper steps={steps} currentStep={currentStepIndex} />
             <Flow currentIndex={currentStepIndex} onNext={onNext} onBack={onBack} onDone={onDone}>
                 <MemoizedProjectInfoForm data={data.projectInfo} dropdowns={projectDropdowns.projectInfoDropdowns} />
-                <MemoizedProjectPhasesForm data={data.projectPhases} dropdowns={projectDropdowns.phaseCreationDropdowns} />
+                <MemoizedProjectPhasesForm data={data.phases} dropdowns={projectDropdowns.phaseCreationDropdowns} />
+                <MemoizedProjectInfoForm data={data.projectInfo} dropdowns={projectDropdowns.projectInfoDropdowns} />
             </Flow>
         </>
     );

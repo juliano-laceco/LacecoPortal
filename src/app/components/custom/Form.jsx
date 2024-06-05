@@ -19,8 +19,6 @@ function Form({
 }) {
     const screens = theme.extend.screens;
 
-    const [gridColumns, setGridColumns] = useState(columns.default);
-
     const getGridColumns = (width) => {
         if (width >= parseInt(screens.desk.min)) {
             return columns.desk;
@@ -35,13 +33,14 @@ function Form({
         }
     };
 
+    const [gridColumns, setGridColumns] = useState(() => getGridColumns(window.innerWidth));
+
     const updateGridColumns = () => {
         const width = window.innerWidth;
         setGridColumns(getGridColumns(width));
     };
 
     useEffect(() => {
-        updateGridColumns();
         window.addEventListener("resize", updateGridColumns);
         return () => {
             window.removeEventListener("resize", updateGridColumns);
@@ -51,31 +50,24 @@ function Form({
     const inlineGridCols = {
         display: 'grid',
         gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-        gap: '1rem',
+        gap: '0.5rem',
     };
 
     return (
-        <>
-            <div className={`p-6 mob:p-4 tablet:p-4 lap:p-4 ${className}`}>
-                {!!title && <p className="font-bold text-3xl mob:text-3xl py-6">{title}</p>}
-                <form
-                    onSubmit={handleSubmit(onSubmit)}
-                >
-                    <div style={inlineGridCols} >
-                        {children}
+        <div className={`p-6 mob:p-4 tablet:p-4 lap:p-4 ${className}`}>
+            {!!title && <p className="font-bold text-3xl mob:text-3xl py-6">{title}</p>}
+            <form onSubmit={handleSubmit(onSubmit)}>
+                <div style={inlineGridCols}>
+                    {children}
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-3">
+                    <div>{AdditionalButton}</div>
+                    <div className="col-span-full">
+                        <Button name={submitText} submit={submit} isDisabled={isDisabled || isSubmitting} />
                     </div>
-                    <div className="flex items-center justify-between gap-2 mt-3">
-                        <div>
-                            {AdditionalButton}
-                        </div>
-                        <div className="col-span-full">
-                            <Button name={submitText} submit={submit} isDisabled={isDisabled || isSubmitting} />
-                        </div>
-
-                    </div>
-                </form>
-            </div>
-        </>
+                </div>
+            </form>
+        </div>
     );
 }
 

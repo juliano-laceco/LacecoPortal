@@ -109,7 +109,6 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
     }
 
     const onSubmit = (formData) => {
-        console.log(preprocessData(formData))
         goNext({ projectInfo: preprocessData(formData) });
     };
 
@@ -123,7 +122,7 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
             handleSubmit={handleSubmit}
             onSubmit={onSubmit}
             submitText="Next"
-            columns={{ default: 4, mob: 1, lap: 4, desk: 4, tablet: 2 }}
+            columns={{ default: 1, mob: 1, lap: 4, desk: 4, tablet: 2 }}
             AdditionalButton={
                 !isFirstStep && (
                     <Button variant="secondary" medium name="Back" onClick={goBack}>
@@ -188,10 +187,10 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
                 handler={handleDisciplineChange}
             />
             <Input label="Baseline Budget (USD)" type="number" {...register("baseline_budget")} error={errors.baseline_budget?.message} />
-            <Input label="BUA" type="number" {...register("BUA")} error={errors.BUA?.message} />
-            <Input label="Landscape" type="number" {...register("Landscape")} error={errors.Landscape?.message} />
-            <Input label="Parking Area" type="number" {...register("ParkingArea")} error={errors.ParkingArea?.message} />
-            <Input label="Design Area" type="number" {...register("DesignArea")} error={errors.DesignArea?.message} />
+            <Input label="BUA (sqm)" type="number" {...register("BUA")} error={errors.BUA?.message} />
+            <Input label="Landscape (sqm)" type="number" {...register("Landscape")} error={errors.Landscape?.message} />
+            <Input label="Parking Area (sqm)" type="number" {...register("ParkingArea")} error={errors.ParkingArea?.message} />
+            <Input label="Design Area (sqm)" type="number" {...register("DesignArea")} error={errors.DesignArea?.message} />
             <Input label="Planned Start Date" type="date" {...register("planned_startdate")} error={errors.planned_startdate?.message} />
             <Input label="Planned End Date" type="date" {...register("planned_enddate")} error={errors.planned_enddate?.message} />
             <DropdownLookup

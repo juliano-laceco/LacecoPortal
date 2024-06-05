@@ -16,7 +16,7 @@ function DropdownLookup({ options, input_name, isSearchable, isDisabled, isLoadi
         }
     }, [defaultValue, ddValue, ddOnChange]);
 
-    const errorClasses = 'text-pric text-[1.5ex] ml-1';
+    const errorClasses = 'text-pric text-[1.5ex] ml-1 min-h-5';
     const colors = theme.extend.colors;
 
     const handleOnChange = (option) => {
@@ -67,7 +67,7 @@ function DropdownLookup({ options, input_name, isSearchable, isDisabled, isLoadi
                     {...rest}
                 />
             </div>
-            {error && <div className={errorClasses}>{error}</div>}
+            <div className={errorClasses}>{!!error && error}</div>
         </div>
     );
 }

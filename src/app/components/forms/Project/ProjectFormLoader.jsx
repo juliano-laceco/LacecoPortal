@@ -15,7 +15,7 @@ async function ProjectFormLoader({ params, isEdit }) {
   }
 
   return (
-    <ProjectForm isEdit={isEdit} defaultValues={{}} optionsData={[]} projectDropdowns={projectDropdowns} />
+    <ProjectForm isEdit={isEdit} defaultValues={{}} projectDropdowns={projectDropdowns} />
   )
 }
 

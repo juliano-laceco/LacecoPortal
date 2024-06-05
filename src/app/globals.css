@@ -17,6 +17,7 @@
 .react-select__input:focus {
     box-shadow: none;
 }
+
 .react-select__control {
     border-radius: 6px !important;
     padding: 1.5px !important;
@@ -25,3 +26,5 @@
 div:has(.react-select-dd__control):not(.panel) {
     width: 100% !important;
 }
+
+

@@ -6,7 +6,7 @@ import * as res from "../response-utils"
 export async function checkProjectCodeExists(code) {
 
     try {
-        const countProjectCodesSQL = 'SELECT project_id FROM projects WHERE code = ?';
+        const countProjectCodesSQL = 'SELECT project_id FROM project WHERE code = ?';
         const countProjectCodes = await execute(countProjectCodesSQL, [code]);
 
         if (countProjectCodes.length > 0 && countProjectCodes[0].code) {

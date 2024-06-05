@@ -28,9 +28,9 @@ const Input = forwardRef(
         ref
     ) => {
         const baseClasses = 'border-1 rounded-md p-2 w-full border-input-b bg-input-bg';
-        const inputClasses = `focus:ring-0 focus:border-pric p-1 rounded-md ${!!Icon ? `p${ltr ? "r" : "l" }-12` : ""}`;
+        const inputClasses = `focus:ring-0 focus:border-pric p-1 rounded-md ${!!Icon ? `p${ltr ? "r" : "l"}-12` : ""}`;
         const labelClasses = `pr-3 mob:mt-1 ${!!labelStyle ? labelStyle : ""}`;
-        const errorClasses = 'text-pric text-[1.5ex] ml-1';
+        const errorClasses = 'text-pric text-[1.5ex] ml-1 min-h-5';
 
         return (
             <div className={`flex flex-col items-start gap-[3px] ${fit ? "w-fit" : "w-full"}`}>
@@ -56,13 +56,13 @@ const Input = forwardRef(
                     {!!Icon && (
                         <div
                             onClick={!!onClickIcon && onClickIcon}
-                            className={`absolute bg-input-bg  ${ltr ? "right-2":"left-2"} top-1/2 transform -translate-y-1/2 cursor-pointer ${!!onClickIcon && 'hover:opacity-70'}`}
+                            className={`absolute bg-input-bg  ${ltr ? "right-2" : "left-2"} top-1/2 transform -translate-y-1/2 cursor-pointer ${!!onClickIcon && 'hover:opacity-70'}`}
                         >
                             {Icon}
                         </div>
                     )}
                 </div>
-                {error && <div className={errorClasses}>{error}</div>}
+                <div className={errorClasses}>{!!error && error}</div>
             </div>
         );
     }
