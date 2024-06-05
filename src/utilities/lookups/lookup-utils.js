@@ -129,3 +129,25 @@ export async function getEmployeeStatuses() {
         return res.failed()
     }
 }
+
+export async function getEmployees() {
+    try {
+        let query = `SELECT employee_id as value, CONCAT(first_name, ' ', last_name) as label FROM employee`;
+        const result = await execute(query);
+        return res.success_data(result);
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        return res.failed();
+    }
+}
+
+export async function getPhaseNames() {
+    try {
+        let query = `SELECT phase_name as value , phase_name as label FROM phase_name`;
+        const result = await execute(query);
+        return res.success_data(result);
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        return res.failed();
+    }
+}

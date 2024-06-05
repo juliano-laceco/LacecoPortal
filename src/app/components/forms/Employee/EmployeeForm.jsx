@@ -338,7 +338,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 <DropdownLookup
                     className="select-input"
                     label="Nationality"
-                    isClearable
                     options={nationalities}
                     input_name="nationality"
                     control={control}
@@ -347,7 +346,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 <DropdownLookup
                     className="select-input"
                     label="Deployment Country"
-                    isClearable
                     options={countries}
                     input_name="country"
                     control={control}
@@ -356,7 +354,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 <DropdownLookup
                     className="select-input"
                     label="Marital Status"
-                    isClearable
                     options={marital_statuses}
                     input_name="marital_status"
                     control={control}
@@ -365,7 +362,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 <DropdownLookup
                     className="select-input"
                     label="Contract Type"
-                    isClearable
                     options={optionsData.contractTypes}
                     handler={clearContractValidity}
                     input_name="contract_type_id"
@@ -380,7 +376,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 <DropdownLookup
                     className="select-input"
                     label="Clearance Level"
-                    isClearable
                     options={optionsData.roles}
                     input_name="role_id"
                     control={control}
@@ -394,7 +389,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                     <DropdownLookup
                         className="select-input"
                         label="Status"
-                        isClearable
                         handler={clearWorkEndDate}
                         options={optionsData.statuses}
                         input_name="employee_status_id"

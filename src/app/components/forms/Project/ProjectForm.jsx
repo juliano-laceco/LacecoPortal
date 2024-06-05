@@ -6,14 +6,11 @@ import ProjectInfoForm from '@/app/components/forms/Project/ProjectInfoForm';
 import ProjectPhasesForm from '@/app/components/forms/Project/ProjectPhasesForm';
 import Stepper from '@/app/components/custom/Flow/Stepper';
 
-const ProjectForm = () => {
+const ProjectForm = ({projectDropdowns}) => {
 
-    const [data, setData] = useState({
-        projectInfo: { project_name: '', project_code: '' },
-        projectPhases: { phase_name: '', phase_code: '' },
-    });
+    const [data, setData] = useState({});
 
-    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [currentStepIndex, setCurrentStepIndex] = useState(1);
 
     const onNext = useCallback((dataFromStep) => {
         const updatedData = {
@@ -40,13 +37,15 @@ const ProjectForm = () => {
     const steps = [
         { id: 1, name: 'Project Information' },
         { id: 2, name: 'Project Phases' },
+        { id: 3, name: 'Deployment' },
     ];
+
     return (
         <>
             <Stepper steps={steps} currentStep={currentStepIndex} />
             <Flow currentIndex={currentStepIndex} onNext={onNext} onBack={onBack} onDone={onDone}>
-                <MemoizedProjectInfoForm data={data.projectInfo} />
-                <MemoizedProjectPhasesForm data={data.projectPhases} />
+                <MemoizedProjectInfoForm data={data.projectInfo} dropdowns={projectDropdowns.projectInfoDropdowns} />
+                <MemoizedProjectPhasesForm data={data.projectPhases} dropdowns={projectDropdowns.phaseCreationDropdowns} />
             </Flow>
         </>
     );
