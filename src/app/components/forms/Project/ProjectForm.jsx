@@ -5,12 +5,17 @@ import Flow from '../../custom/Flow/Flow';
 import ProjectInfoForm from '@/app/components/forms/Project/ProjectInfoForm';
 import ProjectPhasesForm from '@/app/components/forms/Project/ProjectPhasesForm';
 import Stepper from '@/app/components/custom/Flow/Stepper';
+import { createProject } from '@/utilities/project/project-utils';
+import { useRouter } from 'next/navigation';
+import { showToast } from '@/utilities/toast-utils';
 
-const ProjectForm = ({ projectDropdowns, isEdit, defaultValues }) => {
+const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
 
-    const [data, setData] = useState({});
+    const router = useRouter()
 
-    const [currentStepIndex, setCurrentStepIndex] = useState(1);
+    const [data, setData] = useState(defaultData ?? {})
+
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
     const onNext = useCallback((dataFromStep) => {
         const updatedData = {
@@ -25,28 +30,50 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultValues }) => {
         setCurrentStepIndex((prevIndex) => prevIndex - 1);
     }, []);
 
-    const onDone = useCallback((dataFromStep) => {
+    const onDone = useCallback(async (dataFromStep) => {
+
+        const successMessage = `Project Created Successfully`;
+        const errorMessage = `Error Occurred while creating project`;
+
         const updatedData = {
             ...data,
             ...dataFromStep,
         };
+
         setData(updatedData);
-        console.log('Final data:', updatedData);
+
+
+        const result = await createProject(preprocessData(updatedData))
+
+        if (result.res) {
+            showToast("success", successMessage);
+        } else {
+            showToast("failed", errorMessage);
+        }
+        router.replace("/");
+        router.refresh();
+
     }, [data]);
+
+
+    const preprocessData = (finalData) => {
+        const disciplinesArray = finalData.projectInfo.disciplines
+        finalData.projectInfo.disciplines = disciplinesArray.map((item) => item.value)
+        return finalData
+    }
 
     const steps = [
         { id: 1, name: 'Project Information' },
-        { id: 2, name: 'Project Phases' },
-        { id: 3, name: 'Deployment' },
+        { id: 2, name: 'Project Phases' }
     ];
+
 
     return (
         <>
             <Stepper steps={steps} currentStep={currentStepIndex} />
             <Flow currentIndex={currentStepIndex} onNext={onNext} onBack={onBack} onDone={onDone}>
-                <MemoizedProjectInfoForm data={data.projectInfo} dropdowns={projectDropdowns.projectInfoDropdowns} />
-                <MemoizedProjectPhasesForm data={data.phases} dropdowns={projectDropdowns.phaseCreationDropdowns} />
-                <MemoizedProjectInfoForm data={data.projectInfo} dropdowns={projectDropdowns.projectInfoDropdowns} />
+                <MemoizedProjectInfoForm data={data.projectInfo} dropdowns={projectDropdowns.projectInfoDropdowns} isEdit={isEdit} />
+                <MemoizedProjectPhasesForm data={data.phases} dropdowns={projectDropdowns.phaseCreationDropdowns} isEdit={isEdit} />
             </Flow>
         </>
     );

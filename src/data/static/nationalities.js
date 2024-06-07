@@ -136,6 +136,7 @@ const nationalities = [
     { "value": "Omani", "label": "Omani" },
     { "value": "Pakistani", "label": "Pakistani" },
     { "value": "Palauan", "label": "Palauan" },
+    { "value": "Palestinian", "label": "Palestinian" },
     { "value": "Panamanian", "label": "Panamanian" },
     { "value": "Papua New Guinean", "label": "Papua New Guinean" },
     { "value": "Paraguayan", "label": "Paraguayan" },

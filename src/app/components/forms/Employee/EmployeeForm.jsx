@@ -23,7 +23,7 @@ import { showToast } from '@/utilities/toast-utils';
 import { formatDate } from '@/utilities/date/date-utils';
 
 function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
-    
+
     const router = useRouter();
 
     // Setting Title and Submit Texts
@@ -34,10 +34,10 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
     const schema = yup.object().shape({
         first_name: yup.string()
             .required("First Name is required")
-            .matches(/^[A-Za-z]+$/, 'First Name must contain only alphabet characters'),
+            .matches(/^[A-Z a-z]+$/, 'First Name must contain only alphabet characters'),
         last_name: yup.string()
             .required("Last Name is required")
-            .matches(/^[A-Za-z]+$/, 'Last Name must contain only alphabet characters'),
+            .matches(/^[A-Z a-z]+$/, 'Last Name must contain only alphabet characters'),
         date_of_birth: yup.date()
             .typeError("Date of Birth is required")
             .min(new Date(new Date().getFullYear() - 118, new Date().getMonth(), new Date().getDate()), "Invalid Birth Date")
@@ -241,33 +241,33 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
     /* SUBMISSION FUNCTIONS */
     const onCreate = async (data) => {
-
-        data = preprocessData(data)
-
-        const result = await createEmployee(data);
+        const preprocessedData = preprocessData(data);
+        const result = await createEmployee(preprocessedData);
 
         if (result) {
             showToast("success", "Successfully Created Employee");
-            router.replace("/hr/employee/all");
-            router.refresh();
+        } else {
+            showToast("failed", "Error Occurred while Creating Employee");
         }
+
+        router.replace("/hr/employee/all");
+        router.refresh();
     };
 
     const onUpdate = async (data) => {
-
-        data = preprocessData(data)
-
-        const flags = getFlags(data);
-
-        const result = await updateEmployee({ ...data, ...flags });
+        const preprocessedData = preprocessData(data);
+        const flags = getFlags(preprocessedData);
+        const result = await updateEmployee({ ...preprocessedData, ...flags });
 
         if (result) {
             showToast("success", "Successfully Updated Employee");
-            router.replace("/hr/employee/all");
-            router.refresh();
+        } else {
+            showToast("failed", "Error Occurred while Updating Employee");
         }
-    };
 
+        router.replace("/hr/employee/all");
+        router.refresh();
+    };
 
     function preprocessData(data) {
         data.date_of_birth = formatDate(data.date_of_birth);
@@ -289,7 +289,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
         return { position_changed, status_changed, employee_id };
     }
-
 
     return (
         <div className="shadow-2xl rounded-lg border bg-white">

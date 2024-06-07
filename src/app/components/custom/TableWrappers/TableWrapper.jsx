@@ -55,7 +55,7 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
     if (!value) {
       params.delete(itemKey);
     } else {
-      params.set(itemKey, value);
+      params.set(itemKey, typeof value === 'string' ? value.trim() : value);
     }
 
     router.push(`${pathname}?${params.toString()}`);

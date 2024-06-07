@@ -7,6 +7,7 @@ import Image from "next/image";
 import { ToastContainer } from 'react-toastify';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import ReactQueryProvider from "@/providers/RQProvider";
+import { checkDisciplineIsPhaseAssigned, getProjectData } from "@/utilities/project/project-utils";
 
 export const metadata = {
   title: "Laceco Portal",
@@ -17,6 +18,11 @@ export default async function RootLayout({ children }) {
 
   const session = await getSession()
 
+  const disc = await checkDisciplineIsPhaseAssigned([
+    { value: "60", label: "BIM" }
+  ], 20)
+
+  console.log(disc)
   let navItems = []
   let userRole;
 
@@ -53,7 +59,7 @@ export default async function RootLayout({ children }) {
             <Header burgerNavItems={navItems} />
             <div className="flex gap-5 h-full sticky left-0">
               {!!session && <Sidebar sidebarItems={navItems} />}
-              <div className="w-full mr-4 mob:w-11/12 mob:mx-auto tablet:w-11/12 tablet:mx-auto panel">
+              <div className="w-full mr-4 mob:w-11/12 mob:mx-auto tablet:w-11/12 tablet:mx-auto panel lap:pl-24 desk:pl-24  mob:mt-24 tablet:mt-28 lap:mt-28 desk:mt-28">
                 {children}
               </div>
             </div>

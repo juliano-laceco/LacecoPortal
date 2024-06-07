@@ -1,6 +1,7 @@
 import React from 'react'
 import ProjectForm from './ProjectForm'
 import getDropdownData from '@/data/dynamic/NewProjectDDoptions';
+import { getProjectData } from '@/utilities/project/project-utils';
 
 async function ProjectFormLoader({ params, isEdit }) {
 
@@ -11,11 +12,11 @@ async function ProjectFormLoader({ params, isEdit }) {
   let projectCount = 0;
 
   if (project_id && isEdit) {
-    // logic to fetch the project details
+    projectDetails = await getProjectData(project_id)
   }
 
   return (
-    <ProjectForm isEdit={isEdit} defaultValues={{}} projectDropdowns={projectDropdowns} />
+    <ProjectForm isEdit={isEdit} defaultData={projectDetails.data} projectDropdowns={projectDropdowns} />
   )
 }
 

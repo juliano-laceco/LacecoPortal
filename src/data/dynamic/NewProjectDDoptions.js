@@ -9,7 +9,7 @@ export default async function getDropdownData() {
     const clientsRes = await getClients()
     const clients = clientsRes.data
 
-    const disciplinesRes = await getDisciplines()
+    const disciplinesRes = await getDisciplines(8)
     const disciplines = disciplinesRes.data
 
     const employeesRes = await getEmployees()

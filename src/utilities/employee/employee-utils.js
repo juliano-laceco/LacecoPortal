@@ -2,18 +2,12 @@
 
 
 import * as res from '../response-utils';
-import { getSession } from "../auth/auth-utils";
+import { getLoggedInId, getSession } from "../auth/auth-utils";
 import { nullifyEmpty } from '../misc-utils';
 import { dynamicQuery, execute, getTableFields } from '../db/db-utils';
 
 
-async function getLoggedInId() {
 
-    const session = await getSession()
-    const loggedInId = session?.user?.employee_id
-
-    return loggedInId
-}
 
 export async function handleEmployeeLogin(email, sub) {
 

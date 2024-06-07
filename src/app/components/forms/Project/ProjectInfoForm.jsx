@@ -108,9 +108,28 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
         return data
     }
 
-    const onSubmit = (formData) => {
+    const onSubmit = async (formData) => {
+
+        const removedDisciplines = findRemovedItems(data.disciplines, watch("disciplines"))
+
+
+        console.log(removedDisciplines)
         goNext({ projectInfo: preprocessData(formData) });
     };
+
+
+    function findRemovedItems(array1, array2) {
+        // Convert array2 to a Set for faster lookup
+        const set2 = new Set(array2.map(item => item.value));
+
+        // Filter items in array1 that are not in array2
+        const removedItems = array1.filter(item => !set2.has(item.value));
+
+
+
+        return removedItems;
+    }
+
 
     const handleDisciplineChange = (disciplines) => {
         setValue("disciplines", disciplines)
@@ -133,7 +152,7 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
             submit
         >
             <Input label="Project Name" type="text" {...register("title")} error={errors.title?.message} />
-            <Input label="Project Code" type="text" {...register("code")} error={errors.code?.message} />
+            <Input label="Project Code" type="text" {...register("code")} error={errors.code?.message} isDisabled={isEdit} />
             <DropdownLookup
                 className="select-input"
                 label="Geography"
