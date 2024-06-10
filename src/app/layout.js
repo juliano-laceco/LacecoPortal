@@ -17,7 +17,7 @@ export const metadata = {
 export default async function RootLayout({ children }) {
 
   const session = await getSession()
-  
+
   let navItems = []
   let userRole;
 
@@ -34,9 +34,16 @@ export default async function RootLayout({ children }) {
   ];
 
 
+  const PlanningAdminOptions = [
+    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/new-project.svg" height="30" width="30" alt="nav-icon" />, label: "New Project", redirectTo: "/project/add" },
+  ]
+
   switch (userRole) {
     case "HR":
       navItems = [...commonOptions, ...HROptions]
+      break;
+    case "Planning Administrator":
+      navItems = [...commonOptions, ...PlanningAdminOptions]
       break;
     default:
       navItems = [...commonOptions]
