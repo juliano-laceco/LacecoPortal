@@ -1,10 +1,10 @@
 import { toast, Slide } from 'react-toastify';
 
-export function showToast(type, message) {
+export function showToast(type, message , autoClose = 7000) {
 
     const params = {
         position: "top-right",
-        autoClose: 5000,
+        autoClose: autoClose,
         hideProgressBar: false,
         closeOnClick: false,
         pauseOnHover: false,

@@ -5,7 +5,7 @@ import Flow from '../../custom/Flow/Flow';
 import ProjectInfoForm from '@/app/components/forms/Project/ProjectInfoForm';
 import ProjectPhasesForm from '@/app/components/forms/Project/ProjectPhasesForm';
 import Stepper from '@/app/components/custom/Flow/Stepper';
-import { createProject } from '@/utilities/project/project-utils';
+import { createProject, updateProject } from '@/utilities/project/project-utils';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/utilities/toast-utils';
 
@@ -32,26 +32,35 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
 
     const onDone = useCallback(async (dataFromStep) => {
 
-        const successMessage = `Project Created Successfully`;
-        const errorMessage = `Error Occurred while creating project`;
+        const successMessage = `Project ${isEdit ? "Updated" : "Created"} Successfully`;
+        const errorMessage = `Error Occurred while ${isEdit ? "updating" : "creating"} project`;
 
         const updatedData = {
             ...data,
             ...dataFromStep,
+            project_id: defaultData?.project_id
         };
 
         setData(updatedData);
 
-
-        const result = await createProject(preprocessData(updatedData))
+        let result;
+        
+        if (!isEdit) {
+            result = await createProject(preprocessData(updatedData));
+        } else {
+            result = await updateProject(preprocessData(updatedData));
+        }
 
         if (result.res) {
             showToast("success", successMessage);
         } else {
             showToast("failed", errorMessage);
         }
+
         router.replace("/");
         router.refresh();
+
+
 
     }, [data]);
 

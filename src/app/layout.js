@@ -17,12 +17,7 @@ export const metadata = {
 export default async function RootLayout({ children }) {
 
   const session = await getSession()
-
-  const disc = await checkDisciplineIsPhaseAssigned([
-    { value: "60", label: "BIM" }
-  ], 20)
-
-  console.log(disc)
+  
   let navItems = []
   let userRole;
 

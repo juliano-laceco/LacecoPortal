@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -9,11 +9,17 @@ import Button from '../../custom/Button';
 import Input from '../../custom/Input';
 import DropdownLookup from '../../custom/Dropdowns/DropdownLookup';
 import { formatDate } from '@/utilities/date/date-utils';
-import { checkProjectCodeExists } from '@/utilities/project/project-utils';
+import { checkDisciplineIsPhaseAssigned, checkProjectCodeExists } from '@/utilities/project/project-utils';
+import Modal from "../../custom/Modals/Modal"
+import UnremovableDiscipline from './UnremovableDiscipline';
 
 
 
 const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, isEdit }) => {
+
+
+    const [modalIsOpen, setModalIsOpen] = useState(false)
+    const [unremovableDisciplines, setUnremovableDisciplines] = useState([])
 
     // Validation schema
     const schema = yup.object().shape({
@@ -96,9 +102,7 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
     });
 
     useEffect(() => {
-
         reset(data);
-
     }, [data, reset]);
 
     function preprocessData(data) {
@@ -110,22 +114,38 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
 
     const onSubmit = async (formData) => {
 
+        if (!isEdit) {
+            goNext({ projectInfo: preprocessData(formData) });
+            return;
+        }
+
+
         const removedDisciplines = findRemovedItems(data.disciplines, watch("disciplines"))
+        const phasesAssignments = await checkDisciplineIsPhaseAssigned(removedDisciplines, data.project_id)
+
+        const unremovableDisciplines = phasesAssignments.filter((item) => {
+            return item.isPhaseAssigned === true
+        })
+
+        if (unremovableDisciplines.length > 0) {
+            setUnremovableDisciplines(unremovableDisciplines)
+            setModalIsOpen(true)
+            return;
+        } else {
+            goNext({ projectInfo: preprocessData(formData) });
+        }
 
 
-        console.log(removedDisciplines)
-        goNext({ projectInfo: preprocessData(formData) });
     };
 
 
+
     function findRemovedItems(array1, array2) {
-        // Convert array2 to a Set for faster lookup
-        const set2 = new Set(array2.map(item => item.value));
+        // Convert array2 to a Set for faster lookup, normalize to string for comparison
+        const set2 = new Set(array2.map(item => String(item.value)));
 
-        // Filter items in array1 that are not in array2
-        const removedItems = array1.filter(item => !set2.has(item.value));
-
-
+        // Filter items in array1 that are not in array2, normalize to string for comparison
+        const removedItems = array1.filter(item => !set2.has(String(item.value)));
 
         return removedItems;
     }
@@ -137,90 +157,95 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
     };
 
     return (
-        <Form
-            handleSubmit={handleSubmit}
-            onSubmit={onSubmit}
-            submitText="Next"
-            columns={{ default: 1, mob: 1, lap: 4, desk: 4, tablet: 2 }}
-            AdditionalButton={
-                !isFirstStep && (
-                    <Button variant="secondary" medium name="Back" onClick={goBack}>
-                        Back
-                    </Button>
-                )
-            }
-            submit
-        >
-            <Input label="Project Name" type="text" {...register("title")} error={errors.title?.message} />
-            <Input label="Project Code" type="text" {...register("code")} error={errors.code?.message} isDisabled={isEdit} />
-            <DropdownLookup
-                className="select-input"
-                label="Geography"
-                options={dropdowns.countries}
-                input_name="geography"
-                control={control}
-                isCreatable
-                error={errors.geography?.message}
-            />
-            <Input label="City" type="text" {...register("city")} error={errors.city?.message} />
-            <DropdownLookup
-                className="select-input"
-                label="Client"
-                options={dropdowns.clients}
-                input_name="client_id"
-                control={control}
-                error={errors.client_id?.message}
-            />
-            <DropdownLookup
-                className="select-input"
-                label="Typology"
-                options={dropdowns.typologies}
-                input_name="typology"
-                control={control}
-                error={errors.typology?.message}
-            />
-            <DropdownLookup
-                className="select-input"
-                label="Sector"
-                options={dropdowns.sectors}
-                input_name="sector"
-                control={control}
-                error={errors.sector?.message}
-            />
-            <DropdownLookup
-                className="select-input"
-                label="Intervention"
-                options={dropdowns.interventions}
-                input_name="intervention"
-                control={control}
-                error={errors.intervention?.message}
-            />
-            <DropdownLookup
-                className="select-input"
-                label="Disciplines"
-                options={dropdowns.disciplines}
-                input_name="disciplines"
-                isMulti
-                control={control}
-                error={errors.disciplines?.message}
-                handler={handleDisciplineChange}
-            />
-            <Input label="Baseline Budget (USD)" type="number" {...register("baseline_budget")} error={errors.baseline_budget?.message} />
-            <Input label="BUA (sqm)" type="number" {...register("BUA")} error={errors.BUA?.message} />
-            <Input label="Landscape (sqm)" type="number" {...register("Landscape")} error={errors.Landscape?.message} />
-            <Input label="Parking Area (sqm)" type="number" {...register("ParkingArea")} error={errors.ParkingArea?.message} />
-            <Input label="Design Area (sqm)" type="number" {...register("DesignArea")} error={errors.DesignArea?.message} />
-            <Input label="Planned Start Date" type="date" {...register("planned_startdate")} error={errors.planned_startdate?.message} />
-            <Input label="Planned End Date" type="date" {...register("planned_enddate")} error={errors.planned_enddate?.message} />
-            <DropdownLookup
-                className="select-input"
-                label="Project Manager"
-                options={dropdowns.employees}
-                input_name="employee_id"
-                control={control}
-                error={errors.employee_id?.message}
-            />
-        </Form>
+        <>
+            <Form
+                handleSubmit={handleSubmit}
+                onSubmit={onSubmit}
+                submitText="Next"
+                columns={{ default: 1, mob: 1, lap: 4, desk: 4, tablet: 2 }}
+                AdditionalButton={
+                    !isFirstStep && (
+                        <Button variant="secondary" medium name="Back" onClick={goBack}>
+                            Back
+                        </Button>
+                    )
+                }
+                submit
+            >
+                <Input label="Project Name" type="text" {...register("title")} error={errors.title?.message} />
+                <Input label="Project Code" type="text" {...register("code")} error={errors.code?.message} isDisabled={isEdit} />
+                <DropdownLookup
+                    className="select-input"
+                    label="Geography"
+                    options={dropdowns.countries}
+                    input_name="geography"
+                    control={control}
+                    isCreatable
+                    error={errors.geography?.message}
+                />
+                <Input label="City" type="text" {...register("city")} error={errors.city?.message} />
+                <DropdownLookup
+                    className="select-input"
+                    label="Client"
+                    options={dropdowns.clients}
+                    input_name="client_id"
+                    control={control}
+                    error={errors.client_id?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Typology"
+                    options={dropdowns.typologies}
+                    input_name="typology"
+                    control={control}
+                    error={errors.typology?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Sector"
+                    options={dropdowns.sectors}
+                    input_name="sector"
+                    control={control}
+                    error={errors.sector?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Intervention"
+                    options={dropdowns.interventions}
+                    input_name="intervention"
+                    control={control}
+                    error={errors.intervention?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Disciplines"
+                    options={dropdowns.disciplines}
+                    input_name="disciplines"
+                    isMulti
+                    control={control}
+                    error={errors.disciplines?.message}
+                    handler={handleDisciplineChange}
+                />
+                <Input label="Baseline Budget (USD)" type="number" {...register("baseline_budget")} error={errors.baseline_budget?.message} />
+                <Input label="BUA (sqm)" type="number" {...register("BUA")} error={errors.BUA?.message} />
+                <Input label="Landscape (sqm)" type="number" {...register("Landscape")} error={errors.Landscape?.message} />
+                <Input label="Parking Area (sqm)" type="number" {...register("ParkingArea")} error={errors.ParkingArea?.message} />
+                <Input label="Design Area (sqm)" type="number" {...register("DesignArea")} error={errors.DesignArea?.message} />
+                <Input label="Planned Start Date" type="date" {...register("planned_startdate")} error={errors.planned_startdate?.message} />
+                <Input label="Planned End Date" type="date" {...register("planned_enddate")} error={errors.planned_enddate?.message} />
+                <DropdownLookup
+                    className="select-input"
+                    label="Project Manager"
+                    options={dropdowns.employees}
+                    input_name="employee_id"
+                    control={control}
+                    error={errors.employee_id?.message}
+                />
+            </Form>
+            <Modal title="Cannot Remove Disciplines" open={modalIsOpen} type="client" onClose={() => setModalIsOpen(false)}>
+                <UnremovableDiscipline unremovableDisciplines={unremovableDisciplines} />
+            </Modal >
+        </>
     );
 });
 

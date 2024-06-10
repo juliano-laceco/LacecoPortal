@@ -74,17 +74,16 @@ async function TablePage({ searchParams }) {
                             alt="edit"
                         />
                     </Link>
-                    {row.employee_status_name != "Resigned" &&
-                        <Link title="New Leave" href={`/hr/employee/all?${new URLSearchParams({ ...searchParams, identifier: row.employee_id, showModal: 'true' })}`}>
-                            <Image
-                                src="/resources/icons/leave.svg"
-                                height="28"
-                                width="28"
-                                alt="leave"
-                                className="mt-1"
-                            />
-                        </Link>
-                    }
+                    <Link title="New Leave" href={`/hr/employee/all?${new URLSearchParams({ ...searchParams, identifier: row.employee_id, showModal: 'true' })}`}>
+                        <Image
+                            src="/resources/icons/leave.svg"
+                            height="28"
+                            width="28"
+                            alt="leave"
+                            className="mt-1"
+                        />
+                    </Link>
+
 
                 </div>
             ),

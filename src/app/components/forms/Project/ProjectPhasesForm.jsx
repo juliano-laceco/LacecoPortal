@@ -11,10 +11,10 @@ import DropdownLookup from '../../custom/Dropdowns/DropdownLookup';
 import Image from 'next/image';
 import { formatDate } from '@/utilities/date/date-utils';
 
-const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }) => {
+const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, isEdit }) => {
 
-    console.log("DATA", data)
 
+    console.log(data)
     const schema = yup.object().shape({
         phases: yup.array().of(
             yup.object().shape({
@@ -34,7 +34,7 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }
 
     const { control, handleSubmit, formState: { errors }, reset, watch } = useForm({
         resolver: yupResolver(schema),
-        defaultValues: { phases: data || [{ phase_name: '', planned_startdate: '', planned_enddate: '' }] }
+        defaultValues: { phases: data || [{ phase_id: '', phase_name: '', planned_startdate: '', planned_enddate: '', hasAssignees: '' }] }
     });
 
     const { fields, append, remove } = useFieldArray({
@@ -82,7 +82,22 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }
                     <div key={phase.id} className="space-y-2 border border-gray-300 p-4 rounded-lg shadow-xl">
                         <div className="flex justify-between items-center">
                             <div className="font-bold text-xl">Phase {index + 1}</div>
-                            <Image height="30" width="30" src="/resources/icons/bin.svg" className="bg-pric p-2 rounded-md cursor-pointer transition-all duration-200 ease hover:bg-pri-hovc" onClick={() => fields.length > 1 && remove(index)} alt="delete-icon" />
+
+
+                            {
+                                !isEdit || !phase.hasAssignees ? (
+                                    <Image
+                                        height="30"
+                                        width="30"
+                                        src="/resources/icons/bin.svg"
+                                        className="bg-pric p-2 rounded-md cursor-pointer transition-all duration-200 ease hover:bg-pri-hovc"
+                                        onClick={() => fields.length > 1 && remove(index)}
+                                        alt="delete-icon"
+                                    />
+                                ) : (
+                                    <p className="text-pric text-xs">Phase Contains Assignees</p>
+                                )
+                            }
                         </div>
                         <DropdownLookup
                             className="select-input"
@@ -111,7 +126,7 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns }
             })}
             <div
                 className="space-y-6 border shadow-xl border-dashed grid grid-center border-red-300 bg-red-100 p-3 rounded-lg cursor-pointer hover:bg-red-200 transition-all duration-200"
-                onClick={() => append({ phase_name: '', planned_startdate: '', planned_enddate: '' })}
+                onClick={() => append({ phase_id: '', phase_name: '', planned_startdate: '', planned_enddate: '', hasAssignees: '' })}
             >
                 <div className="flex items-center justify-center gap-2">
                     <Image height="25" width="25" src="/resources/icons/add-phase.svg" className="cursor-pointer" alt="add-phase-icon" />

@@ -3,7 +3,7 @@ import EmployeeFormLoader from "@/app/components/forms/Employee/EmployeeFormLoad
 async function EditEmployee({ params }) {
 
     return (
-        <EmployeeFormLoader params={params} isEdit/>
+        <EmployeeFormLoader params={params} isEdit />
     )
 
 }

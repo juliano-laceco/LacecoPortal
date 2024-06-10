@@ -17,7 +17,12 @@ async function EmployeeFormLoader({ params, isEdit }) {
     }
 
     return (
-        isEdit ? employeeCount > 0 ? <EmployeeForm isEdit={isEdit} defaultValues={employeeData} optionsData={optionsData} /> : <div>No Employee Found</div> : <EmployeeForm isEdit={isEdit} defaultValues={employeeData} optionsData={optionsData} />
+        isEdit ? employeeCount > 0 ?
+            <EmployeeForm isEdit={isEdit} defaultValues={employeeData} optionsData={optionsData} />
+            :
+            <div>No Employee Found</div>
+            :
+            <EmployeeForm isEdit={isEdit} defaultValues={employeeData} optionsData={optionsData} />
     )
 }
 
