@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroups, page, prepareRow }) {
   return (
     <table {...getTableProps()} className="min-w-full divide-y rounded-lg shadow-lg overflow-hidden divide-gray-200 table-auto">
@@ -14,10 +16,13 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
                     ${columnMeta && !columnMeta.tablet ? 'tablet:hidden' : ''}`}
                   key={crypto.randomUUID()}
                 >
-                  {column.render('Header')}
-                  <span className={column.isSortedDesc ? 'text-red-500' : ''}>
-                    {column.isSorted ? (column.isSortedDesc ? '🔽' : '🔼') : ''}
-                  </span>
+                  <div className="flex justify-center items-center gap-1">
+                    {column.render('Header')}
+                    <span className={column.isSortedDesc ? 'text-red-500' : ''}>
+                      {column.isSorted ? (column.isSortedDesc ? <Image src="/resources/icons/descending.svg" height="15" width="15" /> : <Image src="/resources/icons/ascending.svg" height="15" width="15" />) : ''}
+                    </span>
+                  </div>
+
                 </th>
               );
             })}

@@ -33,7 +33,7 @@ function TableFilter({ filterItems, filterFunction, keywordRef , clearFunction }
                         />
                     )
                 ))}
-                <Image title="Clear All Filters" src="/resources/icons/clear-filter.svg" height="40" width="50" className="cursor-pointer hover:bg-[#E9EBEF] mob:hidden tablet:hidden transition-all duration-200 px-2 rounded-lg mt-5" onClick={clearFunction} />
+                <Image title="Clear All Filters" src="/resources/icons/clear-filter.svg" height="40" width="50" className="cursor-pointer hover:bg-[#E9EBEF] mob:hidden tablet:hidden transition-all duration-200 px-2 rounded-lg" onClick={clearFunction} />
                 <Button primary small name="Clear Filters" className="w-fit mt-2 lap:hidden desk:hidden" onClick={clearFunction} />
             </div>
         </div>
