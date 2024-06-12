@@ -35,7 +35,8 @@ export default async function RootLayout({ children }) {
 
 
   const PlanningAdminOptions = [
-    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/new-project.svg" height="30" width="30" alt="nav-icon" />, label: "New Project", redirectTo: "/project/add" },
+    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/new-project.svg" height="30" width="30" alt="nav-icon" />, label: "New Project", redirectTo: "/planning/project/add" },
+    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/project-list.svg" height="30" width="30" alt="nav-icon" />, label: "Project List", redirectTo: "/planning/project/all" },
   ]
 
   switch (userRole) {

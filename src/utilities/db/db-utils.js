@@ -47,17 +47,31 @@ export async function getTableFields(tableName, joinTables = []) {
 }
 
 export async function dynamicQuery(qs, query, allowedKeys) {
-
     try {
-
         let whereConditions = [];
         let queryParams = [];
         let keywordConditions = [];
 
+        // Detect alias in the query string
+        const aliasRegex = /\b(\w+)\./g;
+        const aliasMatches = [...query.matchAll(aliasRegex)];
+        const aliases = aliasMatches.map(match => match[1]);
+        const aliasMap = new Set(aliases);
+
+        // Function to prefix keys with alias if they exist
+        const prefixKeyWithAlias = (key) => {
+            if (aliasMap.size > 0) {
+                const tableAlias = Array.from(aliasMap).find(a => allowedKeys.has(`${a}.${key}`));
+                return tableAlias ? `${tableAlias}.${key}` : key;
+            }
+            return key;
+        };
+
         // Loop through the query string parameters and build the WHERE clause
         for (const [key, value] of Object.entries(qs)) {
             if (allowedKeys.has(key) && value && key != "keyword") { // Only add conditions for allowed parameters with values
-                whereConditions.push(`${key} = ?`);
+                const prefixedKey = prefixKeyWithAlias(key);
+                whereConditions.push(`${prefixedKey} = ?`);
                 queryParams.push(value);
             }
         }
@@ -69,24 +83,20 @@ export async function dynamicQuery(qs, query, allowedKeys) {
 
         if (qs.hasOwnProperty("keyword")) {
             [...allowedKeys].filter((item) => !item.endsWith("_id")).map((colName) => {
-                keywordConditions.push(`LOWER(${colName}) LIKE LOWER('%${qs.keyword}%')`)
-            })
+                const prefixedColName = prefixKeyWithAlias(colName);
+                keywordConditions.push(`LOWER(${prefixedColName}) LIKE LOWER('%${qs.keyword}%')`);
+            });
 
-
-            query += ` ${whereConditions.length === 0 ? "WHERE " : "AND "}`
+            query += ` ${whereConditions.length === 0 ? "WHERE " : "AND "}`;
             query += keywordConditions.join(' OR ');
         }
-
-        // console.log(query)
 
         // Execute the query with the parameter values
         const results = await execute(query, queryParams);
         return res.success_data(results);
 
     } catch (error) {
-        console.error('Error fetching employee details:', error);
+        console.error('Error fetching project details:', error);
         return res.failed();
     }
-
 }
-

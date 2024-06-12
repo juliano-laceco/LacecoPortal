@@ -1,7 +1,7 @@
 "use server"
 
 import db from "@/config/db";
-import { execute } from "../db/db-utils";
+import { dynamicQuery, execute, getTableFields } from "../db/db-utils";
 import * as res from "../response-utils"
 import { getLoggedInId } from "../auth/auth-utils";
 
@@ -385,4 +385,26 @@ export async function checkDisciplineIsPhaseAssigned(disciplines, project_id) {
         console.error('Error checking disciplines:', error);
     }
     return results;
+}
+
+export async function getAllProjects(qs = {}) {
+
+   const resp = await getTableFields("project", ["employee"])
+    //const resp = await getTableFields("project")
+    const allowedKeys = resp.res ? new Set(resp.data) : new Set([])
+
+    try {
+        // Base query
+        let query = `SELECT * 
+                     FROM project p JOIN employee e ON p.employee_id = e.employee_id
+                    `;
+
+        const result = await dynamicQuery(qs, query, allowedKeys)
+       //const result = await execute(query)
+        return result
+
+    } catch (error) {
+        console.error('Error fetching project details:', error);
+        return res.failed();
+    }
 }
