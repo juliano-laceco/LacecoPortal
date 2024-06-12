@@ -96,8 +96,8 @@ async function TablePage({ searchParams }) {
             case "Active":
                 bg = "bg-active";
                 break;
-            case "Resigned":
-                bg = "bg-resigned";
+            case "Inactive":
+                bg = "bg-inactive";
                 break;
 
         }

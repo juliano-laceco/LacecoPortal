@@ -43,7 +43,9 @@ module.exports = {
         "section-bg": "#f4f4f5",
         "form-title": "text-xl",
         "active": "#6ABE6B",
-        "resigned": "#e84a40"
+        "inactive": "#e84a40",
+        "on-hold": "#ff9f00",
+        "highly-probable": "#f0cc44",
       },
       screens: {
         mob: { min: '320px', max: '730px' },  // Mobile devices

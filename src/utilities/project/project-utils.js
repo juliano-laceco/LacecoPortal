@@ -1,7 +1,7 @@
 "use server"
 
 import db from "@/config/db";
-import { dynamicQuery, execute, getTableFields } from "../db/db-utils";
+import { dynamicQuery, execute, getTableFields, renameAmbiguousColumns } from "../db/db-utils";
 import * as res from "../response-utils"
 import { getLoggedInId } from "../auth/auth-utils";
 
@@ -388,20 +388,29 @@ export async function checkDisciplineIsPhaseAssigned(disciplines, project_id) {
 }
 
 export async function getAllProjects(qs = {}) {
+    const tables = [
+        { name: 'project', alias: 'p' },
+        { name: 'employee', alias: 'e' },
+        { name: 'position', alias: 'pos' },
+        { name: 'client', alias: 'c' }
+    ];
 
-   const resp = await getTableFields("project", ["employee"])
-    //const resp = await getTableFields("project")
-    const allowedKeys = resp.res ? new Set(resp.data) : new Set([])
+    const resp = await getTableFields(tables);
+    const allowedKeys = resp.res ? new Set(resp.data.map(field => `${field.tableAlias}.${field.columnName}`)) : new Set([]);
 
     try {
+       
+        const selectClause = await renameAmbiguousColumns(resp.data)
         // Base query
-        let query = `SELECT * 
-                     FROM project p JOIN employee e ON p.employee_id = e.employee_id
-                    `;
+        let query = `SELECT ${selectClause.slice(2)} 
+                     FROM project p 
+                     JOIN employee e ON p.employee_id = e.employee_id
+                     JOIN position pos ON e.position_id = pos.position_id
+                     JOIN client c ON p.client_id = c.client_id
+                     `;
 
-        const result = await dynamicQuery(qs, query, allowedKeys)
-       //const result = await execute(query)
-        return result
+        const result = await dynamicQuery(qs, query, allowedKeys);
+        return result;
 
     } catch (error) {
         console.error('Error fetching project details:', error);

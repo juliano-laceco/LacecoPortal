@@ -1,9 +1,7 @@
 import TableWrapper from "../../../../components/custom/TableWrappers/TableWrapper"
-import getDropdownData from "@/data/dynamic/EmployeeFilterDDOptions";
 import { formatDate } from "@/utilities/date/date-utils";
 import Image from "next/image";
 import Link from "next/link";
-import { getLeaveTypes } from "@/utilities/lookups/lookup-utils";
 import { getAllProjects } from "@/utilities/project/project-utils";
 import project_statuses from "@/data/static/project-statuses";
 
@@ -35,7 +33,16 @@ async function TablePage({ searchParams }) {
     const preprocessData = (data) => {
         return data.map(row => ({
             ...row,
-            created_on: formatDate(row.created_on),
+            created_on: formatDate(row.project_created_on),
+            project_manager: (
+                <p className="font-bold">{row.first_name} {row.last_name}</p>
+            ),
+            progress: (
+                <div className="w-full bg-gray-300 rounded-full">
+                    <div className="bg-pric text-xs text-white text-center p-1 leading-none rounded-full w-[60%]"> 60%</div>
+                </div>
+            ),
+            status: createStatusDiv(row.project_status),
             actions: (
                 <div className="flex justify-center items-center gap-2">
                     <Link title="Edit Project" href={`/planning/project/${row.project_id}`}>
@@ -48,11 +55,10 @@ async function TablePage({ searchParams }) {
                     </Link>
                     <Link title="Deployment" href={`/planning/project/deployment/${row.project_id}`}>
                         <Image
-                            src="/resources/icons/leave.svg"
+                            src="/resources/icons/deployment.png"
                             height="28"
                             width="28"
                             alt="deployment"
-                            className="mt-1"
                         />
                     </Link>
                 </div>
@@ -60,9 +66,38 @@ async function TablePage({ searchParams }) {
         }));
     };
 
+    function createStatusDiv(status) {
+        let bg;
+        switch (status) {
+            case "Active":
+                bg = "bg-active";
+                break;
+            case "Inactive":
+                bg = "bg-inactive";
+                break;
+            case "On Hold":
+                bg = "bg-on-hold";
+                break;
+            case "Highly Probable":
+                bg = "bg-highly-probable";
+                break;
+
+        }
+        return (<div className={`p-2 w-32 rounded-md text-xs text-center text-white ${bg}`}>{status}</div>)
+
+    }
+
     const tableHeaders = [
         { Header: 'Name', accessor: 'title', mobile: true, tablet: true },
-       
+        { Header: 'Code', accessor: 'code', mobile: true, tablet: true },
+        { Header: 'Client', accessor: 'client_name', tablet: true },
+        { Header: 'PM', accessor: 'project_manager' },
+        { Header: 'Status', accessor: 'status' },
+        { Header: 'Progress', accessor: 'progress' },
+        { Header: 'Created On', accessor: 'created_on' },
+        { Header: 'Actions', accessor: 'actions', mobile: true, tablet: true }
+
+
     ];
 
 

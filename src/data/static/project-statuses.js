@@ -1,9 +1,7 @@
 const project_statuses = [
-    { "value": "Active", "label": "Active" },
-    { "value": "On hold", "label": "On hold" },
-    { "value": "Completed", "label": "Completed" },
-    { "value": "Cancelled", "label": "Cancelled" },
-    { "value": "Highly Probable", "label": "Highly Probable" }
+    { "value": "Highly Probable", "label": "Highly Probable" },
+    { "value": "On Hold", "label": "On Hold" },
+    { "value": "Inactive", "label": "Inactive" },
 ];
 
 export default project_statuses;

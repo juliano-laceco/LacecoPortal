@@ -345,29 +345,36 @@ export async function getEmployeeData(employee_id) {
 }
 
 export async function getAllEmployees(qs = {}) {
+    const tables = [
+        { name: 'employee', alias: 'e' },
+        { name: 'employee_status', alias: 'es' },
+        { name: 'role', alias: 'r' },
+        { name: 'position', alias: 'p' },
+        { name: 'grade', alias: 'g' },
+        { name: 'discipline', alias: 'd' },
+        { name: 'division', alias: 'dv' }
+    ];
 
-    const resp = await getTableFields("employee", ["employee_status", "role", "position", "grade", "discipline", "division"])
-
-    const allowedKeys = resp.res ? new Set(resp.data) : new Set([])
+    const resp = await getTableFields(tables);
+    const allowedKeys = resp.res ? new Set(resp.data.map(field => `${field.tableAlias}.${field.columnName}`)) : new Set([]);
 
     try {
         // Base query
         let query = `SELECT * 
-                     FROM employee
-                     NATURAL JOIN employee_status
-                     NATURAL JOIN role
-                     NATURAL JOIN position
-                     NATURAL JOIN grade
-                     NATURAL JOIN discipline
-                     NATURAL JOIN division`;
+                     FROM employee e 
+                     JOIN employee_status es ON e.employee_status_id = es.employee_status_id
+                     JOIN role r ON e.role_id = r.role_id
+                     JOIN position p ON e.position_id = p.position_id
+                     JOIN grade g ON p.grade_id = g.grade_id
+                     JOIN discipline d ON p.discipline_id = d.discipline_id
+                     JOIN division dv ON d.division_id = dv.division_id`;
 
-        const result = await dynamicQuery(qs, query, allowedKeys)
+        const result = await dynamicQuery(qs, query, allowedKeys);
 
-        return result
+        return result;
 
     } catch (error) {
         console.error('Error fetching employee details:', error);
         return res.failed();
     }
 }
-

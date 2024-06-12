@@ -57,7 +57,7 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
             showToast("failed", errorMessage);
         }
 
-        router.replace("/");
+        router.replace("/planning/project/all");
         router.refresh();
 
 

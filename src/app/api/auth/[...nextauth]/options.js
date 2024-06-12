@@ -24,8 +24,10 @@ export const authOptions = {
                 } catch (error) {
                     console.error("Error during JWT callback:", error);
                 }
-                // console.log("Token", token)
+                // console.log("Token", token) 
+                console.log(user)
             }
+           
             return token
         },
         async session({ session, token }) {

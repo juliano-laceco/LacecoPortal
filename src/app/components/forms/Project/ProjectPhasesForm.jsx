@@ -12,9 +12,6 @@ import Image from 'next/image';
 import { formatDate } from '@/utilities/date/date-utils';
 
 const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, isEdit }) => {
-
-
-    console.log(data)
     const schema = yup.object().shape({
         phases: yup.array().of(
             yup.object().shape({
