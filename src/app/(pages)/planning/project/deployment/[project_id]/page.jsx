@@ -1,9 +1,10 @@
+import Sheet from '@/app/components/new/Sheet'
 import React from 'react'
 
 function ProjectDeployment({ params }) {
     return (
         <div>
-          {params.project_id}
+          <Sheet />
         </div>
     )
 }
