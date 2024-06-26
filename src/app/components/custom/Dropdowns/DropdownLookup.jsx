@@ -61,7 +61,11 @@ function DropdownLookup({ options, input_name, isSearchable, isDisabled, isLoadi
                             backgroundColor: state.isSelected ? colors["pric"] : "white",
                             "&:hover": {
                                 backgroundColor: !state.isSelected && colors["basic-item-hov"],
-                            }
+                            },
+                            '&:active': {
+                                backgroundColor: colors['pric'],
+                                color: "#fff"
+                            },
                         })
                     }}
                     {...rest}
