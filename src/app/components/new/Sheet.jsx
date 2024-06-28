@@ -1,7 +1,7 @@
-"use client"
-import React, { useState, useEffect, useMemo } from 'react';
-import useSheet from './useSheet';
-import Image from 'next/image';
+"use client";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import useSheet from "./useSheet";
+import Image from "next/image";
 
 const generateHeaderDates = (numWeeks) => {
     const dates = [];
@@ -9,10 +9,10 @@ const generateHeaderDates = (numWeeks) => {
     for (let i = 0; i < numWeeks; i++) {
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + i * 7);
-        const formattedDate = nextWeek.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
+        const formattedDate = nextWeek.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
         });
         dates.push(formattedDate);
     }
@@ -36,18 +36,19 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
                     "12 July 2024": counter++,
                     "19 July 2024": counter++,
                     "26 July 2024": counter++,
-                    "02 August 2024": counter++
-                }
+                    "02 August 2024": counter++,
+                },
             });
         }
         phases.push({
             phase_id: `${i}`,
             phase: `Phase ${i}`,
-            assignees: assignees
+            assignees: assignees,
         });
     }
     return phases;
 };
+
 const initializeCellContents = (initialData, headerDates) => {
     const cellContents = {};
     let rowCounter = 0;
@@ -55,7 +56,7 @@ const initializeCellContents = (initialData, headerDates) => {
         phase.assignees.forEach((assignee) => {
             headerDates.forEach((date, colIndex) => {
                 const cellIndex = colIndex + 5; // Adjust for the discipline and user columns
-                cellContents[`${rowCounter}-${cellIndex}`] = assignee.projected_work_weeks[date] || '';
+                cellContents[`${rowCounter}-${cellIndex}`] = assignee.projected_work_weeks[date] || "";
             });
             rowCounter++;
         });
@@ -64,16 +65,14 @@ const initializeCellContents = (initialData, headerDates) => {
 };
 
 const Sheet = () => {
-    const initialWeeks = 50;
-    const [headerDates, setHeaderDates] = useState(generateHeaderDates(initialWeeks));
-    const numCols = headerDates.length + 5; // Additional columns for discipline, user, add week and remove week buttons
-    const disciplines = ["Discipline 1", "Discipline 2"];
-    const users = ["User 1", "User 2"];
-
-    const [initialData, setInitialData] = useState(() => (generateMockData(5, 2)));
-
-
-    const initialCellContents = initializeCellContents(initialData, headerDates);
+    const initialWeeks = 70;
+    const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
+    const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
+    const disciplines = useMemo(() => ["Discipline 1", "Discipline 2"], []);
+    const users = useMemo(() => ["User 1", "User 2"], []);
+    const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
+    const [initialData, setInitialData] = useState(() => generateMockData(5, 40));
+    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
 
     const {
         cellRefs,
@@ -88,16 +87,20 @@ const Sheet = () => {
         handleCellBlur,
         getCellStyle,
         setCellContents,
-        setHistory
-    } = useSheet(initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0), numCols, initialCellContents);
+        setHistory,
+    } = useSheet(
+        initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0),
+        numCols,
+        initialCellContents
+    );
 
     useEffect(() => {
         const newCellContents = initializeCellContents(initialData, headerDates);
         setCellContents(newCellContents);
         setHistory([newCellContents]);
-    }, [initialData]);
+    }, [initialData, headerDates]);
 
-    const addNewWeek = () => {
+    const addNewWeek = useCallback(() => {
         setHeaderDates((prevDates) => {
             const newDates = generateHeaderDates(prevDates.length + 1);
             return newDates;
@@ -108,14 +111,14 @@ const Sheet = () => {
             const newColIndex = headerDates.length + 5; // New column index
 
             for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
-                newContents[`${row}-${newColIndex}`] = '';
+                newContents[`${row}-${newColIndex}`] = "";
             }
 
             return newContents;
         });
-    };
+    }, [headerDates.length, initialData, setCellContents]);
 
-    const removeLastWeek = () => {
+    const removeLastWeek = useCallback(() => {
         setHeaderDates((prevDates) => {
             if (prevDates.length > 1) {
                 return prevDates.slice(0, -1);
@@ -133,16 +136,22 @@ const Sheet = () => {
 
             return newContents;
         });
-    };
+    }, [headerDates.length, initialData, setCellContents]);
 
-    const getBudgetHoursCells = (row) => {
-        let total = 0;
-        for (let i = 5; i < numCols; i++) {
-            let content = cellContents[`${row}-${i}`] === "" || cellContents[`${row}-${i}`] === undefined || cellContents[`${row}-${i}`] === null ? 0 : cellContents[`${row}-${i}`];
-            total += parseInt(content);
-        }
-        return total;
-    };
+    const getBudgetHoursCells = useCallback(
+        (row) => {
+            let total = 0;
+            for (let i = 5; i < numCols; i++) {
+                let content =
+                    cellContents[`${row}-${i}`] === "" || cellContents[`${row}-${i}`] === undefined || cellContents[`${row}-${i}`] === null
+                        ? 0
+                        : cellContents[`${row}-${i}`];
+                total += parseInt(content);
+            }
+            return total;
+        },
+        [cellContents, numCols]
+    );
 
     const getPhaseBudgetHours = useMemo(() => {
         const phaseBudgetHours = initialData.map((phase, phaseIndex) => {
@@ -163,113 +172,141 @@ const Sheet = () => {
         });
 
         return phaseBudgetHours;
-    }, [cellContents, initialData]);
+    }, [cellContents, initialData, getBudgetHoursCells]);
 
-    const handleAddAssignee = (phaseIndex) => {
-        const newAssignee = {
-            phase_assignee_id: '',
-            discipline: '',
-            assignee: '',
-            projected_work_weeks: {},
-        };
+    const handleAddAssignee = useCallback(
+        (phaseIndex) => {
+            const newAssignee = {
+                phase_assignee_id: crypto.randomUUID(),
+                discipline: "",
+                assignee: "",
+                projected_work_weeks: {},
+                updated_projected_work_weeks: {},
+            };
 
-        headerDates.forEach((date) => {
-            newAssignee.projected_work_weeks[date] = '';
-        });
+            headerDates.forEach((date) => {
+                newAssignee.projected_work_weeks[date] = "";
+            });
 
-        const updatedData = [...getUpdatedData()];
-        updatedData[phaseIndex] = {
-            ...updatedData[phaseIndex],
-            assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
-        };
+            const updatedData = [...getUpdatedData()];
+            updatedData[phaseIndex] = {
+                ...updatedData[phaseIndex],
+                assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
+            };
 
-        setInitialData(updatedData);
+            setInitialData(updatedData);
 
-        // Add new assignee's cell contents to cellContents
-        const newRowIndex = updatedData.reduce((acc, phase, idx) => {
-            return idx < phaseIndex ? acc + phase.assignees.length : acc;
-        }, 0) + updatedData[phaseIndex].assignees.length - 1;
+            // Add new assignee's cell contents to cellContents
+            const newRowIndex =
+                updatedData.reduce((acc, phase, idx) => {
+                    return idx < phaseIndex ? acc + phase.assignees.length : acc;
+                }, 0) + updatedData[phaseIndex].assignees.length - 1;
 
-        setCellContents((prevContents) => {
-            const newContents = { ...prevContents };
-            for (let col = 5; col < numCols; col++) {
-                newContents[`${newRowIndex}-${col}`] = '';
+            setCellContents((prevContents) => {
+                const newContents = { ...prevContents };
+                for (let col = 5; col < numCols; col++) {
+                    newContents[`${newRowIndex}-${col}`] = "";
+                }
+                return newContents;
+            });
+
+            setHistory([cellContents]);
+        },
+        [headerDates, cellContents, setCellContents, setHistory, numCols]
+    );
+
+    const deleteAssignee = useCallback(
+        (row) => {
+            const phaseIndex = findPhaseIndex(row);
+            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+            const assigneeId = initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
+
+            if (!isUUID(assigneeId)) {
+                setDeletedPhaseAssignees((prev) => [...prev, assigneeId]);
             }
-            return newContents;
-        });
 
-        setHistory([cellContents]);
-    };
+            const newInitialData = [...initialData];
 
-    const deleteAssignee = (row) => {
-        const phaseIndex = findPhaseIndex(row);
-        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-
-        const newInitialData = [...getUpdatedData()];
-
-        // Check if there is more than one assignee in the phase before deleting
-        if (newInitialData[phaseIndex].assignees.length > 1) {
-            const confirmDelete = window.confirm("Are you sure you want to delete this assignee?");
-            if (confirmDelete) {
-                newInitialData[phaseIndex].assignees.splice(assigneeIndex, 1);
-                setInitialData(newInitialData);
+            // Check if there is more than one assignee in the phase before deleting
+            if (newInitialData[phaseIndex].assignees.length > 1) {
+                const confirmDelete = window.confirm("Are you sure you want to delete this assignee?");
+                if (confirmDelete) {
+                    newInitialData[phaseIndex].assignees.splice(assigneeIndex, 1);
+                    setInitialData(newInitialData);
+                }
+            } else {
+                alert("Cannot delete the only assignee in the phase.");
             }
-        } else {
-            alert("Cannot delete the only assignee in the phase.");
-        }
-    };
+        },
+        [initialData]
+    );
 
-    const updateAssigneeDiscipline = (row, value) => {
-        const newInitialData = [...initialData];
-        const phaseIndex = findPhaseIndex(row);
-        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-        newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
-        setInitialData(newInitialData);
-    };
+    const updateAssigneeDiscipline = useCallback(
+        (row, value) => {
+            const newInitialData = [...initialData];
+            const phaseIndex = findPhaseIndex(row);
+            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+            newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
+            setInitialData(newInitialData);
+        },
+        [initialData]
+    );
 
-    const updateAssigneeUser = (row, value) => {
-        const newInitialData = [...initialData];
-        const phaseIndex = findPhaseIndex(row);
-        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-        newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
-        setInitialData(newInitialData);
-    };
+    const updateAssigneeUser = useCallback(
+        (row, value) => {
+            const newInitialData = [...initialData];
+            const phaseIndex = findPhaseIndex(row);
+            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+            newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
+            setInitialData(newInitialData);
+        },
+        [initialData]
+    );
 
-    const findPhaseIndex = (row) => {
-        let phaseIndex = 0;
-        let currentRow = 0;
+    const findPhaseIndex = useCallback(
+        (row) => {
+            let phaseIndex = 0;
+            let currentRow = 0;
 
-        while (phaseIndex < initialData.length && currentRow + initialData[phaseIndex].assignees.length <= row) {
-            currentRow += initialData[phaseIndex].assignees.length;
-            phaseIndex += 1;
-        }
+            while (phaseIndex < initialData.length && currentRow + initialData[phaseIndex].assignees.length <= row) {
+                currentRow += initialData[phaseIndex].assignees.length;
+                phaseIndex += 1;
+            }
 
-        return phaseIndex;
-    };
+            return phaseIndex;
+        },
+        [initialData]
+    );
 
-    const findAssigneeIndex = (row, phaseIndex) => {
-        let assigneeIndex = row;
-        for (let i = 0; i < phaseIndex; i++) {
-            assigneeIndex -= initialData[i].assignees.length;
-        }
-        return assigneeIndex;
-    };
+    const findAssigneeIndex = useCallback(
+        (row, phaseIndex) => {
+            let assigneeIndex = row;
+            for (let i = 0; i < phaseIndex; i++) {
+                assigneeIndex -= initialData[i].assignees.length;
+            }
+            return assigneeIndex;
+        },
+        [initialData]
+    );
 
-    const handleSelectChange = (e, row, col) => {
-        const value = e.target.value;
-        if (col === 1) {
-            updateAssigneeDiscipline(row, value);
-        } else if (col === 2) {
-            updateAssigneeUser(row, value);
-        }
-    };
+    const isUUID = useCallback((id) => {
+        const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+        return regexExp.test(id);
+    }, []);
 
-    const handleSubmit = () => {
-        getUpdatedData()
-    }
+    const handleSelectChange = useCallback(
+        (e, row, col) => {
+            const value = e.target.value;
+            if (col === 1) {
+                updateAssigneeDiscipline(row, value);
+            } else if (col === 2) {
+                updateAssigneeUser(row, value);
+            }
+        },
+        [updateAssigneeDiscipline, updateAssigneeUser]
+    );
 
-    const getUpdatedData = () => {
-
+    const getUpdatedData = useCallback(() => {
         const updatedData = initialData.map((phase) => ({
             phase_id: phase.phase_id,
             phase: phase.phase,
@@ -278,6 +315,7 @@ const Sheet = () => {
                 discipline: assignee.discipline,
                 assignee: assignee.assignee,
                 projected_work_weeks: {},
+                updated_projected_work_weeks: {},
             })),
         }));
 
@@ -286,46 +324,106 @@ const Sheet = () => {
                 if (cell) {
                     const phaseIndex = findPhaseIndex(rowIndex);
                     const assigneeIndex = findAssigneeIndex(rowIndex, phaseIndex);
-                    const date = cell.getAttribute('data-date');
-                    const selectElement = cell.querySelector('select');
+                    const phaseAssigneeId = initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
+                    const date = cell.getAttribute("data-date");
+                    const selectElement = cell.querySelector("select");
                     const newValue = selectElement ? selectElement.value : cell.textContent;
 
-                    if (colIndex === 1) {
-                        updatedData[phaseIndex].assignees[assigneeIndex].discipline = newValue;
-                    } else if (colIndex === 2) {
-                        updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
-                    } else if (colIndex > 4) {
-                        updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
+                    if (isUUID(phaseAssigneeId)) {
+                        // Append all cells for rows with UUIDs
+                        if (colIndex === 1) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].discipline = newValue;
+                        } else if (colIndex === 2) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
+                        } else if (colIndex > 4) {
+                            newValue != "" && (updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue);
+                        }
+                    } else {
+                        // Only check for changed cells for rows with non-UUIDs
+                        const dataChanged = cell.getAttribute("data-initial") != cell.textContent;
+
+                        if (colIndex === 1) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].discipline = newValue;
+                        } else if (colIndex === 2) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
+                        } else if (colIndex > 4) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
+                            dataChanged && (updatedData[phaseIndex].assignees[assigneeIndex].updated_projected_work_weeks[date] = newValue);
+                        }
                     }
                 }
             });
         });
 
-        console.log(updatedData)
+        updatedData.deletedAssignees = deletedPhaseAssignees;
         return updatedData;
-    };
+    }, [initialData, cellRefs, findPhaseIndex, findAssigneeIndex, isUUID, deletedPhaseAssignees]);
 
-    const colors = [
-        'rgba(255, 99, 132, 0.2)',
-        'rgba(54, 162, 235, 0.2)',
-        'rgba(255, 206, 86, 0.2)',
-        'rgba(75, 192, 192, 0.2)',
-        'rgba(153, 102, 255, 0.2)',
-        'rgba(255, 159, 64, 0.2)',
-        'rgba(201, 203, 207, 0.2)',
-        'rgba(220, 20, 60, 0.2)',
-        'rgba(50, 205, 50, 0.2)',
-        'rgba(138, 43, 226, 0.2)',
-        'rgba(0, 255, 255, 0.2)',
-        'rgba(255, 215, 0, 0.2)'
-    ];
+    const handleSave = useCallback(() => {
+        const updatedData = getUpdatedData();
 
-    const getColorForMonth = (date) => {
-        const month = new Date(date).getMonth(); // Get month index (0-11)
-        return colors[month];
-    };
+        // Validation logic
+        let isValid = true;
+        let noticeMessage = "";
 
-    const renderGrid = () => {
+        updatedData.forEach((phase) => {
+            phase.assignees.forEach((assignee) => {
+                if (assignee.discipline == "Select..." || assignee.assignee == "Select...") {
+                    isValid = false;
+                    noticeMessage = "All assignees must have a discipline and a user.";
+                }
+
+                let hasDateFilled = false;
+                for (const date in assignee.projected_work_weeks) {
+                    if (assignee.projected_work_weeks[date] !== "") {
+                        hasDateFilled = true;
+                        break;
+                    }
+                }
+
+                if (!hasDateFilled) {
+                    isValid = false;
+                    noticeMessage = "At least one date cell must be filled for each assignee.";
+                }
+            });
+        });
+
+        if (!isValid) {
+            alert(noticeMessage);
+            return;
+        }
+
+        console.log("Updated Data:", updatedData);
+        console.log("Deleted Phase Assignees:", deletedPhaseAssignees);
+    }, [getUpdatedData, deletedPhaseAssignees]);
+
+    const colors = useMemo(
+        () => [
+            "rgba(255, 99, 132, 0.2)",
+            "rgba(54, 162, 235, 0.2)",
+            "rgba(255, 206, 86, 0.2)",
+            "rgba(75, 192, 192, 0.2)",
+            "rgba(153, 102, 255, 0.2)",
+            "rgba(255, 159, 64, 0.2)",
+            "rgba(201, 203, 207, 0.2)",
+            "rgba(220, 20, 60, 0.2)",
+            "rgba(50, 205, 50, 0.2)",
+            "rgba(138, 43, 226, 0.2)",
+            "rgba(0, 255, 255, 0.2)",
+            "rgba(255, 215, 0, 0.2)",
+        ],
+        []
+    );
+
+    const getColorForMonth = useCallback(
+        (date) => {
+            const month = new Date(date).getMonth(); // Get month index (0-11)
+            return colors[month];
+        },
+        [colors]
+    );
+
+    const renderGrid = useCallback(() => {
         const rows = [];
 
         // Add header row
@@ -333,7 +431,7 @@ const Sheet = () => {
             <div
                 key={`action`}
                 className="border border-gray-300 flex justify-center w-16 items-center p-1 box-border bg-gray-200 font-bold"
-                style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+                style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
             >
                 Action
             </div>,
@@ -346,14 +444,14 @@ const Sheet = () => {
             <div key="grade-header" className="border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-24">
                 Grade
             </div>,
-            <div key="bh-header" className="border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-24">
+            <div key="bh-header" className="border border-gray-300 p-1  flex justify-center items-center text-center bg-gray-200 font-semibold w-24">
                 Budget Hours
             </div>,
             ...headerDates.map((date, index) => (
                 <div
                     key={`header-${index}`}
                     className="border border-gray-300 flex justify-center items-center px-1 py-4 box-border font-semibold"
-                    style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', backgroundColor: getColorForMonth(date) }}
+                    style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", backgroundColor: getColorForMonth(date) }}
                 >
                     {date}
                 </div>
@@ -371,7 +469,11 @@ const Sheet = () => {
         initialData.forEach((phase, phaseIndex) => {
             rows.push(
                 <div key={`phase-${phaseIndex}`} className="col-span-full font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none">
-                    {phase.phase} - <span className="text-red-400 text-lg"> {getPhaseBudgetHours[phaseIndex]} hrs</span>
+                    {phase.phase} -{" "}
+                    <span className="text-red-400 text-lg">
+                        {" "}
+                        {getPhaseBudgetHours[phaseIndex]} hrs
+                    </span>
                 </div>
             );
 
@@ -421,11 +523,7 @@ const Sheet = () => {
                                 </select>
                             );
                         } else if (col === 3) {
-                            content = (
-                                <div className="select-none font-semibold min-w-24">
-                                    G5+
-                                </div>
-                            );
+                            content = <div className="select-none font-semibold min-w-24">G5+</div>;
                         } else if (col === 4) {
                             content = (
                                 <div className="select-none font-semibold min-w-24">
@@ -434,7 +532,7 @@ const Sheet = () => {
                             );
                         } else {
                             colDate = headerDates[col - 5];
-                            initialContent = assignee.projected_work_weeks[colDate] || '';
+                            initialContent = assignee.projected_work_weeks[colDate] || "";
                             content = cellContents[`${row}-${col}`] !== undefined ? cellContents[`${row}-${col}`] : assignee.projected_work_weeks[colDate] || null;
                         }
 
@@ -448,12 +546,12 @@ const Sheet = () => {
                                 ref={(el) => {
                                     cellRefs.current[row][col] = el;
                                 }}
-                                className={`border border-gray-300 flex h-12 ${col === 0 ? "w-16" : col < 3 ? "w-[130pt]" : col < 5 ? "w-24" : "min-w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? 'outline-none border-red-500 border-1' : ''}`}
+                                className={`border border-gray-300 flex h-12 ${col === 0 ? "w-16" : col < 3 ? "w-[130pt]" : col < 5 ? "w-24" : "min-w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
                                 onMouseDown={col > 4 ? () => handleMouseDown(row, col) : undefined}
                                 onMouseEnter={col > 4 ? () => handleMouseEnter(row, col) : undefined}
                                 onMouseUp={col > 4 ? handleMouseUp : undefined}
-                                data-date={col > 4 ? headerDates[col - 5] : ''}
+                                data-date={col > 4 ? headerDates[col - 5] : ""}
                                 data-col={col}
                                 data-row={row}
                                 data-phase-id={phase.phase_id}
@@ -469,7 +567,6 @@ const Sheet = () => {
                                 {content}
                             </div>
                         );
-
                     }
 
                     rows.push(
@@ -481,22 +578,46 @@ const Sheet = () => {
             }
 
             rows.push(
-                <div key={`add-assignee-${phaseIndex}`} className="col-span-full flex justify-center items-center p-[3px] text-white text-2xl cursor-pointer select-none bg-gray-400 hover:bg-gray-500  transition duration-200 ease" onClick={() => handleAddAssignee(phaseIndex)}>
+                <div
+                    key={`add-assignee-${phaseIndex}`}
+                    className="col-span-full flex justify-center items-center p-[3px] text-white text-2xl cursor-pointer select-none bg-gray-400 hover:bg-gray-500  transition duration-200 ease"
+                    onClick={() => handleAddAssignee(phaseIndex)}
+                >
                     +
                 </div>
             );
         });
 
         return rows;
-    };
+    }, [
+        headerDates,
+        numCols,
+        initialData,
+        selectedCells,
+        cellContents,
+        getCellStyle,
+        handleMouseDown,
+        handleMouseEnter,
+        handleMouseUp,
+        handleClick,
+        handleDoubleClick,
+        handleCellBlur,
+        editableCell,
+        getBudgetHoursCells,
+        getPhaseBudgetHours,
+        deleteAssignee,
+        handleSelectChange,
+        handleAddAssignee,
+        cellRefs,
+        disciplines,
+        users,
+        getColorForMonth,
+    ]);
 
     return (
         <>
             <div className="flex items-start gap-3">
-                <div
-                    className="outline-none w-fit border border-gray-300 rounded-lg user-select-none"
-                    tabIndex={0}
-                >
+                <div className="outline-none w-fit border border-gray-300 rounded-lg user-select-none" tabIndex={0}>
                     {renderGrid()}
                 </div>
                 <div className="space-y-1">
@@ -517,7 +638,9 @@ const Sheet = () => {
                 </div>
             </div>
 
-            <button onClick={handleSubmit} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">Save</button>
+            <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
+                Save
+            </button>
         </>
     );
 };
