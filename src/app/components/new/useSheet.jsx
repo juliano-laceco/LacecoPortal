@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 
 const useSheet = (numRows, numCols, initialCellContents) => {
-  
   const [drawing, setDrawing] = useState(false);
   const [startCell, setStartCell] = useState(null);
   const [endCell, setEndCell] = useState(null);
@@ -11,6 +10,21 @@ const useSheet = (numRows, numCols, initialCellContents) => {
   const [history, setHistory] = useState([initialCellContents]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const cellRefs = useRef([]);
+
+  const getCellsInSelection = useCallback((start, end) => {
+    const startRow = Math.min(start.row, end.row);
+    const endRow = Math.max(start.row, end.row);
+    const startCol = Math.min(start.col, end.col);
+    const endCol = Math.max(start.col, end.col);
+
+    const cells = [];
+    for (let row = startRow; row <= endRow; row++) {
+      for (let col = startCol; col <= endCol; col++) {
+        cells.push({ row, col });
+      }
+    }
+    return cells;
+  }, []);
 
   const handleMouseDown = useCallback((row, col) => {
     setDrawing(true);
@@ -25,7 +39,7 @@ const useSheet = (numRows, numCols, initialCellContents) => {
       const newSelectedCells = getCellsInSelection(startCell, { row, col });
       setSelectedCells(newSelectedCells);
     }
-  }, [drawing, startCell]);
+  }, [drawing, startCell, getCellsInSelection]);
 
   const handleMouseUp = useCallback(() => {
     setDrawing(false);
@@ -39,19 +53,18 @@ const useSheet = (numRows, numCols, initialCellContents) => {
   const handleDoubleClick = useCallback((row, col) => {
     const cell = { row, col };
     setSelectedCells([cell]);
-    setEditableCell(cell); // Make the cell editable on double click
+    setEditableCell(cell);
   }, []);
 
   const saveHistory = useCallback((newCellContents) => {
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ ...newCellContents }); // Ensure a deep copy of the cell contents
+    newHistory.push({ ...newCellContents });
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
 
   const handleKeyDown = useCallback((e) => {
     if ((e.key === 'c' || e.key === 'x') && e.ctrlKey) {
-      // Copy or Cut
       e.preventDefault();
       let prevRow = null;
       const content = selectedCells.map((cell) => {
@@ -98,12 +111,8 @@ const useSheet = (numRows, numCols, initialCellContents) => {
     } else if (e.key === 'z' && e.ctrlKey) {
       e.preventDefault();
       if (historyIndex > 0) {
-
-        if (history[historyIndex - 1] != undefined) {
-          setHistoryIndex(historyIndex - 1);
-          setCellContents(history[historyIndex - 1]);
-        }
-
+        setHistoryIndex(historyIndex - 1);
+        setCellContents(history[historyIndex - 1]);
       }
     } else if (e.shiftKey && e.key === 'z' && e.ctrlKey) {
       e.preventDefault();
@@ -269,21 +278,6 @@ const useSheet = (numRows, numCols, initialCellContents) => {
     }
     return {};
   }, [startCell, endCell]);
-
-  const getCellsInSelection = useCallback((start, end) => {
-    const startRow = Math.min(start.row, end.row);
-    const endRow = Math.max(start.row, end.row);
-    const startCol = Math.min(start.col, end.col);
-    const endCol = Math.max(start.col, end.col);
-
-    const cells = [];
-    for (let row = startRow; row <= endRow; row++) {
-      for (let col = startCol; col <= endCol; col++) {
-        cells.push({ row, col });
-      }
-    }
-    return cells;
-  }, []);
 
   useEffect(() => {
     const handleKey = (e) => {

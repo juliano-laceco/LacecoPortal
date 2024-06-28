@@ -65,13 +65,13 @@ const initializeCellContents = (initialData, headerDates) => {
 };
 
 const Sheet = () => {
-    const initialWeeks = 70;
+    const initialWeeks = 50;
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const disciplines = useMemo(() => ["Discipline 1", "Discipline 2"], []);
     const users = useMemo(() => ["User 1", "User 2"], []);
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(5, 40));
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 50));
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
 
     const {
