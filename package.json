@@ -27,6 +27,7 @@
     "react-spinners": "^0.13.8",
     "react-table": "^7.8.0",
     "react-toastify": "^10.0.5",
+    "react-window": "^1.8.10",
     "use-breakpoint": "^4.0.1",
     "yup": "^1.4.0"
   },

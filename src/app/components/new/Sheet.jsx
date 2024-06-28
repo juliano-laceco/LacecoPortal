@@ -225,7 +225,7 @@ const Sheet = () => {
                 setDeletedPhaseAssignees((prev) => [...prev, assigneeId]);
             }
 
-            const newInitialData = [...initialData];
+            const newInitialData = [...getUpdatedData()];
 
             // Check if there is more than one assignee in the phase before deleting
             if (newInitialData[phaseIndex].assignees.length > 1) {
@@ -645,4 +645,4 @@ const Sheet = () => {
     );
 };
 
-export default Sheet;
+export default React.memo(Sheet);
