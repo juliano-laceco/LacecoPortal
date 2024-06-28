@@ -6,10 +6,12 @@ const useSheet = (numRows, numCols, initialCellContents) => {
   const [endCell, setEndCell] = useState(null);
   const [selectedCells, setSelectedCells] = useState([]);
   const [editableCell, setEditableCell] = useState(null);
-  const [cellContents, setCellContents] = useState(initialCellContents);
-  const [history, setHistory] = useState([initialCellContents]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const cellRefs = useRef([]);
+
+  // Memoize the cellContents and history state
+  const [cellContents, setCellContents] = useState(() => initialCellContents);
+  const [history, setHistory] = useState(() => [initialCellContents]);
 
   const getCellsInSelection = useCallback((start, end) => {
     const startRow = Math.min(start.row, end.row);
@@ -57,11 +59,13 @@ const useSheet = (numRows, numCols, initialCellContents) => {
   }, []);
 
   const saveHistory = useCallback((newCellContents) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ ...newCellContents });
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  }, [history, historyIndex]);
+    setHistory((prevHistory) => {
+      const newHistory = prevHistory.slice(0, historyIndex + 1);
+      newHistory.push({ ...newCellContents });
+      return newHistory;
+    });
+    setHistoryIndex((prevIndex) => prevIndex + 1);
+  }, [historyIndex]);
 
   const handleKeyDown = useCallback((e) => {
     if ((e.key === 'c' || e.key === 'x') && e.ctrlKey) {
@@ -111,13 +115,13 @@ const useSheet = (numRows, numCols, initialCellContents) => {
     } else if (e.key === 'z' && e.ctrlKey) {
       e.preventDefault();
       if (historyIndex > 0) {
-        setHistoryIndex(historyIndex - 1);
+        setHistoryIndex((prevIndex) => prevIndex - 1);
         setCellContents(history[historyIndex - 1]);
       }
     } else if (e.shiftKey && e.key === 'z' && e.ctrlKey) {
       e.preventDefault();
       if (historyIndex < history.length - 1) {
-        setHistoryIndex(historyIndex + 1);
+        setHistoryIndex((prevIndex) => prevIndex + 1);
         setCellContents(history[historyIndex + 1]);
       }
     } else if (e.key === 'Tab') {
@@ -251,8 +255,8 @@ const useSheet = (numRows, numCols, initialCellContents) => {
     numRows,
     numCols,
     saveHistory,
-    setHistory,
-    startCell
+    startCell,
+    getCellsInSelection
   ]);
 
   const handleCellBlur = useCallback((row, col, e) => {
@@ -297,7 +301,6 @@ const useSheet = (numRows, numCols, initialCellContents) => {
         cell.setAttribute('contentEditable', 'true');
         cell.focus();
 
-        // Force the cursor to the end of the cell content
         const range = document.createRange();
         range.selectNodeContents(cell);
         range.collapse(false);
