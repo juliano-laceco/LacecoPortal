@@ -1,6 +1,7 @@
 "use client"
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import useSheet from './useSheet';
+import Image from 'next/image';
 
 const generateHeaderDates = (numWeeks) => {
     const dates = [];
@@ -18,6 +19,35 @@ const generateHeaderDates = (numWeeks) => {
     return dates;
 };
 
+const generateMockData = (numPhases, assigneesPerPhase) => {
+    const phases = [];
+    let counter = 1;
+
+    for (let i = 1; i <= numPhases; i++) {
+        const assignees = [];
+        for (let j = 1; j <= assigneesPerPhase; j++) {
+            assignees.push({
+                phase_assignee_id: `${i}-${j}`,
+                discipline: `Discipline ${i}`,
+                assignee: `User ${j % 10 + 1}`, // Cycle through 10 users
+                projected_work_weeks: {
+                    "28 June 2024": counter++,
+                    "05 July 2024": counter++,
+                    "12 July 2024": counter++,
+                    "19 July 2024": counter++,
+                    "26 July 2024": counter++,
+                    "02 August 2024": counter++
+                }
+            });
+        }
+        phases.push({
+            phase_id: `${i}`,
+            phase: `Phase ${i}`,
+            assignees: assignees
+        });
+    }
+    return phases;
+};
 const initializeCellContents = (initialData, headerDates) => {
     const cellContents = {};
     let rowCounter = 0;
@@ -33,44 +63,17 @@ const initializeCellContents = (initialData, headerDates) => {
     return cellContents;
 };
 
-const generateMockData = (numPhases, assigneesPerPhase) => {
-    const phases = [];
-    for (let i = 1; i <= numPhases; i++) {
-        const assignees = [];
-        for (let j = 1; j <= assigneesPerPhase; j++) {
-            assignees.push({
-                phase_assignee_id: `${i}-${j}`,
-                discipline: `Discipline ${i}`,
-                assignee: `User ${j % 10 + 1}`, // Cycle through 10 users
-                projected_work_weeks: {
-                    "27 June 2024": Math.floor(Math.random() * 20),
-                    "04 July 2024": Math.floor(Math.random() * 20),
-                    "11 July 2024": Math.floor(Math.random() * 20),
-                    "18 July 2024": Math.floor(Math.random() * 20),
-                    "25 July 2024": Math.floor(Math.random() * 20),
-                    "01 August 2024": Math.floor(Math.random() * 20)
-                }
-            });
-        }
-        phases.push({
-            phase_id: `${i}`,
-            phase: `Phase ${i}`,
-            assignees: assignees
-        });
-    }
-    return phases;
-};
-
 const Sheet = () => {
-    const initialWeeks = 70;
-    const disciplines = useMemo(() => ["Discipline 1", "Discipline 2"], []);
-    const users = useMemo(() => ["User 1", "User 2"], []);
-
+    const initialWeeks = 50;
     const [headerDates, setHeaderDates] = useState(generateHeaderDates(initialWeeks));
-    const [initialData, setInitialData] = useState(generateMockData(3, 100));
     const numCols = headerDates.length + 5; // Additional columns for discipline, user, add week and remove week buttons
+    const disciplines = ["Discipline 1", "Discipline 2"];
+    const users = ["User 1", "User 2"];
 
-    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
+    const [initialData, setInitialData] = useState(() => (generateMockData(5, 2)));
+
+
+    const initialCellContents = initializeCellContents(initialData, headerDates);
 
     const {
         cellRefs,
@@ -92,10 +95,13 @@ const Sheet = () => {
         const newCellContents = initializeCellContents(initialData, headerDates);
         setCellContents(newCellContents);
         setHistory([newCellContents]);
-    }, [initialData, headerDates, setCellContents, setHistory]);
+    }, [initialData]);
 
-    const addNewWeek = useCallback(() => {
-        setHeaderDates((prevDates) => generateHeaderDates(prevDates.length + 1));
+    const addNewWeek = () => {
+        setHeaderDates((prevDates) => {
+            const newDates = generateHeaderDates(prevDates.length + 1);
+            return newDates;
+        });
 
         setCellContents((prevContents) => {
             const newContents = { ...prevContents };
@@ -107,9 +113,9 @@ const Sheet = () => {
 
             return newContents;
         });
-    }, [headerDates.length, initialData, setCellContents]);
+    };
 
-    const removeLastWeek = useCallback(() => {
+    const removeLastWeek = () => {
         setHeaderDates((prevDates) => {
             if (prevDates.length > 1) {
                 return prevDates.slice(0, -1);
@@ -127,19 +133,19 @@ const Sheet = () => {
 
             return newContents;
         });
-    }, [headerDates.length, initialData, setCellContents]);
+    };
 
-    const getBudgetHoursCells = useCallback((row) => {
+    const getBudgetHoursCells = (row) => {
         let total = 0;
         for (let i = 5; i < numCols; i++) {
             let content = cellContents[`${row}-${i}`] === "" || cellContents[`${row}-${i}`] === undefined || cellContents[`${row}-${i}`] === null ? 0 : cellContents[`${row}-${i}`];
             total += parseInt(content);
         }
         return total;
-    }, [cellContents, numCols]);
+    };
 
     const getPhaseBudgetHours = useMemo(() => {
-        return initialData.map((phase, phaseIndex) => {
+        const phaseBudgetHours = initialData.map((phase, phaseIndex) => {
             let total = 0;
             let rowCounter = 0;
 
@@ -155,9 +161,11 @@ const Sheet = () => {
 
             return total;
         });
-    }, [cellContents, initialData, getBudgetHoursCells]);
 
-    const handleAddAssignee = useCallback((phaseIndex) => {
+        return phaseBudgetHours;
+    }, [cellContents, initialData]);
+
+    const handleAddAssignee = (phaseIndex) => {
         const newAssignee = {
             phase_assignee_id: '',
             discipline: '',
@@ -169,77 +177,65 @@ const Sheet = () => {
             newAssignee.projected_work_weeks[date] = '';
         });
 
-        setInitialData((prevData) => {
-            const updatedData = [...prevData];
-            updatedData[phaseIndex] = {
-                ...updatedData[phaseIndex],
-                assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
-            };
+        const updatedData = [...getUpdatedData()];
+        updatedData[phaseIndex] = {
+            ...updatedData[phaseIndex],
+            assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
+        };
 
-            // Add new assignee's cell contents to cellContents
-            const newRowIndex = updatedData.reduce((acc, phase, idx) => {
-                return idx < phaseIndex ? acc + phase.assignees.length : acc;
-            }, 0) + updatedData[phaseIndex].assignees.length - 1;
+        setInitialData(updatedData);
 
-            setCellContents((prevContents) => {
-                const newContents = { ...prevContents };
-                for (let col = 5; col < numCols; col++) {
-                    newContents[`${newRowIndex}-${col}`] = '';
-                }
-                return newContents;
-            });
+        // Add new assignee's cell contents to cellContents
+        const newRowIndex = updatedData.reduce((acc, phase, idx) => {
+            return idx < phaseIndex ? acc + phase.assignees.length : acc;
+        }, 0) + updatedData[phaseIndex].assignees.length - 1;
 
-            setHistory([cellContents]);
-
-            return updatedData;
+        setCellContents((prevContents) => {
+            const newContents = { ...prevContents };
+            for (let col = 5; col < numCols; col++) {
+                newContents[`${newRowIndex}-${col}`] = '';
+            }
+            return newContents;
         });
-    }, [headerDates, numCols, setCellContents, setHistory, cellContents]);
 
-    const deleteAssignee = useCallback((row) => {
+        setHistory([cellContents]);
+    };
+
+    const deleteAssignee = (row) => {
         const phaseIndex = findPhaseIndex(row);
         const assigneeIndex = findAssigneeIndex(row, phaseIndex);
 
-        setInitialData((prevData) => {
-            const updatedData = [...prevData];
+        const newInitialData = [...getUpdatedData()];
 
-            // Check if there is more than one assignee in the phase before deleting
-            if (updatedData[phaseIndex].assignees.length > 1) {
-                const confirmDelete = window.confirm("Are you sure you want to delete this assignee?");
-                if (confirmDelete) {
-                    updatedData[phaseIndex].assignees.splice(assigneeIndex, 1);
-                } else {
-                    return prevData;
-                }
-            } else {
-                alert("Cannot delete the only assignee in the phase.");
-                return prevData;
+        // Check if there is more than one assignee in the phase before deleting
+        if (newInitialData[phaseIndex].assignees.length > 1) {
+            const confirmDelete = window.confirm("Are you sure you want to delete this assignee?");
+            if (confirmDelete) {
+                newInitialData[phaseIndex].assignees.splice(assigneeIndex, 1);
+                setInitialData(newInitialData);
             }
+        } else {
+            alert("Cannot delete the only assignee in the phase.");
+        }
+    };
 
-            return updatedData;
-        });
-    }, []);
+    const updateAssigneeDiscipline = (row, value) => {
+        const newInitialData = [...initialData];
+        const phaseIndex = findPhaseIndex(row);
+        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+        newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
+        setInitialData(newInitialData);
+    };
 
-    const updateAssigneeDiscipline = useCallback((row, value) => {
-        setInitialData((prevData) => {
-            const updatedData = [...prevData];
-            const phaseIndex = findPhaseIndex(row);
-            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-            updatedData[phaseIndex].assignees[assigneeIndex].discipline = value;
-            return updatedData;
-        });
-    }, []);
+    const updateAssigneeUser = (row, value) => {
+        const newInitialData = [...initialData];
+        const phaseIndex = findPhaseIndex(row);
+        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+        newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
+        setInitialData(newInitialData);
+    };
 
-    const updateAssigneeUser = useCallback((row, value) => {
-        setInitialData((prevData) => {
-            const updatedData = [...prevData];
-            const phaseIndex = findPhaseIndex(row);
-            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-            updatedData[phaseIndex].assignees[assigneeIndex].assignee = value;
-            return updatedData;
-        });
-    }, []);
-
-    const findPhaseIndex = useCallback((row) => {
+    const findPhaseIndex = (row) => {
         let phaseIndex = 0;
         let currentRow = 0;
 
@@ -249,30 +245,31 @@ const Sheet = () => {
         }
 
         return phaseIndex;
-    }, [initialData]);
+    };
 
-    const findAssigneeIndex = useCallback((row, phaseIndex) => {
+    const findAssigneeIndex = (row, phaseIndex) => {
         let assigneeIndex = row;
         for (let i = 0; i < phaseIndex; i++) {
             assigneeIndex -= initialData[i].assignees.length;
         }
         return assigneeIndex;
-    }, [initialData]);
+    };
 
-    const handleSelectChange = useCallback((e, row, col) => {
+    const handleSelectChange = (e, row, col) => {
         const value = e.target.value;
         if (col === 1) {
             updateAssigneeDiscipline(row, value);
         } else if (col === 2) {
             updateAssigneeUser(row, value);
         }
-    }, [updateAssigneeDiscipline, updateAssigneeUser]);
+    };
 
-    const handleSubmit = useCallback(() => {
-        getUpdatedData();
-    }, []);
+    const handleSubmit = () => {
+        getUpdatedData()
+    }
 
-    const getUpdatedData = useCallback(() => {
+    const getUpdatedData = () => {
+
         const updatedData = initialData.map((phase) => ({
             phase_id: phase.phase_id,
             phase: phase.phase,
@@ -303,11 +300,12 @@ const Sheet = () => {
                 }
             });
         });
-        console.log(updatedData);
-        return updatedData;
-    }, [cellRefs, initialData, findPhaseIndex, findAssigneeIndex]);
 
-    const colors = useMemo(() => [
+        console.log(updatedData)
+        return updatedData;
+    };
+
+    const colors = [
         'rgba(255, 99, 132, 0.2)',
         'rgba(54, 162, 235, 0.2)',
         'rgba(255, 206, 86, 0.2)',
@@ -320,14 +318,14 @@ const Sheet = () => {
         'rgba(138, 43, 226, 0.2)',
         'rgba(0, 255, 255, 0.2)',
         'rgba(255, 215, 0, 0.2)'
-    ], []);
+    ];
 
-    const getColorForMonth = useCallback((date) => {
+    const getColorForMonth = (date) => {
         const month = new Date(date).getMonth(); // Get month index (0-11)
         return colors[month];
-    }, [colors]);
+    };
 
-    const renderGrid = useCallback(() => {
+    const renderGrid = () => {
         const rows = [];
 
         // Add header row
@@ -391,7 +389,7 @@ const Sheet = () => {
                         if (col === 0) {
                             content = (
                                 <div className="cursor-pointer" onClick={() => deleteAssignee(row)}>
-                                    <img src="/delete.png" className="w-6 h-6" alt="x" />
+                                    <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" />
                                 </div>
                             );
                         } else if (col === 1) {
@@ -466,6 +464,7 @@ const Sheet = () => {
                                 onBlur={col > 4 ? (e) => handleCellBlur(row, col, e) : undefined}
                                 contentEditable={col > 4 && editableCell?.row === row && editableCell?.col === col}
                                 suppressContentEditableWarning
+                                suppressHydrationWarning
                             >
                                 {content}
                             </div>
@@ -482,19 +481,22 @@ const Sheet = () => {
             }
 
             rows.push(
-                <div key={`add-assignee-${phaseIndex}`} className="col-span-full flex justify-center items-center p-[3px] text-white text-2xl cursor-pointer select-none bg-pric hover:bg-pri-hovc transition duration-200 ease" onClick={() => handleAddAssignee(phaseIndex)}>
+                <div key={`add-assignee-${phaseIndex}`} className="col-span-full flex justify-center items-center p-[3px] text-white text-2xl cursor-pointer select-none bg-gray-400 hover:bg-gray-500  transition duration-200 ease" onClick={() => handleAddAssignee(phaseIndex)}>
                     +
                 </div>
             );
         });
 
         return rows;
-    }, [initialData, headerDates, numCols, selectedCells, getPhaseBudgetHours, cellContents, cellRefs, handleMouseDown, handleMouseEnter, handleMouseUp, handleClick, handleDoubleClick, handleCellBlur, editableCell, getCellStyle, deleteAssignee, handleSelectChange, handleAddAssignee, disciplines, users, getBudgetHoursCells, getColorForMonth]);
+    };
 
     return (
         <>
             <div className="flex items-start gap-3">
-                <div className="outline-none w-fit border border-gray-300 rounded-lg user-select-none" tabIndex={0}>
+                <div
+                    className="outline-none w-fit border border-gray-300 rounded-lg user-select-none"
+                    tabIndex={0}
+                >
                     {renderGrid()}
                 </div>
                 <div className="space-y-1">
@@ -520,4 +522,4 @@ const Sheet = () => {
     );
 };
 
-export default React.memo(Sheet);
+export default Sheet;
