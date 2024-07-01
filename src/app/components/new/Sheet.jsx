@@ -103,6 +103,10 @@ const Sheet = () => {
         setHistory([newCellContents]);
     }, [initialData, headerDates]);
 
+    useEffect(() => {
+        setInitialHeaderDates(headerDates)
+    }, []);
+
 
 
     useEffect(() => {
@@ -115,11 +119,11 @@ const Sheet = () => {
 
                     document.querySelectorAll(".assignee-label").forEach(assignee_label_div => {
                         if (!isVisibleHorizontally) {
-                            console.log('Invisible Horizontally')
                             assignee_label_div.classList.remove('hidden');
+                            document.querySelector(".user-tracker-visible").innerHTML = "visible"
                         } else {
                             assignee_label_div.classList.add('hidden');
-                            console.log('Visible Horizontally')
+                            document.querySelector(".user-tracker-visible").innerHTML = "hidden"
                         }
                     });
                 });
@@ -157,6 +161,14 @@ const Sheet = () => {
                 newContents[`${row}-${newColIndex}`] = "";
             }
 
+            const user_trackers = document.querySelectorAll(".assignee-label")
+            const user_tracker_visible = document.querySelector(".user-tracker-visible").innerHTML;
+
+            if (user_tracker_visible == "visible") {
+                user_trackers.forEach(element => {
+                    element.style.paddingLeft = parseInt(element.style.paddingLeft) + 18 + "pt"
+                });
+            }
             return newContents;
         });
 
@@ -196,6 +208,14 @@ const Sheet = () => {
                 delete newContents[`${row}-${lastColIndex}`];
             }
 
+            const user_trackers = document.querySelectorAll(".assignee-label")
+            const user_tracker_visible = document.querySelector(".user-tracker-visible").innerHTML;
+
+            if (user_tracker_visible == "visible") {
+                user_trackers.forEach(element => {
+                    element.style.paddingLeft = parseInt(element.style.paddingLeft) - 18 + "pt"
+                });
+            }
             return newContents;
         });
     }, [headerDates.length, initialData, setCellContents]);
@@ -492,28 +512,28 @@ const Sheet = () => {
         const headerCols = [
             <div
                 key={`action`}
-                className="border border-gray-300 flex justify-center w-16 items-center p-1 box-border bg-gray-200 font-bold"
+                className="border border-gray-300 flex justify-center  min-w-16 max-w-16 items-center p-1 box-border bg-gray-200 font-bold"
                 style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
             >
                 Action
             </div>,
-            <div key="discipline-header" className="discipline-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-[130pt]">
+            <div key="discipline-header" className="discipline-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-[130pt] max-w-[130pt]">
                 Discipline
             </div>,
-            <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-[130pt]">
+            <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-[130pt] max-w-[130pt]">
                 User
             </div>,
-            <div key="grade-header" className="grade-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-24">
+            <div key="grade-header" className="grade-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-24 max-w-24">
                 Grade
             </div>,
-            <div key="bh-header" className="bh-header border border-gray-300 p-1  flex justify-center items-center text-center bg-gray-200 font-semibold w-24">
+            <div key="bh-header" className="bh-header border border-gray-300 p-1  flex justify-center items-center text-center bg-gray-200 font-semibold min-w-24 max-w-24">
                 Budget Hours
             </div>,
             ...headerDates.map((date, index) => {
                 const color = getColorForMonth(date)
                 return <div
                     key={`header-${index}`}
-                    className={"border border-gray-300 w-12 flex justify-center items-center px-1 py-4  font-semibold"}
+                    className={"border border-gray-300 min-w-12 max-w-12 flex justify-center items-center px-1 py-4  font-semibold"}
                     style={{
                         writingMode: "vertical-rl",
                         transform: "rotate(180deg)",
@@ -527,7 +547,7 @@ const Sheet = () => {
             }),
         ];
         rows.push(
-            <div key="header" className="grid select-none rounded-lg  sticky top-0 z-50 w-screen" style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` , gap : 0 }}>
+            <div key="header" className="flex select-none rounded-lg  sticky top-0 z-50">
                 {headerCols}
             </div>
         );
@@ -617,7 +637,7 @@ const Sheet = () => {
                                 ref={(el) => {
                                     cellRefs.current[row][col] = el;
                                 }}
-                                className={`border border-gray-300 flex h-12 ${col === 0 ? "w-16" : col < 3 ? "w-[130pt]" : col < 5 ? "w-24" : "w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
+                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[130pt] max-w-[130pt]" : col < 5 ? " min-w-24 max-w-24" : "min-w-12 max-w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
                                 onMouseDown={col > 4 ? () => handleMouseDown(row, col) : undefined}
                                 onMouseEnter={col > 4 ? () => handleMouseEnter(row, col) : undefined}
@@ -642,10 +662,10 @@ const Sheet = () => {
 
                     rows.push(
                         <>
-                            <div className="assignee-label w-full hidden bg-gray-300 text-gray-600  ml-[452pt] p-1 rounded-tl-lg mt-3">
+                            <div className="assignee-label hidden bg-gray-300 text-gray-600 p-1 rounded-tl-lg mt-3" style={{ paddingLeft: "452pt" }}>
                                 {assignee.assignee} - G5+ - {getBudgetHoursCells(row)} hrs
                             </div>
-                            <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`grid relative`} style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` }}>
+                            <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative`} >
                                 {cols}
                             </div>
                         </>
@@ -655,12 +675,12 @@ const Sheet = () => {
 
             rows.push(
                 <div
-                key={`add-assignee-${phaseIndex}`}
-                className={`ml-[452pt] w-full flex justify-center items-center p-2 text-white text-lg cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
-                onClick={() => handleAddAssignee(phaseIndex)}
-            >
-                + Add New
-            </div>
+                    key={`add-assignee-${phaseIndex}`}
+                    className={`ml-[452pt] flex justify-center items-center p-2 text-white text-lg cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
+                    onClick={() => handleAddAssignee(phaseIndex)}
+                >
+                    + Add New
+                </div>
             );
         });
 
@@ -717,7 +737,11 @@ const Sheet = () => {
             <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
                 Save
             </button>
-            <p className="row-variance hidden">{headerDates.length - initialHeaderDates.length}</p>
+            <p className="row-variance">
+                {headerDates.length - initialHeaderDates.length}
+            </p>
+            <p className="user-tracker-visible"></p>
+            <p className="first-expand">0</p>
         </>
     );
 };
