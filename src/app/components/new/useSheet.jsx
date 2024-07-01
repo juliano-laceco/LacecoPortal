@@ -118,8 +118,12 @@ const useSheet = (numRows, numCols, initialCellContents) => {
     } else if (e.key === 'z' && e.ctrlKey) {
       e.preventDefault();
       if (historyIndex > 0) {
-        setHistoryIndex((prevIndex) => prevIndex - 1);
-        setCellContents(history[historyIndex - 1]);
+
+        if (history[historyIndex - 1] != undefined) {
+          setHistoryIndex((prevIndex) => prevIndex - 1);
+          setCellContents(history[historyIndex - 1]);
+        }
+
       }
     } else if (e.shiftKey && e.key === 'z' && e.ctrlKey) {
       e.preventDefault();

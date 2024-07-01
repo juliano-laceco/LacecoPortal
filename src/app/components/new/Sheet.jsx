@@ -31,12 +31,11 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
                 discipline: `Discipline ${i}`,
                 assignee: `User ${j % 10 + 1}`, // Cycle through 10 users
                 projected_work_weeks: {
-                    "28 June 2024": counter++,
-                    "05 July 2024": counter++,
-                    "12 July 2024": counter++,
-                    "19 July 2024": counter++,
-                    "26 July 2024": counter++,
-                    "02 August 2024": counter++,
+                    "01 July 2024": counter++,
+                    "08 July 2024": counter++,
+                    "15 July 2024": counter++,
+                    "22 July 2024": counter++,
+                    "29 July 2024": counter++
                 },
             });
         }
@@ -65,7 +64,7 @@ const initializeCellContents = (initialData, headerDates) => {
 };
 
 const Sheet = () => {
-    const initialWeeks = 50;
+    const initialWeeks = 70;
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const disciplines = useMemo(() => ["Discipline 1", "Discipline 2"], []);
