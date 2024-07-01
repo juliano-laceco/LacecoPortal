@@ -48,6 +48,8 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
     return phases;
 };
 
+
+
 const initializeCellContents = (initialData, headerDates) => {
     const cellContents = {};
     let rowCounter = 0;
@@ -64,14 +66,16 @@ const initializeCellContents = (initialData, headerDates) => {
 };
 
 const Sheet = () => {
-    const initialWeeks = 70;
+    const initialWeeks = 30;
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const disciplines = useMemo(() => ["Discipline 1", "Discipline 2"], []);
     const users = useMemo(() => ["User 1", "User 2"], []);
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 50));
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 10));
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
+    const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
+    const [initialHeaderDates, setInitialHeaderDates] = useState([])
 
     const {
         cellRefs,
@@ -99,7 +103,47 @@ const Sheet = () => {
         setHistory([newCellContents]);
     }, [initialData, headerDates]);
 
+
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+
+                    // Check horizontal visibility
+                    const isVisibleHorizontally = entry.isIntersecting
+
+                    document.querySelectorAll(".assignee-label").forEach(assignee_label_div => {
+                        if (!isVisibleHorizontally) {
+                            console.log('Invisible Horizontally')
+                            assignee_label_div.classList.remove('hidden');
+                        } else {
+                            assignee_label_div.classList.add('hidden');
+                            console.log('Visible Horizontally')
+                        }
+                    });
+                });
+            },
+            {
+                threshold: [0, 1] // Trigger when completely out of view horizontally
+            }
+        );
+
+        const elements = document.querySelectorAll('.user-header');
+        elements.forEach((element) => {
+            observer.observe(element);
+        });
+
+        return () => {
+            elements.forEach((element) => {
+                observer.unobserve(element);
+            });
+        };
+    }, []); // Empty dependency array ensures this effect runs only once
+
     const addNewWeek = useCallback(() => {
+
+        console.log("Added new Week")
         setHeaderDates((prevDates) => {
             const newDates = generateHeaderDates(prevDates.length + 1);
             return newDates;
@@ -115,7 +159,26 @@ const Sheet = () => {
 
             return newContents;
         });
+
+        setHeaderDatesUpdated(true); // Set the flag to true
+
     }, [headerDates.length, initialData, setCellContents]);
+
+
+    useEffect(() => {
+        if (headerDatesUpdated) {
+            const el = document.querySelector(".sheet-container");
+
+            // Scroll to the farthest right after headerDates is updated
+            el.scrollTo({
+                left: el.scrollWidth,
+                behavior: "smooth"
+            });
+            setHeaderDatesUpdated(false); // Reset the flag
+        }
+
+    }, [headerDatesUpdated]);
+
 
     const removeLastWeek = useCallback(() => {
         setHeaderDates((prevDates) => {
@@ -398,18 +461,18 @@ const Sheet = () => {
 
     const colors = useMemo(
         () => [
-            "rgba(255, 99, 132, 0.2)",
-            "rgba(54, 162, 235, 0.2)",
-            "rgba(255, 206, 86, 0.2)",
-            "rgba(75, 192, 192, 0.2)",
-            "rgba(153, 102, 255, 0.2)",
-            "rgba(255, 159, 64, 0.2)",
-            "rgba(201, 203, 207, 0.2)",
-            "rgba(220, 20, 60, 0.2)",
-            "rgba(50, 205, 50, 0.2)",
-            "rgba(138, 43, 226, 0.2)",
-            "rgba(0, 255, 255, 0.2)",
-            "rgba(255, 215, 0, 0.2)",
+            "#86cead",
+            "#80c6f7",
+            "#ffe6a1",
+            "#a6ecec",
+            "#d1b3ff",
+            "#ffce99",
+            "#e5c7eb",
+            "#f29b9b",
+            "#99e699",
+            "#d1a3ff",
+            "#b3ffff",
+            "#fff3b3"
         ],
         []
     );
@@ -434,30 +497,37 @@ const Sheet = () => {
             >
                 Action
             </div>,
-            <div key="discipline-header" className="border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-[130pt]">
+            <div key="discipline-header" className="discipline-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-[130pt]">
                 Discipline
             </div>,
-            <div key="user-header" className="border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-[130pt]">
+            <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-[130pt]">
                 User
             </div>,
-            <div key="grade-header" className="border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-24">
+            <div key="grade-header" className="grade-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold w-24">
                 Grade
             </div>,
-            <div key="bh-header" className="border border-gray-300 p-1  flex justify-center items-center text-center bg-gray-200 font-semibold w-24">
+            <div key="bh-header" className="bh-header border border-gray-300 p-1  flex justify-center items-center text-center bg-gray-200 font-semibold w-24">
                 Budget Hours
             </div>,
-            ...headerDates.map((date, index) => (
-                <div
+            ...headerDates.map((date, index) => {
+                const color = getColorForMonth(date)
+                return <div
                     key={`header-${index}`}
-                    className="border border-gray-300 flex justify-center items-center px-1 py-4 box-border font-semibold"
-                    style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", backgroundColor: getColorForMonth(date) }}
+                    className={"border border-gray-300 w-12 flex justify-center items-center px-1 py-4  font-semibold"}
+                    style={{
+                        writingMode: "vertical-rl",
+                        transform: "rotate(180deg)",
+                        background: color,
+                        "--tw-bg-opacity": 1
+                    }}
                 >
                     {date}
                 </div>
-            )),
+
+            }),
         ];
         rows.push(
-            <div key="header" className="grid select-none rounded-lg overflow-hidden" style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` }}>
+            <div key="header" className="grid select-none rounded-lg  sticky top-0 z-50 w-screen" style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` , gap : 0 }}>
                 {headerCols}
             </div>
         );
@@ -490,7 +560,7 @@ const Sheet = () => {
                         if (col === 0) {
                             content = (
                                 <div className="cursor-pointer" onClick={() => deleteAssignee(row)}>
-                                    <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" />
+                                    <Image src="/resources/icons/delete.png" height="20" width="20" className alt="x" />
                                 </div>
                             );
                         } else if (col === 1) {
@@ -512,7 +582,7 @@ const Sheet = () => {
                                 <select
                                     value={assignee.assignee}
                                     onChange={(e) => handleSelectChange(e, row, col)}
-                                    className="border border-gray-300 p-1 box-border text-center bg-gray-100 select-none w-full"
+                                    className="border border-gray-300 p-1 box-border text-center  bg-gray-100 select-none w-full"
                                 >
                                     {users.map((user) => (
                                         <option key={user} value={user}>
@@ -525,9 +595,11 @@ const Sheet = () => {
                             content = <div className="select-none font-semibold min-w-24">G5+</div>;
                         } else if (col === 4) {
                             content = (
-                                <div className="select-none font-semibold min-w-24">
-                                    {getBudgetHoursCells(row)}
-                                </div>
+                                <>
+                                    <div className="select-none font-semibold min-w-24 budget-hour-cell">
+                                        {getBudgetHoursCells(row)}
+                                    </div>
+                                </>
                             );
                         } else {
                             colDate = headerDates[col - 5];
@@ -545,7 +617,7 @@ const Sheet = () => {
                                 ref={(el) => {
                                     cellRefs.current[row][col] = el;
                                 }}
-                                className={`border border-gray-300 flex h-12 ${col === 0 ? "w-16" : col < 3 ? "w-[130pt]" : col < 5 ? "w-24" : "min-w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
+                                className={`border border-gray-300 flex h-12 ${col === 0 ? "w-16" : col < 3 ? "w-[130pt]" : col < 5 ? "w-24" : "w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
                                 onMouseDown={col > 4 ? () => handleMouseDown(row, col) : undefined}
                                 onMouseEnter={col > 4 ? () => handleMouseEnter(row, col) : undefined}
@@ -569,21 +641,26 @@ const Sheet = () => {
                     }
 
                     rows.push(
-                        <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className="grid" style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` }}>
-                            {cols}
-                        </div>
+                        <>
+                            <div className="assignee-label w-full hidden bg-gray-300 text-gray-600  ml-[452pt] p-1 rounded-tl-lg mt-3">
+                                {assignee.assignee} - G5+ - {getBudgetHoursCells(row)} hrs
+                            </div>
+                            <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`grid relative`} style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` }}>
+                                {cols}
+                            </div>
+                        </>
                     );
                 });
             }
 
             rows.push(
                 <div
-                    key={`add-assignee-${phaseIndex}`}
-                    className="col-span-full flex justify-center items-center p-[3px] text-white text-2xl cursor-pointer select-none bg-gray-400 hover:bg-gray-500  transition duration-200 ease"
-                    onClick={() => handleAddAssignee(phaseIndex)}
-                >
-                    +
-                </div>
+                key={`add-assignee-${phaseIndex}`}
+                className={`ml-[452pt] w-full flex justify-center items-center p-2 text-white text-lg cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
+                onClick={() => handleAddAssignee(phaseIndex)}
+            >
+                + Add New
+            </div>
             );
         });
 
@@ -616,7 +693,7 @@ const Sheet = () => {
     return (
         <>
             <div className="flex items-start gap-3">
-                <div className="outline-none w-fit border border-gray-300 rounded-lg user-select-none" tabIndex={0}>
+                <div className="sheet-container outline-none w-fit border border-gray-300 rounded-lg user-select-none h-[750px] relative overflow-scroll" tabIndex={0}>
                     {renderGrid()}
                 </div>
                 <div className="space-y-1">
@@ -640,6 +717,7 @@ const Sheet = () => {
             <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
                 Save
             </button>
+            <p className="row-variance hidden">{headerDates.length - initialHeaderDates.length}</p>
         </>
     );
 };
