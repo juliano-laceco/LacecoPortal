@@ -116,9 +116,8 @@ export async function createProject(projectData) {
         // Release the connection
         connection.release();
 
-        console.log('Transaction successful');
-
         return res.success();
+
     } catch (error) {
         // Rollback the transaction if any query fails
         if (connection) {
@@ -266,9 +265,8 @@ export async function updateProject(projectData) {
         // Release the connection
         connection.release();
 
-        console.log('Transaction successful');
-
         return res.success();
+
     } catch (error) {
         // Rollback the transaction if any query fails
         if (connection) {
@@ -360,9 +358,12 @@ export async function getProjectData(project_id) {
     }
 }
 
+
+export async function baselineProject(project_id) {
+    // To be implemented
+}
+
 export async function checkDisciplineIsPhaseAssigned(disciplines, project_id) {
-
-
     const results = [];
     try {
         for (const discipline of disciplines) {
@@ -399,7 +400,7 @@ export async function getAllProjects(qs = {}) {
     const allowedKeys = resp.res ? new Set(resp.data.map(field => `${field.tableAlias}.${field.columnName}`)) : new Set([]);
 
     try {
-       
+
         const selectClause = await renameAmbiguousColumns(resp.data)
         // Base query
         let query = `SELECT ${selectClause.slice(2)} 

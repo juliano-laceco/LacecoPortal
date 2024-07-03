@@ -1,7 +1,12 @@
 "use client";
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import useSheet from "./useSheet";
 import Image from "next/image";
+import 'select2/dist/css/select2.min.css';
+import 'select2';
+import NativeSelectComponent from "../custom/Dropdowns/NativeSelectComponent";
+
 
 const generateHeaderDates = (numWeeks) => {
     const dates = [];
@@ -31,11 +36,11 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
                 discipline: `Discipline ${i}`,
                 assignee: `User ${j % 10 + 1}`, // Cycle through 10 users
                 projected_work_weeks: {
-                    "01 July 2024": counter++,
-                    "08 July 2024": counter++,
-                    "15 July 2024": counter++,
-                    "22 July 2024": counter++,
-                    "29 July 2024": counter++
+                    "03 July 2024": counter++,
+                    "10 July 2024": counter++,
+                    "17 July 2024": counter++,
+                    "25 July 2024": counter++,
+                    "01 August 2024": counter++
                 },
             });
         }
@@ -66,13 +71,13 @@ const initializeCellContents = (initialData, headerDates) => {
 };
 
 const Sheet = () => {
-    const initialWeeks = 30;
+    const initialWeeks = 70;
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const disciplines = useMemo(() => ["Discipline 1", "Discipline 2"], []);
     const users = useMemo(() => ["User 1", "User 2"], []);
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 10));
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 40));
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
     const [initialHeaderDates, setInitialHeaderDates] = useState([])
@@ -325,7 +330,7 @@ const Sheet = () => {
 
     const updateAssigneeDiscipline = useCallback(
         (row, value) => {
-            const newInitialData = [...initialData];
+            const newInitialData = [...getUpdatedData()];
             const phaseIndex = findPhaseIndex(row);
             const assigneeIndex = findAssigneeIndex(row, phaseIndex);
             newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
@@ -336,7 +341,7 @@ const Sheet = () => {
 
     const updateAssigneeUser = useCallback(
         (row, value) => {
-            const newInitialData = [...initialData];
+            const newInitialData = [...getUpdatedData()];
             const phaseIndex = findPhaseIndex(row);
             const assigneeIndex = findAssigneeIndex(row, phaseIndex);
             newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
@@ -512,12 +517,12 @@ const Sheet = () => {
         const headerCols = [
             <div
                 key={`action`}
-                className="border border-gray-300 flex justify-center  min-w-16 max-w-16 items-center p-1 box-border bg-gray-200 font-bold"
+                className="border border-gray-300 flex justify-center  min-w-16 max-w-16 items-center p-1 box-border bg-gray-200 text-gray-600 font-bold"
                 style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
             >
                 Action
             </div>,
-            <div key="discipline-header" className="discipline-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-[130pt] max-w-[130pt]">
+            <div key="discipline-header" className="discipline-header border border-gray-300 p-1 flex justify-center items-center bg-gray-200 font-semibold min-w-[130pt] max-w-[130pt]">
                 Discipline
             </div>,
             <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-[130pt] max-w-[130pt]">
@@ -585,31 +590,27 @@ const Sheet = () => {
                             );
                         } else if (col === 1) {
                             content = (
-                                <select
-                                    value={assignee.discipline}
-                                    onChange={(e) => handleSelectChange(e, row, col)}
-                                    className="border border-gray-300 p-1 box-border text-center bg-gray-100 select-none w-full"
-                                >
-                                    {disciplines.map((discipline) => (
-                                        <option key={discipline} value={discipline}>
-                                            {discipline}
-                                        </option>
-                                    ))}
-                                </select>
+                                <>
+                                    <NativeSelectComponent
+                                        options={disciplines}
+                                        value={assignee.discipline}
+                                        handleChange={handleSelectChange}
+                                        row={row}
+                                        col={col}
+                                        placeholder="Select a discipline"
+                                    />
+                                </>
                             );
                         } else if (col === 2) {
                             content = (
-                                <select
+                                <NativeSelectComponent
+                                    options={users}
                                     value={assignee.assignee}
-                                    onChange={(e) => handleSelectChange(e, row, col)}
-                                    className="border border-gray-300 p-1 box-border text-center  bg-gray-100 select-none w-full"
-                                >
-                                    {users.map((user) => (
-                                        <option key={user} value={user}>
-                                            {user}
-                                        </option>
-                                    ))}
-                                </select>
+                                    handleChange={handleSelectChange}
+                                    row={row}
+                                    col={col}
+                                    placeholder="Select a user"
+                                />
                             );
                         } else if (col === 3) {
                             content = <div className="select-none font-semibold min-w-24">G5+</div>;
@@ -662,10 +663,10 @@ const Sheet = () => {
 
                     rows.push(
                         <>
-                            <div className="assignee-label hidden  w-full text-center bg-gray-300 text-gray-600 p-1 rounded-tl-lg mt-3 sticky left-1" >
+                            <div className="assignee-label hidden  w-full text-center bg-gray-300 text-gray-600 p-1  mt-3 sticky left-0" >
                                 {assignee.assignee} - G5+ - {getBudgetHoursCells(row)} hrs
                             </div>
-                            <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative`} >
+                            <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`} >
                                 {cols}
                             </div>
                         </>
