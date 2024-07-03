@@ -115,7 +115,7 @@ const Sheet = () => {
                 entries.forEach((entry) => {
 
                     // Check horizontal visibility
-                    const isVisibleHorizontally = entry.isIntersecting
+                    const isVisibleHorizontally = entry.isIntersecting && entry.intersectionRatio === 1
 
                     document.querySelectorAll(".assignee-label").forEach(assignee_label_div => {
                         if (!isVisibleHorizontally) {
@@ -161,14 +161,14 @@ const Sheet = () => {
                 newContents[`${row}-${newColIndex}`] = "";
             }
 
-            const user_trackers = document.querySelectorAll(".assignee-label")
-            const user_tracker_visible = document.querySelector(".user-tracker-visible").innerHTML;
+            // const user_trackers = document.querySelectorAll(".assignee-label")
+            // const user_tracker_visible = document.querySelector(".user-tracker-visible").innerHTML;
 
-            if (user_tracker_visible == "visible") {
-                user_trackers.forEach(element => {
-                    element.style.paddingLeft = parseInt(element.style.paddingLeft) + 18 + "pt"
-                });
-            }
+            // if (user_tracker_visible == "visible") {
+            //     user_trackers.forEach(element => {
+            //         element.style.paddingLeft = parseInt(element.style.paddingLeft) + 18 + "pt"
+            //     });
+            // }
             return newContents;
         });
 
@@ -208,14 +208,14 @@ const Sheet = () => {
                 delete newContents[`${row}-${lastColIndex}`];
             }
 
-            const user_trackers = document.querySelectorAll(".assignee-label")
-            const user_tracker_visible = document.querySelector(".user-tracker-visible").innerHTML;
+            // const user_trackers = document.querySelectorAll(".assignee-label")
+            // const user_tracker_visible = document.querySelector(".user-tracker-visible").innerHTML;
 
-            if (user_tracker_visible == "visible") {
-                user_trackers.forEach(element => {
-                    element.style.paddingLeft = parseInt(element.style.paddingLeft) - 18 + "pt"
-                });
-            }
+            // if (user_tracker_visible == "visible") {
+            //     user_trackers.forEach(element => {
+            //         element.style.paddingLeft = parseInt(element.style.paddingLeft) - 18 + "pt"
+            //     });
+            // }
             return newContents;
         });
     }, [headerDates.length, initialData, setCellContents]);
@@ -557,8 +557,8 @@ const Sheet = () => {
         // Add data rows
         initialData.forEach((phase, phaseIndex) => {
             rows.push(
-                <div key={`phase-${phaseIndex}`} className="col-span-full font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none">
-                    {phase.phase} -{" "}
+                <div key={`phase-${phaseIndex}`} className="sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none">
+                    {phase.phase} - {" "}
                     <span className="text-red-400 text-lg">
                         {" "}
                         {getPhaseBudgetHours[phaseIndex]} hrs
@@ -662,7 +662,7 @@ const Sheet = () => {
 
                     rows.push(
                         <>
-                            <div className="assignee-label hidden bg-gray-300 text-gray-600 p-1 rounded-tl-lg mt-3" style={{ paddingLeft: "452pt" }}>
+                            <div className="assignee-label hidden  w-full text-center bg-gray-300 text-gray-600 p-1 rounded-tl-lg mt-3 sticky left-1" >
                                 {assignee.assignee} - G5+ - {getBudgetHoursCells(row)} hrs
                             </div>
                             <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative`} >
@@ -676,8 +676,9 @@ const Sheet = () => {
             rows.push(
                 <div
                     key={`add-assignee-${phaseIndex}`}
-                    className={`ml-[452pt] flex justify-center items-center p-2 text-white text-lg cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
+                    className={`p-2 text-white flex-1 sticky left-0 text-lg text-center w-full cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
                     onClick={() => handleAddAssignee(phaseIndex)}
+
                 >
                     + Add New
                 </div>
@@ -712,8 +713,8 @@ const Sheet = () => {
 
     return (
         <>
-            <div className="flex items-start gap-3">
-                <div className="sheet-container outline-none w-fit border border-gray-300 rounded-lg user-select-none h-[750px] relative overflow-scroll" tabIndex={0}>
+            <div className="flex items-start gap-3 w-full">
+                <div className="sheet-container flex-1 outline-none border border-gray-300 rounded-lg user-select-none h-[750px] relative overflow-scroll" tabIndex={0}>
                     {renderGrid()}
                 </div>
                 <div className="space-y-1">
@@ -737,11 +738,11 @@ const Sheet = () => {
             <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
                 Save
             </button>
-            <p className="row-variance">
+            <p className="row-variance hidden">
                 {headerDates.length - initialHeaderDates.length}
             </p>
-            <p className="user-tracker-visible"></p>
-            <p className="first-expand">0</p>
+            <p className="user-tracker-visible hidden"></p>
+            <p className="first-expand hidden">0</p>
         </>
     );
 };
