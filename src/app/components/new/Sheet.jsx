@@ -77,11 +77,11 @@ const Sheet = ({ employee_data, discipline_data }) => {
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
 
-    const initialWeeks = 20;
+    const initialWeeks = 70;
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 20));
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 70));
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
     const [initialHeaderDates, setInitialHeaderDates] = useState([])
@@ -152,25 +152,25 @@ const Sheet = ({ employee_data, discipline_data }) => {
         [updateAssigneeDiscipline, updateAssigneeUser]
     );
 
-    useEffect(() => {
-        // Initialize Select2
-        const $select = $(`.native-select`);
-        $select.select2({
-            placeholder: "Select..."
-        });
+    // useEffect(() => {
+    //     // Initialize Select2
+    //     const $select = $(`.native-select`);
+    //     $select.select2({
+    //         placeholder: "Select..."
+    //     });
 
-        $select.on('change', function (e) {
-            const id = $(this).attr('id');
-            const value = $(this).val();
-            const [_, row, col] = id.split('-');
-            handleSelectChange({ target: { value } }, parseInt(row), parseInt(col));
-        });
+    //     $select.on('change', function (e) {
+    //         const id = $(this).attr('id');
+    //         const value = $(this).val();
+    //         const [_, row, col] = id.split('-');
+    //         handleSelectChange({ target: { value } }, parseInt(row), parseInt(col));
+    //     });
 
-        // Cleanup on unmount
-        return () => {
-            $select.select2('destroy');
-        };
-    }, [initialData, handleSelectChange]);
+    //     // Cleanup on unmount
+    //     return () => {
+    //         $select.select2('destroy');
+    //     };
+    // }, [initialData, handleSelectChange]);
 
 
     useEffect(() => {

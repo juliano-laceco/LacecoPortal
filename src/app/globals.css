@@ -87,3 +87,44 @@ div:has(.react-select-dd__control):not(.panel) {
 .select2-container--default .select2-results>.select2-results__options {
     max-height: 300px !important;
 }
+
+
+
+.custom-select-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 200px;
+  }
+
+  .custom-select {
+    display: none;
+  }
+
+  .select-selected {
+    background-color: #eee;
+    padding: 10px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+  }
+
+  .select-items {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    z-index: 99;
+    width: 100%;
+    display: none;
+  }
+
+  .select-items div {
+    padding: 10px;
+    cursor: pointer;
+  }
+
+  .select-items div:hover {
+    background-color: #add8e6; /* Light blue color on hover */
+  }
+
+  .select-hide {
+    display: none;
+  }
