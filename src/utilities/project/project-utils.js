@@ -306,7 +306,8 @@ export async function getProjectData(project_id) {
                 employee_id, 
                 project_status, 
                 DATE_FORMAT(created_on, '%Y-%m-%d %H:%i:%s') AS created_on,
-                created_by
+                created_by,
+                isBaselined
             FROM project 
             WHERE project_id = ?
         `, [project_id]);

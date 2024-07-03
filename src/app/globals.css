@@ -74,3 +74,16 @@ div:has(.react-select-dd__control):not(.panel) {
     background-color: #ef4444 !important;
     color: #fff !important;
 }
+
+.select2-dropdown {
+    min-width: 300px;
+    border-top: 1px solid #aaa !important;
+    margin-top: 3px !important;
+    max-height: 500px !important;
+    border-top-right-radius: 3px !important;
+    border-top-left-radius: 3px !important;
+}
+
+.select2-container--default .select2-results>.select2-results__options {
+    max-height: 300px !important;
+}

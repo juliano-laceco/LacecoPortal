@@ -5,6 +5,8 @@ import useSheet from "./useSheet";
 import Image from "next/image";
 import 'select2/dist/css/select2.min.css';
 import 'select2';
+import $ from "jquery"
+
 import NativeSelectComponent from "../custom/Dropdowns/NativeSelectComponent";
 
 
@@ -70,7 +72,11 @@ const initializeCellContents = (initialData, headerDates) => {
     return cellContents;
 };
 
-const Sheet = () => {
+const Sheet = ({ employee_data, discipline_data }) => {
+
+    const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
+    const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
+
     const initialWeeks = 70;
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
@@ -112,7 +118,17 @@ const Sheet = () => {
         setInitialHeaderDates(headerDates)
     }, []);
 
-
+    useEffect(() => {
+        // Initialize Select2
+        const $select = $(`.native-select`);
+        $select.select2({
+            placeholder: "Select..."
+        });
+        // Cleanup on unmount
+        return () => {
+            $select.select2('destroy');
+        };
+    }, []);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -151,8 +167,6 @@ const Sheet = () => {
     }, []); // Empty dependency array ensures this effect runs only once
 
     const addNewWeek = useCallback(() => {
-
-        console.log("Added new Week")
         setHeaderDates((prevDates) => {
             const newDates = generateHeaderDates(prevDates.length + 1);
             return newDates;
@@ -481,7 +495,7 @@ const Sheet = () => {
         }
 
         console.log("Updated Data:", updatedData);
-        console.log("Deleted Phase Assignees:", deletedPhaseAssignees);
+
     }, [getUpdatedData, deletedPhaseAssignees]);
 
     const colors = useMemo(
@@ -522,10 +536,10 @@ const Sheet = () => {
             >
                 Action
             </div>,
-            <div key="discipline-header" className="discipline-header border border-gray-300 p-1 flex justify-center items-center bg-gray-200 font-semibold min-w-[130pt] max-w-[130pt]">
+            <div key="discipline-header" className="discipline-header border border-gray-300 p-1 flex justify-center items-center bg-gray-200 font-semibold min-w-[160pt] max-w-[160pt]">
                 Discipline
             </div>,
-            <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-[130pt] max-w-[130pt]">
+            <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-[160pt] max-w-[160pt]">
                 User
             </div>,
             <div key="grade-header" className="grade-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-24 max-w-24">
@@ -590,27 +604,33 @@ const Sheet = () => {
                             );
                         } else if (col === 1) {
                             content = (
-                                <>
-                                    <NativeSelectComponent
-                                        options={disciplines}
-                                        value={assignee.discipline}
-                                        handleChange={handleSelectChange}
-                                        row={row}
-                                        col={col}
-                                        placeholder="Select a discipline"
-                                    />
-                                </>
+                                <select
+                                    id={`select-${row}-${col}`}
+                                    value={assignee.discipline}
+                                    onChange={(e) => handleChange(e, row, col)}
+                                    className="native-select border border-gray-300 rounded-md p-1 box-border text-center bg-gray-100 select-none w-full focus:ring-red-500 focus:ring-[1.5px] focus:border-none"
+                                >
+                                    {memoizedDisciplineData.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
                             );
                         } else if (col === 2) {
                             content = (
-                                <NativeSelectComponent
-                                    options={users}
+                                <select
+                                    id={`select-${row}-${col}`}
                                     value={assignee.assignee}
-                                    handleChange={handleSelectChange}
-                                    row={row}
-                                    col={col}
-                                    placeholder="Select a user"
-                                />
+                                    onChange={(e) => handleChange(e, row, col)}
+                                    className="native-select border border-gray-300 rounded-md p-1 box-border text-center bg-gray-100 select-none w-full focus:ring-red-500 focus:ring-[1.5px] focus:border-none"
+                                >
+                                    {memoizedEmployeeData.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
                             );
                         } else if (col === 3) {
                             content = <div className="select-none font-semibold min-w-24">G5+</div>;
@@ -638,7 +658,7 @@ const Sheet = () => {
                                 ref={(el) => {
                                     cellRefs.current[row][col] = el;
                                 }}
-                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[130pt] max-w-[130pt]" : col < 5 ? " min-w-24 max-w-24" : "min-w-12 max-w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
+                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : "min-w-12 max-w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
                                 onMouseDown={col > 4 ? () => handleMouseDown(row, col) : undefined}
                                 onMouseEnter={col > 4 ? () => handleMouseEnter(row, col) : undefined}
