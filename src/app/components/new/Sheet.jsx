@@ -35,8 +35,8 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
         for (let j = 1; j <= assigneesPerPhase; j++) {
             assignees.push({
                 phase_assignee_id: `${i}-${j}`,
-                discipline: `Discipline ${i}`,
-                assignee: `User ${j % 10 + 1}`, // Cycle through 10 users
+                discipline: `1`,
+                assignee: ``, // Cycle through 10 users
                 projected_work_weeks: {
                     "03 July 2024": counter++,
                     "10 July 2024": counter++,
@@ -77,13 +77,11 @@ const Sheet = ({ employee_data, discipline_data }) => {
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
 
-    const initialWeeks = 70;
+    const initialWeeks = 20;
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
-    const disciplines = useMemo(() => ["Discipline 1", "Discipline 2"], []);
-    const users = useMemo(() => ["User 1", "User 2"], []);
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 40));
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 20));
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
     const [initialHeaderDates, setInitialHeaderDates] = useState([])
@@ -118,17 +116,62 @@ const Sheet = ({ employee_data, discipline_data }) => {
         setInitialHeaderDates(headerDates)
     }, []);
 
+
+
+    const updateAssigneeDiscipline = useCallback(
+        (row, value) => {
+            const newInitialData = [...getUpdatedData()];
+            const phaseIndex = findPhaseIndex(row);
+            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+            newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
+            setInitialData(newInitialData);
+        },
+        [initialData]
+    );
+
+    const updateAssigneeUser = useCallback(
+        (row, value) => {
+            const newInitialData = [...getUpdatedData()];
+            const phaseIndex = findPhaseIndex(row);
+            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+            newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
+            setInitialData(newInitialData);
+        },
+        [initialData]
+    );
+
+    const handleSelectChange = useCallback(
+        (e, row, col) => {
+            const value = e.target.value;
+            if (col === 1) {
+                updateAssigneeDiscipline(row, value);
+            } else if (col === 2) {
+                updateAssigneeUser(row, value);
+            }
+        },
+        [updateAssigneeDiscipline, updateAssigneeUser]
+    );
+
     useEffect(() => {
         // Initialize Select2
         const $select = $(`.native-select`);
         $select.select2({
             placeholder: "Select..."
         });
+
+        $select.on('change', function (e) {
+            const id = $(this).attr('id');
+            const value = $(this).val();
+            const [_, row, col] = id.split('-');
+            handleSelectChange({ target: { value } }, parseInt(row), parseInt(col));
+        });
+
         // Cleanup on unmount
         return () => {
             $select.select2('destroy');
         };
-    }, []);
+    }, [initialData, handleSelectChange]);
+
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -180,14 +223,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
                 newContents[`${row}-${newColIndex}`] = "";
             }
 
-            // const user_trackers = document.querySelectorAll(".assignee-label")
-            // const user_tracker_visible = document.querySelector(".user-tracker-visible").innerHTML;
-
-            // if (user_tracker_visible == "visible") {
-            //     user_trackers.forEach(element => {
-            //         element.style.paddingLeft = parseInt(element.style.paddingLeft) + 18 + "pt"
-            //     });
-            // }
             return newContents;
         });
 
@@ -226,15 +261,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
             for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
                 delete newContents[`${row}-${lastColIndex}`];
             }
-
-            // const user_trackers = document.querySelectorAll(".assignee-label")
-            // const user_tracker_visible = document.querySelector(".user-tracker-visible").innerHTML;
-
-            // if (user_tracker_visible == "visible") {
-            //     user_trackers.forEach(element => {
-            //         element.style.paddingLeft = parseInt(element.style.paddingLeft) - 18 + "pt"
-            //     });
-            // }
             return newContents;
         });
     }, [headerDates.length, initialData, setCellContents]);
@@ -342,27 +368,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
         [initialData]
     );
 
-    const updateAssigneeDiscipline = useCallback(
-        (row, value) => {
-            const newInitialData = [...getUpdatedData()];
-            const phaseIndex = findPhaseIndex(row);
-            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-            newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
-            setInitialData(newInitialData);
-        },
-        [initialData]
-    );
-
-    const updateAssigneeUser = useCallback(
-        (row, value) => {
-            const newInitialData = [...getUpdatedData()];
-            const phaseIndex = findPhaseIndex(row);
-            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-            newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
-            setInitialData(newInitialData);
-        },
-        [initialData]
-    );
 
     const findPhaseIndex = useCallback(
         (row) => {
@@ -395,17 +400,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
         return regexExp.test(id);
     }, []);
 
-    const handleSelectChange = useCallback(
-        (e, row, col) => {
-            const value = e.target.value;
-            if (col === 1) {
-                updateAssigneeDiscipline(row, value);
-            } else if (col === 2) {
-                updateAssigneeUser(row, value);
-            }
-        },
-        [updateAssigneeDiscipline, updateAssigneeUser]
-    );
 
     const getUpdatedData = useCallback(() => {
         const updatedData = initialData.map((phase) => ({
@@ -607,7 +601,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
                                 <select
                                     id={`select-${row}-${col}`}
                                     value={assignee.discipline}
-                                    onChange={(e) => handleChange(e, row, col)}
+                                    onChange={(e) => handleSelectChange(e, row, col)}
                                     className="native-select border border-gray-300 rounded-md p-1 box-border text-center bg-gray-100 select-none w-full focus:ring-red-500 focus:ring-[1.5px] focus:border-none"
                                 >
                                     {memoizedDisciplineData.map((option) => (
@@ -619,18 +613,25 @@ const Sheet = ({ employee_data, discipline_data }) => {
                             );
                         } else if (col === 2) {
                             content = (
-                                <select
-                                    id={`select-${row}-${col}`}
-                                    value={assignee.assignee}
-                                    onChange={(e) => handleChange(e, row, col)}
-                                    className="native-select border border-gray-300 rounded-md p-1 box-border text-center bg-gray-100 select-none w-full focus:ring-red-500 focus:ring-[1.5px] focus:border-none"
-                                >
-                                    {memoizedEmployeeData.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                <>
+                                    <select
+                                        id={`select-${row}-${col}`}
+                                        value={assignee.assignee}
+                                        onChange={(e) => handleSelectChange(e, row, col)}
+                                        className="native-select border border-gray-300 rounded-md p-1 box-border text-center bg-gray-100 select-none w-full focus:ring-red-500 focus:ring-[1.5px] focus:border-none"
+                                    >
+
+                                        {memoizedEmployeeData
+                                            .filter(option => option.discipline_id === parseInt(assignee.discipline))
+                                            .map(option => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))
+                                        }
+
+                                    </select>
+                                </>
                             );
                         } else if (col === 3) {
                             content = <div className="select-none font-semibold min-w-24">G5+</div>;
@@ -727,8 +728,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
         handleSelectChange,
         handleAddAssignee,
         cellRefs,
-        disciplines,
-        users,
         getColorForMonth,
     ]);
 

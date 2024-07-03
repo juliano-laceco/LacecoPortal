@@ -17,14 +17,15 @@ async function ProjectDeployment({ params }) {
   const disciplinesRes = await getDisciplines();
   const disciplines_data = disciplinesRes.data;
 
-
-  const filtered_employee_data = employeeData.map(({ employee_id, first_name, last_name }) => {
+  const filtered_employee_data = employeeData.map(({ employee_id, first_name, last_name, discipline_id , grade_name}) => {
     return {
       value: employee_id,
-      label: first_name + " " + last_name
+      label: first_name + " " + last_name,
+      discipline_id: discipline_id,
+      grade_name
     };
   });
-  
+
   return (
     <div>
       {project_id}
