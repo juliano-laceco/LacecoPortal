@@ -1,28 +1,60 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import useSheet from "./useSheet";
 import Image from "next/image";
-import 'select2/dist/css/select2.min.css';
-import 'select2';
-import $ from "jquery"
-
-import NativeSelectComponent from "../custom/Dropdowns/NativeSelectComponent";
 
 
-const generateHeaderDates = (numWeeks) => {
+const generateHeaderDates = (start_month_year = null, end_month_year = null) => {
     const dates = [];
-    const today = new Date();
-    for (let i = 0; i < numWeeks; i++) {
-        const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + i * 7);
-        const formattedDate = nextWeek.toLocaleDateString("en-GB", {
+
+    const parseMonthYear = (monthYear) => {
+        const [month, year] = monthYear.split(' ');
+        return new Date(Date.parse(`${month} 1, ${year}`));
+    };
+
+    let startDate, endDate;
+
+    if (start_month_year && end_month_year) {
+        startDate = parseMonthYear(start_month_year);
+        endDate = parseMonthYear(end_month_year);
+
+        // Ensure endDate is the last day of the end month
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0);
+    } else {
+        const today = new Date();
+
+        // Calculate start date as the first day of the previous month
+        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+
+        console.log("Start Date Fallback", startDate)
+
+        // Calculate end date as the last day of the month three months after the current month
+        endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+
+        console.log("End Date Fallback", endDate)
+    }
+
+    let currentDate = new Date(startDate);
+
+    // Ensure currentDate is the first Monday within the range
+    while (currentDate.getDay() !== 1) {
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    while (currentDate <= endDate) {
+        const formattedDate = currentDate.toLocaleDateString("en-GB", {
             day: "2-digit",
             month: "long",
             year: "numeric",
         });
         dates.push(formattedDate);
+
+        // Move to the next Monday
+        currentDate.setDate(currentDate.getDate() + 7);
     }
+
     return dates;
 };
 
@@ -38,11 +70,11 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
                 discipline: `1`,
                 assignee: ``, // Cycle through 10 users
                 projected_work_weeks: {
-                    "04 July 2024": counter++,
-                    "11 July 2024": counter++,
-                    "18 July 2024": counter++,
-                    "25 July 2024": counter++,
-                    "01 August 2024": counter++
+                    "05 July 2024": counter++,
+                    "12 July 2024": counter++,
+                    "19 July 2024": counter++,
+                    "26 July 2024": counter++,
+                    "02 August 2024": counter++
                 },
             });
         }
@@ -54,8 +86,6 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
     }
     return phases;
 };
-
-
 
 const initializeCellContents = (initialData, headerDates) => {
     const cellContents = {};
@@ -76,19 +106,17 @@ const calculateTotalAssignees = (data) => {
     return data.reduce((total, phase) => total + phase.assignees.length, 0);
 };
 
-const Sheet = ({ employee_data, discipline_data }) => {
-
+const Sheet = ({ employee_data, discipline_data, start_date, end_date }) => {
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
-    const initialWeeks = 30;
-    const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
+    const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 10));
-    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData))
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 40));
+    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData));
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
-    const [initialHeaderDates, setInitialHeaderDates] = useState([])
+    const [initialHeaderDates, setInitialHeaderDates] = useState([]);
 
     const {
         cellRefs,
@@ -114,11 +142,11 @@ const Sheet = ({ employee_data, discipline_data }) => {
         const newCellContents = initializeCellContents(initialData, headerDates);
         setCellContents(newCellContents);
         setHistory([newCellContents]);
-    }, [initialData, headerDates]);
+    }, [initialData, headerDates, setCellContents, setHistory]);
 
     useEffect(() => {
-        setInitialHeaderDates(headerDates)
-    }, []);
+        setInitialHeaderDates(headerDates);
+    }, [headerDates]);
 
     useEffect(() => {
         const selectElements = document.querySelectorAll('select');
@@ -128,8 +156,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
             const event = new Event('change', { bubbles: true });
             select.dispatchEvent(event);
         });
-    }, []); // Empty dependency array to run only once
-
+    }, []);
 
     const updateAssigneeDiscipline = useCallback(
         (row, value) => {
@@ -142,9 +169,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
             document.querySelector(`#select-${row}-2`).value = "Select...";
             const event = new Event('change', { bubbles: true });
             document.querySelector(`#select-${row}-2`).dispatchEvent(event);
-
-        },
-        [initialData]
+        }
     );
 
     const updateAssigneeUser = useCallback(
@@ -154,11 +179,10 @@ const Sheet = ({ employee_data, discipline_data }) => {
             const assigneeIndex = findAssigneeIndex(row, phaseIndex);
             newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
             setInitialData(newInitialData);
-        },
-        [initialData]
+        }
     );
-    const getGradeName = (employeeId) => {
 
+    const getGradeName = (employeeId) => {
         const employee = employee_data.find(emp => emp.value == employeeId);
         return employee ? employee.grade_code : "N/A";
     };
@@ -180,51 +204,28 @@ const Sheet = ({ employee_data, discipline_data }) => {
         [updateAssigneeDiscipline, updateAssigneeUser]
     );
 
-    // useEffect(() => {
-    //     // Initialize Select2
-    //     const $select = $(`.native-select`);
-    //     $select.select2({
-    //         placeholder: "Select..."
-    //     });
-
-    //     $select.on('change', function (e) {
-    //         const id = $(this).attr('id');
-    //         const value = $(this).val();
-    //         const [_, row, col] = id.split('-');
-    //         handleSelectChange({ target: { value } }, parseInt(row), parseInt(col));
-    //     });
-
-    //     // Cleanup on unmount
-    //     return () => {
-    //         $select.select2('destroy');
-    //     };
-    // }, [initialData, handleSelectChange]);
-
-
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-
                     // Check horizontal visibility
-                    const isVisibleHorizontally = entry.isIntersecting && entry.intersectionRatio === 1
+                    const isVisibleHorizontally = entry.isIntersecting && entry.intersectionRatio === 1;
 
                     document.querySelectorAll(".assignee-label").forEach(assignee_label_div => {
                         if (!isVisibleHorizontally) {
                             assignee_label_div.classList.remove('hidden');
-                            document.querySelector(".user-tracker-visible").innerHTML = "visible"
+                            document.querySelector(".user-tracker-visible").innerHTML = "visible";
                         } else {
                             assignee_label_div.classList.add('hidden');
-                            document.querySelector(".user-tracker-visible").innerHTML = "hidden"
+                            document.querySelector(".user-tracker-visible").innerHTML = "hidden";
                         }
                     });
 
                     if (!isVisibleHorizontally) {
-                        document.querySelector(".arrow-left")?.classList.remove("hidden")
+                        document.querySelector(".arrow-left")?.classList.remove("hidden");
                     } else {
-                        document.querySelector(".arrow-left")?.classList.add("hidden")
+                        document.querySelector(".arrow-left")?.classList.add("hidden");
                     }
-
                 });
             },
             {
@@ -242,7 +243,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
                 observer.unobserve(element);
             });
         };
-    }, [initial_assignee_count]); // Empty dependency array ensures this effect runs only once
+    }, [initial_assignee_count]);
 
     const addNewWeek = useCallback(() => {
         setHeaderDates((prevDates) => {
@@ -262,9 +263,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
         });
 
         setHeaderDatesUpdated(true); // Set the flag to true
-
     }, [headerDates.length, initialData, setCellContents]);
-
 
     useEffect(() => {
         if (headerDatesUpdated) {
@@ -277,7 +276,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
             });
             setHeaderDatesUpdated(false); // Reset the flag
         }
-
     }, [headerDatesUpdated]);
 
     const navigateRight = () => {
@@ -288,8 +286,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
             left: 0,
             behavior: "smooth"
         });
-    }
-
+    };
 
     const removeLastWeek = useCallback(() => {
         setHeaderDates((prevDates) => {
@@ -344,7 +341,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
         });
 
         return phaseBudgetHours;
-    }, [cellContents, initialData, getBudgetHoursCells]);
+    }, [initialData, getBudgetHoursCells]);
 
     const handleAddAssignee = useCallback(
         (phaseIndex) => {
@@ -392,9 +389,8 @@ const Sheet = ({ employee_data, discipline_data }) => {
                 }
             }, 0);
         },
-        [headerDates, cellContents, setCellContents, setHistory, numCols, setInitialData]
+        [headerDates, numCols, setCellContents, cellContents, setHistory]
     );
-
 
     const deleteAssignee = useCallback(
         (row) => {
@@ -421,7 +417,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
         },
         [initialData]
     );
-
 
     const findPhaseIndex = useCallback(
         (row) => {
@@ -453,7 +448,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
         const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
         return regexExp.test(id);
     }, []);
-
 
     const getUpdatedData = useCallback(() => {
         const updatedData = initialData.map((phase) => ({
@@ -543,7 +537,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
         }
 
         console.log("Updated Data:", updatedData);
-
     }, [getUpdatedData, deletedPhaseAssignees]);
 
     const colors = useMemo(
@@ -563,8 +556,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
         ],
         []
     );
-
-
 
     const getColorForMonth = useCallback(
         (date) => {
@@ -616,7 +607,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
             }),
         ];
         rows.push(
-            <div key="header" className="flex select-none rounded-lg  sticky top-0 z-50 w-fit">
+            <div key="header" className="flex select-none rounded-lg sticky top-0 z-30 w-fit">
                 {headerCols}
             </div>
         );
@@ -638,8 +629,9 @@ const Sheet = ({ employee_data, discipline_data }) => {
             if (phase?.assignees) {
                 phase.assignees.forEach((assignee, assigneeIndex) => {
 
-                    const assignee_grade = getGradeName(assignee.assignee)
-                    const assignee_name = getEmployeeName(assignee.assignee)
+                    const assignee_grade = getGradeName(assignee.assignee);
+                    const assignee_name = getEmployeeName(assignee.assignee);
+
 
                     const row = rowCounter;
                     rowCounter += 1;
@@ -722,7 +714,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
                                 ref={(el) => {
                                     cellRefs.current[row][col] = el;
                                 }}
-                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : "min-w-12 max-w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
+                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : "min-w-12 max-w-12 cursor-cell focus:cursor-auto"} justify-center items-center p-1 box-border text-center z-0 select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
                                 onMouseDown={col > 4 ? () => handleMouseDown(row, col) : undefined}
                                 onMouseEnter={col > 4 ? () => handleMouseEnter(row, col) : undefined}
@@ -791,12 +783,16 @@ const Sheet = ({ employee_data, discipline_data }) => {
         handleAddAssignee,
         cellRefs,
         getColorForMonth,
+        memoizedDisciplineData,
+        memoizedEmployeeData,
+        getGradeName,
+        getEmployeeName,
     ]);
 
     return (
         <>
             <div className="flex items-start gap-3 max-w-full w-fit">
-                <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white" tabIndex={0}>
+                <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
                     <div className="arrow-left sticky top-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer hidden">
                         <div className="relative flex justify-center items-center">
                             <div className="absolute w-12 h-12 rounded-full bg-lightRed animate-pulseRing"></div>
@@ -810,7 +806,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
                     {renderGrid()}
                 </div>
 
-
                 <div className="space-y-1">
                     <button
                         key="add-week-button"
@@ -821,7 +816,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
                     </button>
                     <button
                         key="remove-week-button"
-                        className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-red-500 font-bold "
+                        className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-red-500 font-bold"
                         onClick={removeLastWeek}
                     >
                         -

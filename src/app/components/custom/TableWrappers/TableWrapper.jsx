@@ -16,7 +16,7 @@ import TableFilter from '@/app/components/custom/Table/TableFilter';
 import TableBody from '@/app/components/custom/Table/TableBody';
 import TablePagination from '@/app/components/custom/Table/TablePagination';
 
-function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterable, minPageSize, maxPageSize, pageSizeStep , title , subTitle }) {
+function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterable, minPageSize, maxPageSize, pageSizeStep, title, subTitle }) {
 
   const router = useRouter();
   const pathname = usePathname();
@@ -60,6 +60,7 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
 
     router.push(`${pathname}?${params.toString()}`);
     router.refresh();
+    
   };
 
   const clearFunction = () => {

@@ -5,9 +5,21 @@ import { getProjectData } from '@/utilities/project/project-utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
+import DateRangePicker from '../../../../../components/custom/Pickers/DateRangePicker'
 
-async function ProjectDeployment({ params }) {
+
+async function ProjectDeployment({ params, searchParams }) {
   const project_id = params.project_id;
+  const searchParameters = searchParams
+  let { start, end } = searchParameters;
+
+  const formatDateMonth = (date) => {
+    return new Date(date).toLocaleDateString("en-GB", {
+      month: "long",
+      year: "numeric",
+    });
+  };
+
 
   // Fetching Project Data
   let project_response = await getProjectData(project_id);
@@ -27,14 +39,13 @@ async function ProjectDeployment({ params }) {
     );
   }
 
-
   const employeeRes = await getAllEmployees();
   const employeeData = employeeRes.data;
 
   const disciplinesRes = await getDisciplines();
   const disciplines_data = disciplinesRes.data;
 
-  const { title, code, first_name, last_name, position_name } = project_data
+  const { title, code, first_name, last_name, position_name } = project_data;
 
   const filtered_employee_data = employeeData.map(({ employee_id, first_name, last_name, discipline_id, grade_code }) => {
     return {
@@ -45,6 +56,8 @@ async function ProjectDeployment({ params }) {
     };
   });
 
+  const project_start_date = "03 July 2024"
+  const project_end_date = "03 September 2024"
 
   return (
     <div className="space-y-12">
@@ -94,9 +107,11 @@ async function ProjectDeployment({ params }) {
           </div>
         </div>
       </div>
+
       <div className="space-y-4">
         <h1 className="text-3xl font-semibold">Deployment Sheet</h1>
-        <Sheet employee_data={filtered_employee_data} discipline_data={disciplines_data} />
+        <DateRangePicker project_start_date={start != undefined ? start : project_start_date} project_end_date={end != undefined ? end : project_end_date} selectionMade={start != undefined && end != undefined} />
+        <Sheet employee_data={filtered_employee_data} discipline_data={disciplines_data} start_date={start} end_date={end} />
       </div>
     </div>
   );
