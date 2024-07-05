@@ -283,7 +283,10 @@ export async function getProjectData(project_id) {
     try {
         // Query to get the project data with formatted dates, handling NULLs
         const projectRows = await execute(`
-            SELECT 
+            SELECT
+                first_name,
+                last_name,
+                position_name,
                 project_id, 
                 title, 
                 code, 
@@ -303,12 +306,12 @@ export async function getProjectData(project_id) {
                 CASE WHEN start_date IS NULL THEN NULL ELSE DATE_FORMAT(start_date, '%Y-%m-%d') END AS start_date,
                 CASE WHEN end_date IS NULL THEN NULL ELSE DATE_FORMAT(end_date, '%Y-%m-%d') END AS end_date,
                 variance, 
-                employee_id, 
+                p.employee_id, 
                 project_status, 
-                DATE_FORMAT(created_on, '%Y-%m-%d %H:%i:%s') AS created_on,
-                created_by,
+                DATE_FORMAT(p.created_on, '%Y-%m-%d %H:%i:%s') AS created_on,
+                p.created_by,
                 isBaselined
-            FROM project 
+            FROM project p JOIN employee e on p.employee_id = e.employee_id JOIN position pos on e.position_id = pos.position_id
             WHERE project_id = ?
         `, [project_id]);
 

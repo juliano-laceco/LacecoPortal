@@ -46,6 +46,24 @@ module.exports = {
         "inactive": "#e84a40",
         "on-hold": "#ff9f00",
         "highly-probable": "#f0cc44",
+        "lightRed": '#e84a40',
+        "lightRed1": '#f28478', // Lighter shade
+        "lightRed2": '#faa49c', // Even lighter shade
+      },
+      keyframes: {
+        pulseRing: {
+          '0%, 100%': {
+            transform: 'scale(0.9)',
+            opacity: '1',
+          },
+          '50%': {
+            transform: 'scale(1.1)',
+            opacity: '0.7',
+          },
+        },
+      },
+      animation: {
+        pulseRing: 'pulseRing 1.5s infinite',
       },
       screens: {
         mob: { min: '320px', max: '730px' },  // Mobile devices

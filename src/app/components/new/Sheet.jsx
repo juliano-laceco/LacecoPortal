@@ -38,9 +38,9 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
                 discipline: `1`,
                 assignee: ``, // Cycle through 10 users
                 projected_work_weeks: {
-                    "03 July 2024": counter++,
-                    "10 July 2024": counter++,
-                    "17 July 2024": counter++,
+                    "04 July 2024": counter++,
+                    "11 July 2024": counter++,
+                    "18 July 2024": counter++,
                     "25 July 2024": counter++,
                     "01 August 2024": counter++
                 },
@@ -72,16 +72,20 @@ const initializeCellContents = (initialData, headerDates) => {
     return cellContents;
 };
 
+const calculateTotalAssignees = (data) => {
+    return data.reduce((total, phase) => total + phase.assignees.length, 0);
+};
+
 const Sheet = ({ employee_data, discipline_data }) => {
 
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
-
-    const initialWeeks = 70;
+    const initialWeeks = 30;
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(initialWeeks));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 70));
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 10));
+    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData))
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
     const [initialHeaderDates, setInitialHeaderDates] = useState([])
@@ -116,6 +120,15 @@ const Sheet = ({ employee_data, discipline_data }) => {
         setInitialHeaderDates(headerDates)
     }, []);
 
+    useEffect(() => {
+        const selectElements = document.querySelectorAll('select');
+
+        selectElements.forEach(select => {
+            // Create and dispatch a change event
+            const event = new Event('change', { bubbles: true });
+            select.dispatchEvent(event);
+        });
+    }, []); // Empty dependency array to run only once
 
 
     const updateAssigneeDiscipline = useCallback(
@@ -125,6 +138,11 @@ const Sheet = ({ employee_data, discipline_data }) => {
             const assigneeIndex = findAssigneeIndex(row, phaseIndex);
             newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
             setInitialData(newInitialData);
+
+            document.querySelector(`#select-${row}-2`).value = "Select...";
+            const event = new Event('change', { bubbles: true });
+            document.querySelector(`#select-${row}-2`).dispatchEvent(event);
+
         },
         [initialData]
     );
@@ -139,6 +157,16 @@ const Sheet = ({ employee_data, discipline_data }) => {
         },
         [initialData]
     );
+    const getGradeName = (employeeId) => {
+
+        const employee = employee_data.find(emp => emp.value == employeeId);
+        return employee ? employee.grade_code : "N/A";
+    };
+
+    const getEmployeeName = (employeeId) => {
+        const employee = employee_data.find(emp => emp.value == employeeId);
+        return employee ? employee.label : "N/A";
+    };
 
     const handleSelectChange = useCallback(
         (e, row, col) => {
@@ -190,6 +218,13 @@ const Sheet = ({ employee_data, discipline_data }) => {
                             document.querySelector(".user-tracker-visible").innerHTML = "hidden"
                         }
                     });
+
+                    if (!isVisibleHorizontally) {
+                        document.querySelector(".arrow-left")?.classList.remove("hidden")
+                    } else {
+                        document.querySelector(".arrow-left")?.classList.add("hidden")
+                    }
+
                 });
             },
             {
@@ -207,7 +242,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
                 observer.unobserve(element);
             });
         };
-    }, []); // Empty dependency array ensures this effect runs only once
+    }, [initial_assignee_count]); // Empty dependency array ensures this effect runs only once
 
     const addNewWeek = useCallback(() => {
         setHeaderDates((prevDates) => {
@@ -244,6 +279,16 @@ const Sheet = ({ employee_data, discipline_data }) => {
         }
 
     }, [headerDatesUpdated]);
+
+    const navigateRight = () => {
+        const el = document.querySelector(".sheet-container");
+
+        // Scroll to the beginning
+        el.scrollTo({
+            left: 0,
+            behavior: "smooth"
+        });
+    }
 
 
     const removeLastWeek = useCallback(() => {
@@ -323,7 +368,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
 
             setInitialData(updatedData);
 
-            // Add new assignee's cell contents to cellContents
             const newRowIndex =
                 updatedData.reduce((acc, phase, idx) => {
                     return idx < phaseIndex ? acc + phase.assignees.length : acc;
@@ -338,9 +382,19 @@ const Sheet = ({ employee_data, discipline_data }) => {
             });
 
             setHistory([cellContents]);
+
+            // Trigger change event on the newly added select element
+            setTimeout(() => {
+                const selectElement = document.getElementById(`select-${newRowIndex}-1`);
+                if (selectElement) {
+                    const event = new Event('change', { bubbles: true });
+                    selectElement.dispatchEvent(event);
+                }
+            }, 0);
         },
-        [headerDates, cellContents, setCellContents, setHistory, numCols]
+        [headerDates, cellContents, setCellContents, setHistory, numCols, setInitialData]
     );
+
 
     const deleteAssignee = useCallback(
         (row) => {
@@ -494,21 +548,23 @@ const Sheet = ({ employee_data, discipline_data }) => {
 
     const colors = useMemo(
         () => [
-            "#86cead",
-            "#80c6f7",
-            "#ffe6a1",
-            "#a6ecec",
-            "#d1b3ff",
-            "#ffce99",
-            "#e5c7eb",
-            "#f29b9b",
-            "#99e699",
-            "#d1a3ff",
-            "#b3ffff",
-            "#fff3b3"
+            "#ff9999", // first 4 months - medium red
+            "#ff9999",
+            "#ff9999",
+            "#ff9999",
+            "#ffff99", // next 4 months - medium yellow
+            "#ffff99",
+            "#ffff99",
+            "#ffff99",
+            "#ffcc99", // last 4 months - light orange
+            "#ffcc99",
+            "#ffcc99",
+            "#ffcc99"
         ],
         []
     );
+
+
 
     const getColorForMonth = useCallback(
         (date) => {
@@ -530,23 +586,23 @@ const Sheet = ({ employee_data, discipline_data }) => {
             >
                 Action
             </div>,
-            <div key="discipline-header" className="discipline-header border border-gray-300 p-1 flex justify-center items-center bg-gray-200 font-semibold min-w-[160pt] max-w-[160pt]">
+            <div key="discipline-header" className="discipline-header border border-gray-300 p-1 flex justify-center items-center bg-gray-200 text-gray-600 font-semibold min-w-[160pt] max-w-[160pt]">
                 Discipline
             </div>,
-            <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-[160pt] max-w-[160pt]">
+            <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 text-gray-600 font-semibold min-w-[160pt] max-w-[160pt]">
                 User
             </div>,
-            <div key="grade-header" className="grade-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 font-semibold min-w-24 max-w-24">
+            <div key="grade-header" className="grade-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 text-gray-600 font-semibold min-w-24 max-w-24">
                 Grade
             </div>,
-            <div key="bh-header" className="bh-header border border-gray-300 p-1  flex justify-center items-center text-center bg-gray-200 font-semibold min-w-24 max-w-24">
+            <div key="bh-header" className="bh-header border border-gray-300 p-1  flex justify-center items-center text-center bg-gray-200 text-gray-600 font-semibold min-w-24 max-w-24">
                 Budget Hours
             </div>,
             ...headerDates.map((date, index) => {
                 const color = getColorForMonth(date)
                 return <div
                     key={`header-${index}`}
-                    className={"border border-gray-300 min-w-12 max-w-12 flex justify-center items-center px-1 py-4  font-semibold"}
+                    className={"border border-gray-300 min-w-12 max-w-12 flex justify-center items-center px-1 py-4 text-gray-600 font-semibold"}
                     style={{
                         writingMode: "vertical-rl",
                         transform: "rotate(180deg)",
@@ -560,7 +616,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
             }),
         ];
         rows.push(
-            <div key="header" className="flex select-none rounded-lg  sticky top-0 z-50">
+            <div key="header" className="flex select-none rounded-lg  sticky top-0 z-50 w-fit">
                 {headerCols}
             </div>
         );
@@ -581,6 +637,10 @@ const Sheet = ({ employee_data, discipline_data }) => {
 
             if (phase?.assignees) {
                 phase.assignees.forEach((assignee, assigneeIndex) => {
+
+                    const assignee_grade = getGradeName(assignee.assignee)
+                    const assignee_name = getEmployeeName(assignee.assignee)
+
                     const row = rowCounter;
                     rowCounter += 1;
                     const cols = [];
@@ -600,10 +660,12 @@ const Sheet = ({ employee_data, discipline_data }) => {
                             content = (
                                 <select
                                     id={`select-${row}-${col}`}
-                                    value={assignee.discipline}
+                                    value={assignee.discipline || 1}
                                     onChange={(e) => handleSelectChange(e, row, col)}
-                                    className="native-select border border-gray-300 rounded-md p-1 box-border text-center bg-gray-100 select-none w-full focus:ring-red-500 focus:ring-[1.5px] focus:border-none"
+                                    className="native-select border border-gray-300 rounded-md px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer select-none w-full  focus:border-none"
                                 >
+
+                                    <option key={crypto.randomUUID()} value="Select..." >Select...</option>
                                     {memoizedDisciplineData.map((option) => (
                                         <option key={option.value} value={option.value}>
                                             {option.label}
@@ -618,9 +680,10 @@ const Sheet = ({ employee_data, discipline_data }) => {
                                         id={`select-${row}-${col}`}
                                         value={assignee.assignee}
                                         onChange={(e) => handleSelectChange(e, row, col)}
-                                        className="native-select border border-gray-300 rounded-md p-1 box-border text-center bg-gray-100 select-none w-full focus:ring-red-500 focus:ring-[1.5px] focus:border-none"
+                                        className="native-select border border-gray-300 rounded-md px-3 py-1 box-border text-center text-ellipsis cursor-pointer select-none w-full focus:ring-gray-500 focus:ring-[1.5px] focus:border-none"
                                     >
 
+                                        <option key={crypto.randomUUID()} value="Select..." >Select...</option>
                                         {memoizedEmployeeData
                                             .filter(option => option.discipline_id === parseInt(assignee.discipline))
                                             .map(option => (
@@ -634,7 +697,7 @@ const Sheet = ({ employee_data, discipline_data }) => {
                                 </>
                             );
                         } else if (col === 3) {
-                            content = <div className="select-none font-semibold min-w-24">G5+</div>;
+                            content = <div className="select-none font-semibold min-w-24">{assignee_grade}</div>;
                         } else if (col === 4) {
                             content = (
                                 <>
@@ -684,8 +747,8 @@ const Sheet = ({ employee_data, discipline_data }) => {
 
                     rows.push(
                         <>
-                            <div className="assignee-label hidden  w-full text-center bg-gray-300 text-gray-600 p-1  mt-3 sticky left-0" >
-                                {assignee.assignee} - G5+ - {getBudgetHoursCells(row)} hrs
+                            <div className="assignee-label hidden select-none w-full text-center bg-gray-300 text-gray-600 p-1 mt-3 sticky left-0" >
+                                {assignee.assignee == "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
                             </div>
                             <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`} >
                                 {cols}
@@ -700,7 +763,6 @@ const Sheet = ({ employee_data, discipline_data }) => {
                     key={`add-assignee-${phaseIndex}`}
                     className={`p-2 text-white flex-1 sticky left-0 text-lg text-center w-full cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
                     onClick={() => handleAddAssignee(phaseIndex)}
-
                 >
                     + Add New
                 </div>
@@ -733,10 +795,22 @@ const Sheet = ({ employee_data, discipline_data }) => {
 
     return (
         <>
-            <div className="flex items-start gap-3 w-full">
-                <div className="sheet-container flex-1 outline-none border border-gray-300 rounded-lg user-select-none h-[750px] relative overflow-scroll" tabIndex={0}>
+            <div className="flex items-start gap-3 max-w-full w-fit">
+                <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white" tabIndex={0}>
+                    <div className="arrow-left sticky top-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer hidden">
+                        <div className="relative flex justify-center items-center">
+                            <div className="absolute w-12 h-12 rounded-full bg-lightRed animate-pulseRing"></div>
+                            <div className="absolute w-16 h-16 rounded-full bg-red-400 animate-pulseRing"></div>
+                            <div className="absolute w-20 h-20 rounded-full animate-pulseRing"></div>
+                            <div className="relative z-10 flex justify-center items-center bg-transparent rounded-full p-2">
+                                <Image src="/resources/icons/arrow.png" height="20" width="20" className="select-none" alt="arrow" onClick={navigateRight} />
+                            </div>
+                        </div>
+                    </div>
                     {renderGrid()}
                 </div>
+
+
                 <div className="space-y-1">
                     <button
                         key="add-week-button"
