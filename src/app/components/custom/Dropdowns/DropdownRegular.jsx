@@ -16,7 +16,7 @@ function DropdownRegular({
     const colors = theme.extend.colors;
 
     return (
-        <div className="flex flex-col items-center justify-center gap-[3px] w-full">
+        <div className="flex flex-col items-start justify-start gap-[3px] w-full">
             {!!label && (
                 <label className="mob:text-base tablet:text-base lap:text-base desk:text-base pr-3">
                     {label}
@@ -34,7 +34,7 @@ function DropdownRegular({
                     isSearchable={isSearchable}
                     isDisabled={isDisabled}
                     isLoading={isLoading}
-                    classNames="px-3 py-2 rounded-md z-50"
+                    classNames="px-2 py-2 rounded-md z-50"
                     styles={{
                         control: (provided, state) => ({
                             ...provided,

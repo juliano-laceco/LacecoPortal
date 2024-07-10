@@ -1,16 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import useSheet from "./useSheet";
 import Image from "next/image";
 import { add } from "date-fns";
 import { usePathname, useRouter } from "next/navigation";
+import DateRangePicker from "../custom/Pickers/DateRangePicker";
 
 const getThisMondayDate = () => {
     const today = new Date();
     const day = today.getDay();
     const diff = today.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is Sunday 
-    return new Date(today.setDate(diff));
+    const fullFormatMonday = new Date(today.setDate(diff));
+    const formattedMonday = fullFormatMonday.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+    });
+    const monday = new Date(formattedMonday)
+    return monday
 };
 
 const generateHeaderDates = (start_month_year = null, end_month_year = null) => {
@@ -30,18 +38,15 @@ const generateHeaderDates = (start_month_year = null, end_month_year = null) => 
         // Ensure endDate is the last day of the end month
         endDate.setMonth(endDate.getMonth() + 1);
         endDate.setDate(0);
+
     } else {
         const today = new Date();
 
         // Calculate start date as the first day of the previous month
         startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
 
-        console.log("Start Date Fallback", startDate)
-
         // Calculate end date as the last day of the month three months after the current month
         endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
-
-        console.log("End Date Fallback", endDate)
     }
 
     let currentDate = new Date(startDate);
@@ -65,6 +70,7 @@ const generateHeaderDates = (start_month_year = null, end_month_year = null) => 
 
     return dates;
 };
+
 const getMonthNameFromDate = (date) => {
     let initialDate = new Date(date);
     return initialDate.toLocaleDateString("en-GB", {
@@ -132,7 +138,11 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
     const [initialHeaderDates, setInitialHeaderDates] = useState([]);
     const currentMonday = getThisMondayDate()
+
+    //alert("Current Monday" + currentMonday)
+
     const uneditableCellCount = headerDates.filter((headerDate) => new Date(headerDate) < currentMonday).length
+    console.log(headerDates.filter((headerDate) => new Date(headerDate) < currentMonday))
 
     const router = useRouter();
     const pathname = usePathname();
@@ -285,38 +295,41 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         };
     }, [initial_assignee_count]);
 
-    const addNewWeek = useCallback(() => {
-        let newEndDate;
-
-        console.log(currentEndDate);
-        setCurrentEndDate(newEndDate);
+    const addNewMonth = useCallback(() => {
         setHeaderDates((prevDates) => {
-            newEndDate = add(new Date(currentEndDate), { months: 1 }).toLocaleDateString("en-GB", {
+            const newEndDate = add(new Date(currentEndDate), { months: 1 }).toLocaleDateString("en-GB", {
                 month: "long",
                 year: "numeric"
             });
-            console.log("New End Date", newEndDate)
+            console.log("New End Date", newEndDate);
+
+            // Generate new header dates
             const newDates = generateHeaderDates(start_date, newEndDate);
             console.log("New Dates Array", newDates);
+
+            // Update the end date
+            setCurrentEndDate(newEndDate);
+
+            //   Update cell contents based on the new dates
+            // setCellContents((prevContents) => {
+            // const newContents = { ...prevContents };
+            // const newColIndex = newDates.length + 5; // New column index based on the new header length
+            // 
+            // for (let row = 0; row < initialData.reduce((acc, phase) => acc + (phase.assignees?.length || 0), 0); row++) {
+            // newContents[`${row}-${newColIndex}`] = prevContents[`${row}-${newColIndex}`] || "";
+            // }
+            // 
+            // return newContents;
+            // });
+
+            const newInitialData = [...getUpdatedData()];
+            setInitialData(newInitialData)
+
             return newDates;
         });
 
-
-        setCellContents((prevContents) => {
-            const newContents = { ...prevContents };
-            const newColIndex = headerDates.length + 5; // New column index
-
-            for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
-                newContents[`${row}-${newColIndex}`] = "";
-            }
-
-            return newContents;
-        });
-
         setHeaderDatesUpdated(true); // Set the flag to true
-
-    }, [headerDates.length, initialData, setCellContents]);
-
+    }, [currentEndDate, initialData, setCellContents, start_date]);
 
     const navigateRight = () => {
         const el = document.querySelector(".sheet-container");
@@ -834,41 +847,45 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     return (
         <>
-            <div className="flex items-start gap-3 max-w-full w-fit">
-                <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
-                    {renderGrid()}
-                    <div className="arrow-left sticky bottom-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer hidden">
-                        <div className="relative flex justify-center items-center">
-                            <div className="absolute w-12 h-12 rounded-full bg-lightRed animate-pulseRing"></div>
-                            <div className="absolute w-16 h-16 rounded-full bg-red-400 animate-pulseRing"></div>
-                            <div className="absolute w-20 h-20 rounded-full animate-pulseRing"></div>
-                            <div className="relative z-10 flex justify-center items-center bg-transparent rounded-full p-2">
-                                <Image src="/resources/icons/arrow.png" height="20" width="20" className="select-none" alt="arrow" onClick={navigateRight} />
+            <div className="flex items-start max-w-full w-fit">
+                <div className="space-y-5">
+                    <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} />
+                    <div className="flex gap-2">
+                        <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
+                            {renderGrid()}
+                            <div className="arrow-left sticky bottom-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer hidden">
+                                <div className="relative flex justify-center items-center">
+                                    <div className="absolute w-12 h-12 rounded-full bg-lightRed animate-pulseRing"></div>
+                                    <div className="absolute w-16 h-16 rounded-full bg-red-400 animate-pulseRing"></div>
+                                    <div className="absolute w-20 h-20 rounded-full animate-pulseRing"></div>
+                                    <div className="relative z-10 flex justify-center items-center bg-transparent rounded-full p-2">
+                                        <Image src="/resources/icons/arrow.png" height="20" width="20" className="select-none" alt="arrow" onClick={navigateRight} />
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
+                        {getMonthNameFromDate(end_date) == getMonthNameFromDate(project_end_date) &&
+                            <div className="space-y-1">
+                                <button
+                                    key="add-week-button"
+                                    className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-green-500 font-bold"
+                                    onClick={addNewMonth}
+                                >
+                                    +
+                                </button>
+                                <button
+                                    key="remove-week-button"
+                                    className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-red-500 font-bold"
+                                    onClick={removeLastWeek}
+                                >
+                                    -
+                                </button>
+                            </div>
+                        }
                     </div>
                 </div>
-
-                {getMonthNameFromDate(end_date) == getMonthNameFromDate(project_end_date) &&
-
-                    <div className="space-y-1">
-                        <button
-                            key="add-week-button"
-                            className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-green-500 font-bold"
-                            onClick={addNewWeek}
-                        >
-                            +
-                        </button>
-                        <button
-                            key="remove-week-button"
-                            className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-red-500 font-bold"
-                            onClick={removeLastWeek}
-                        >
-                            -
-                        </button>
-                    </div>
-                }
-            </div >
+            </div>
 
             <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
                 Save

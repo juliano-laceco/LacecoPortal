@@ -103,9 +103,7 @@ async function ProjectDeployment({ params, searchParams }) {
 
       <div className="space-y-4">
         <h1 className="text-3xl font-semibold">Deployment Sheet</h1>
-        <div className="date-range-months bg-white w-fit py-3 px-2 rounded-lg shadow-2xl">
-          <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start} end={end} />
-        </div>
+
         <Sheet employee_data={filtered_employee_data} discipline_data={disciplines_data} project_start_date={project_start_date} project_end_date={project_end_date} start_date={start ?? null} end_date={end ?? null} />
       </div>
     </div>

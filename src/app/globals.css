@@ -27,7 +27,7 @@ div:has(.react-select-dd__control):not(.panel) {
     width: 100% !important;
 }
 
-.date-range-months div:has(.react-select__control) {
+div:has(.react-select__control):not(.panel) {
     min-width: 180px !important;
 }
 

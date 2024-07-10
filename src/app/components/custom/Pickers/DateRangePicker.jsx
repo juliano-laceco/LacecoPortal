@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import DropdownRegular from '../Dropdowns/DropdownRegular';
+import Image from 'next/image';
 
 const DateRangePicker = ({ project_start_date, project_end_date, start, end }) => {
     const router = useRouter();
@@ -16,8 +17,9 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end }) =
         const newStartDate = selectedOption.value;
         const newEndDate = searchParams.get("end") || end;
 
-        if (new Date(newStartDate) > new Date(newEndDate)) {
+        if (new Date(newStartDate) > new Date(newEndDate) && !!newEndDate && newEndDate != "" && newEndDate != undefined) {
             setErrorMessage('Start date cannot be greater than end date.');
+            return; // Return early if the date is invalid
         } else {
             setErrorMessage('');
         }
@@ -42,6 +44,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end }) =
 
         if (new Date(newStartDate) > new Date(newEndDate)) {
             setErrorMessage('Start date cannot be greater than end date.');
+            return; // Return early if the date is invalid
         } else {
             setErrorMessage('');
         }
@@ -57,6 +60,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end }) =
         router.refresh();
     };
 
+
     const omitDayFromDate = (date) => {
         let initialDate = new Date(date);
         return initialDate.toLocaleDateString("en-GB", {
@@ -64,6 +68,11 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end }) =
             year: "numeric",
         });
     };
+
+    const clearDates = () => {
+        router.push(`${pathname}`);
+        router.refresh();
+    }
 
     const generateDateOptions = (start_date, end_date) => {
         const options = new Set();
@@ -81,7 +90,6 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end }) =
                 year: "numeric",
             });
             options.add(formattedDateMonth);
-
             currentDate.setMonth(currentDate.getMonth() + 1);
         }
 
@@ -92,8 +100,8 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end }) =
     const endDateOptions = filteredEndDateOptions.length > 0 ? filteredEndDateOptions : generateDateOptions(project_start_date, project_end_date);
 
     return (
-        <div className="space-y-4">
-            <div className="flex w-[400px] items-center">
+        <div className="w-fit py-4 rounded-lg flex flex-col items-center justify center gap-2 ">
+            <div className="flex w-[450px] items-end">
                 <DropdownRegular
                     label="From"
                     options={startDateOptions}
@@ -106,8 +114,9 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end }) =
                     value={end || null}
                     onChange={handleEndDateChange}
                 />
+                <Image title="Clear Dates" src="/resources/icons/clear-filter.svg" height="50" width="50" className="cursor-pointer hover:bg-[#E9EBEF] mob:hidden tablet:hidden transition-all duration-200 px-2 py-2 rounded-lg" onClick={clearDates} />
             </div>
-            {errorMessage && <div style={{ color: 'red' }}>{errorMessage}</div>}
+            {errorMessage && <div className="text-pric">{errorMessage}</div>}
         </div>
     );
 };
