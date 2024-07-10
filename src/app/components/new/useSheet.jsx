@@ -77,17 +77,8 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
   }, [historyIndex]);
 
 
-  const setEdited = () => {
-    const params = new URLSearchParams(searchParams);
-    if (!params.has("isEdited")) {
-      params.set("isEdited", "true");
-      router.push(`${pathname}?${params.toString()}`);
-    }
 
-  }
   const handleKeyDown = useCallback((e) => {
-
-    setEdited()
     if ((e.key === 'c' || e.key === 'x') && e.ctrlKey) {
       e.preventDefault();
       let prevRow = null;

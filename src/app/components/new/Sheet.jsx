@@ -127,6 +127,7 @@ const calculateTotalAssignees = (data) => {
 
 
 const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date }) => {
+
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
@@ -138,12 +139,11 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
     const [initialHeaderDates, setInitialHeaderDates] = useState([]);
     const currentMonday = getThisMondayDate()
+    const [edited, setEdited] = useState(false)
 
     //alert("Current Monday" + currentMonday)
 
     const uneditableCellCount = headerDates.filter((headerDate) => new Date(headerDate) < currentMonday).length
-    console.log(headerDates.filter((headerDate) => new Date(headerDate) < currentMonday))
-
     const router = useRouter();
     const pathname = usePathname();
 
@@ -176,6 +176,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         setCellContents(newCellContents);
         setHistory([newCellContents]);
     }, [initialData, headerDates, setCellContents, setHistory]);
+
 
     useEffect(() => {
         setInitialHeaderDates(headerDates);
@@ -296,32 +297,20 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     }, [initial_assignee_count]);
 
     const addNewMonth = useCallback(() => {
-        setHeaderDates((prevDates) => {
+        setHeaderDates(() => {
             const newEndDate = add(new Date(currentEndDate), { months: 1 }).toLocaleDateString("en-GB", {
                 month: "long",
                 year: "numeric"
             });
-            console.log("New End Date", newEndDate);
+
 
             // Generate new header dates
             const newDates = generateHeaderDates(start_date, newEndDate);
-            console.log("New Dates Array", newDates);
 
             // Update the end date
             setCurrentEndDate(newEndDate);
 
-            //   Update cell contents based on the new dates
-            // setCellContents((prevContents) => {
-            // const newContents = { ...prevContents };
-            // const newColIndex = newDates.length + 5; // New column index based on the new header length
-            // 
-            // for (let row = 0; row < initialData.reduce((acc, phase) => acc + (phase.assignees?.length || 0), 0); row++) {
-            // newContents[`${row}-${newColIndex}`] = prevContents[`${row}-${newColIndex}`] || "";
-            // }
-            // 
-            // return newContents;
-            // });
-
+            // Saving the current data to avoid losing it on rerender
             const newInitialData = [...getUpdatedData()];
             setInitialData(newInitialData)
 
@@ -329,6 +318,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         });
 
         setHeaderDatesUpdated(true); // Set the flag to true
+        !edited && setEdited(true)
+
     }, [currentEndDate, initialData, setCellContents, start_date]);
 
     const navigateRight = () => {
@@ -358,7 +349,11 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             }
             return newContents;
         });
+
+        !edited && setEdited(true)
+
     }, [headerDates.length, initialData, setCellContents]);
+
 
     const getBudgetHoursCells = useCallback(
         (row) => {
@@ -784,6 +779,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 onClick={col > 4 + uneditableCellCount ? () => handleClick(row, col) : undefined}
                                 onDoubleClick={col > 4 + uneditableCellCount ? () => handleDoubleClick(row, col) : undefined}
                                 onBlur={col > 4 + uneditableCellCount ? (e) => handleCellBlur(row, col, e) : undefined}
+                                onKeyUp={col > 4 + uneditableCellCount ? (e) => !edited && setEdited(true) : undefined}
                                 contentEditable={isContentEditable}
                                 suppressContentEditableWarning
                                 suppressHydrationWarning
@@ -847,9 +843,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     return (
         <>
+
             <div className="flex items-start max-w-full w-fit">
                 <div className="space-y-5">
-                    <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} />
+                    <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} />
                     <div className="flex gap-2">
                         <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
                             {renderGrid()}
