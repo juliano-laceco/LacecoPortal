@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
 
-const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells) => {
+const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells, edited, setEdited) => {
 
   const [drawing, setDrawing] = useState(false);
   const [startCell, setStartCell] = useState(null);
@@ -81,6 +81,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
   const handleKeyDown = useCallback((e) => {
     if ((e.key === 'c' || e.key === 'x') && e.ctrlKey) {
       e.preventDefault();
+      edited && setEdited(true)
       let prevRow = null;
       const content = selectedCells.map((cell) => {
         const cellKey = `${cell.row}-${cell.col}`;
@@ -105,6 +106,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       }
     } else if (e.key === 'v' && e.ctrlKey) {
       e.preventDefault();
+      edited && setEdited(true)
       navigator.clipboard.readText().then((clipboardContent) => {
         const lines = clipboardContent.split('\n');
         const newCellContents = { ...cellContents };
@@ -126,7 +128,6 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
     } else if (e.key === 'z' && e.ctrlKey) {
       e.preventDefault();
       if (historyIndex > 0) {
-
         if (history[historyIndex - 1] != undefined) {
           setHistoryIndex((prevIndex) => prevIndex - 1);
           setCellContents(history[historyIndex - 1]);

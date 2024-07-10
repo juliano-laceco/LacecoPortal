@@ -35,6 +35,31 @@ div:has(.react-select__control):not(.panel) {
     z-index: 200;
 }
 
+/* .assignee-wrapper.hidden ~.phase-header .expandPhase {
+    display: block !important;
+}
+
+.assignee-wrapper.hidden ~.phase-header .collapsePhase {
+    display: none !important;
+}
+
+.assignee-wrapper:not(.hidden) ~.phase-header .expandPhase {
+    display: none !important;
+}
+
+.assignee-wrapper:not(.hidden) ~.phase-header .collapsePhase {
+    display: block !important;
+} */
+
+
+.collapsed .collapsePhase {
+    display: none;
+}
+
+.expanded .expandPhase {
+    display: none;
+}
+
 /* For WebKit browsers (Chrome, Safari) */
 ::-webkit-scrollbar {
     width: 15px;

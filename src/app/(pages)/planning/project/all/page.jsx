@@ -96,8 +96,6 @@ async function TablePage({ searchParams }) {
         { Header: 'Progress', accessor: 'progress' },
         { Header: 'Created On', accessor: 'created_on' },
         { Header: 'Actions', accessor: 'actions', mobile: true, tablet: true }
-
-
     ];
 
 

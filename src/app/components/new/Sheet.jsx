@@ -168,7 +168,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0),
         numCols,
         initialCellContents,
-        uneditableCellCount
+        uneditableCellCount,
+        edited,
+        setEdited
     );
 
     useEffect(() => {
@@ -614,6 +616,65 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     );
 
     const renderGrid = useCallback(() => {
+
+        const savePhaseStateToLocalStorage = (phaseId, state) => {
+
+            console.log(phaseId)
+            // Initialize local storage if it doesn't exist
+            if (!localStorage.getItem("phaseStates")) {
+                localStorage.setItem("phaseStates", JSON.stringify([]));
+            }
+
+            let phaseStates = JSON.parse(localStorage.getItem('phaseStates')) || [];
+
+            // Check if the phase already exists
+            const phaseIndex = phaseStates.findIndex(phase => phase.id == phaseId);
+
+            if (phaseIndex != -1) {
+                // Update the existing phase state
+                phaseStates[phaseIndex].state = state;
+            } else {
+                // Add the new phase state
+                phaseStates.push({ id: phaseId, state: state });
+            }
+
+            localStorage.setItem('phaseStates', JSON.stringify(phaseStates));
+
+            // Logging to debug
+            console.log(`Saved Phase States:`, JSON.stringify(phaseStates, null, 2));
+        };
+
+        const getPhaseStateFromLocalStorage = (phaseId) => {
+            const phaseStates = JSON.parse(localStorage.getItem('phaseStates')) || [];
+            const phase = phaseStates.find(phase => phase.id == phaseId);
+            return phase ? phase.state : 'expanded'; // Default to expanded
+        };
+
+        const handleCollapseClick = (e, phaseId) => {
+            const phaseHeader = e.target.closest('.phase-header');
+            const assigneeWrapper = phaseHeader.nextElementSibling;
+
+
+            if (assigneeWrapper && assigneeWrapper.classList.contains('assignee-wrapper')) {
+                assigneeWrapper.classList.add('hidden');
+                phaseHeader.classList.remove('expanded');
+                phaseHeader.classList.add('collapsed');
+                savePhaseStateToLocalStorage(phaseId, 'collapsed');
+            }
+        };
+
+        const handleExpandClick = (e, phaseId) => {
+            const phaseHeader = e.target.closest('.phase-header');
+            const assigneeWrapper = phaseHeader.nextElementSibling;
+
+            if (assigneeWrapper && assigneeWrapper.classList.contains('assignee-wrapper')) {
+                assigneeWrapper.classList.remove('hidden');
+                phaseHeader.classList.remove('collapsed');
+                phaseHeader.classList.add('expanded');
+                savePhaseStateToLocalStorage(phaseId, 'expanded');
+            }
+        };
+
         const rows = [];
 
         // Add header row
@@ -651,7 +712,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 >
                     {date}
                 </div>
-
             }),
         ];
         rows.push(
@@ -664,22 +724,31 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
         // Add data rows
         initialData.forEach((phase, phaseIndex) => {
+
+            const phase_display = getPhaseStateFromLocalStorage(phase.phase_id)
+
             rows.push(
-                <div key={`phase-${phaseIndex}`} className="sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none">
+                <div key={`phase-${phaseIndex}`} className={`phase-header flex border-b border-gray-300 items-center sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none ${phase_display}`}>
                     {phase.phase} - {" "}
-                    <span className="text-red-400 text-lg">
+                    <span className="text-red-400 text-lg mr-4">
                         {" "}
                         {getPhaseBudgetHours[phaseIndex]} hrs
                     </span>
+                    <p className="collapsePhase cursor-pointer" onClick={(e) => handleCollapseClick(e, phase.phase_id)}>
+                        <Image src="/resources/icons/arrow-up.png" height="20" width="20" alt="collapse" />
+                    </p>
+                    <p className="expandPhase cursor-pointer" onClick={(e) => handleExpandClick(e, phase.phase_id)}>
+                        <Image src="/resources/icons/arrow-down.png" height="20" width="20" alt="expand" />
+                    </p>
                 </div>
             );
 
+            const assigneeRows = [];
+
             if (phase?.assignees) {
                 phase.assignees.forEach((assignee, assigneeIndex) => {
-
                     const assignee_grade = getGradeName(assignee.assignee);
                     const assignee_name = getEmployeeName(assignee.assignee);
-
 
                     const row = rowCounter;
                     rowCounter += 1;
@@ -693,7 +762,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         if (col === 0) {
                             content = (
                                 <div className="cursor-pointer" onClick={() => deleteAssignee(row)}>
-                                    <Image src="/resources/icons/delete.png" height="20" width="20" className alt="x" />
+                                    <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" />
                                 </div>
                             );
                         } else if (col === 1) {
@@ -704,8 +773,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     onChange={(e) => handleSelectChange(e, row, col)}
                                     className="native-select border border-gray-300 rounded-md px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer select-none w-full  focus:border-none"
                                 >
-
-                                    <option key={crypto.randomUUID()} value="Select..." >Select...</option>
+                                    <option key={crypto.randomUUID()} value="Select...">Select...</option>
                                     {memoizedDisciplineData.map((option) => (
                                         <option key={option.value} value={option.value}>
                                             {option.label}
@@ -722,17 +790,14 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                         onChange={(e) => handleSelectChange(e, row, col)}
                                         className="native-select border border-gray-300 rounded-md px-3 py-1 box-border text-center text-ellipsis cursor-pointer select-none w-full focus:ring-gray-500 focus:ring-[1.5px] focus:border-none"
                                     >
-
-                                        <option key={crypto.randomUUID()} value="Select..." >Select...</option>
+                                        <option key={crypto.randomUUID()} value="Select...">Select...</option>
                                         {memoizedEmployeeData
                                             .filter(option => option.discipline_id === parseInt(assignee.discipline))
                                             .map(option => (
                                                 <option key={option.value} value={option.value}>
                                                     {option.label}
                                                 </option>
-                                            ))
-                                        }
-
+                                            ))}
                                     </select>
                                 </>
                             );
@@ -756,8 +821,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             cellRefs.current[row] = [];
                         }
 
-
-                        const isContentEditable = col > 4 + uneditableCellCount && editableCell?.row === row && editableCell?.col === col
+                        const isContentEditable = col > 4 + uneditableCellCount && editableCell?.row === row && editableCell?.col === col;
 
                         cols.push(
                             <div
@@ -765,7 +829,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 ref={(el) => {
                                     cellRefs.current[row][col] = el;
                                 }}
-                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : `min-w-12 max-w-12 cursor-cell focus:cursor-auto ${col >= 5 && col < 5 + uneditableCellCount ? "bg-gray-200 cursor-not-allowed" : ""}`} justify-center items-center p-1 box-border text-center z-0 select-none  ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
+                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : `min-w-12 max-w-12 cursor-cell focus:cursor-auto ${col >= 5 && col < 5 + uneditableCellCount ? "bg-gray-200 cursor-not-allowed" : ""}`} justify-center items-center p-1 box-border text-center z-0 select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
                                 onMouseDown={col > 4 + uneditableCellCount ? () => handleMouseDown(row, col) : undefined}
                                 onMouseEnter={col > 4 + uneditableCellCount ? () => handleMouseEnter(row, col) : undefined}
@@ -789,26 +853,32 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         );
                     }
 
-                    rows.push(
+                    assigneeRows.push(
                         <>
-                            <div className="assignee-label hidden select-none w-full text-center bg-gray-300 text-gray-600 p-1 mt-3 sticky left-0" >
-                                {assignee.assignee == "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
+                            <div className="assignee-label hidden select-none w-full text-center bg-gray-300 text-gray-600 p-1 mt-3 sticky left-0">
+                                {assignee.assignee === "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
                             </div>
-                            <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`} >
+                            <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`}>
                                 {cols}
                             </div>
                         </>
                     );
                 });
+
+                assigneeRows.push(
+                    <div
+                        key={`add-assignee-${phaseIndex}`}
+                        className={`p-2 text-white flex-1 sticky left-0 text-lg text-center w-full cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
+                        onClick={() => handleAddAssignee(phaseIndex)}
+                    >
+                        + Add New
+                    </div>
+                );
             }
 
             rows.push(
-                <div
-                    key={`add-assignee-${phaseIndex}`}
-                    className={`p-2 text-white flex-1 sticky left-0 text-lg text-center w-full cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
-                    onClick={() => handleAddAssignee(phaseIndex)}
-                >
-                    + Add New
+                <div key={`assignee-wrapper-${phaseIndex}`} className={`assignee-wrapper ${phase_display == "collapsed" ? "hidden" : ""}`}>
+                    {assigneeRows}
                 </div>
             );
         });
@@ -840,6 +910,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         getGradeName,
         getEmployeeName,
     ]);
+
 
     return (
         <>
