@@ -1,8 +1,9 @@
 "use client"
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
 
-const useSheet = (numRows, numCols, initialCellContents) => {
+const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells) => {
 
   const [drawing, setDrawing] = useState(false);
   const [startCell, setStartCell] = useState(null);
@@ -10,6 +11,11 @@ const useSheet = (numRows, numCols, initialCellContents) => {
   const [selectedCells, setSelectedCells] = useState([]);
   const [editableCell, setEditableCell] = useState(null);
   const [historyIndex, setHistoryIndex] = useState(0);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const cellRefs = useRef([]);
 
   // Memoize the cellContents and history state
@@ -70,7 +76,18 @@ const useSheet = (numRows, numCols, initialCellContents) => {
     setHistoryIndex((prevIndex) => prevIndex + 1);
   }, [historyIndex]);
 
+
+  const setEdited = () => {
+    const params = new URLSearchParams(searchParams);
+    if (!params.has("isEdited")) {
+      params.set("isEdited", "true");
+      router.push(`${pathname}?${params.toString()}`);
+    }
+
+  }
   const handleKeyDown = useCallback((e) => {
+
+    setEdited()
     if ((e.key === 'c' || e.key === 'x') && e.ctrlKey) {
       e.preventDefault();
       let prevRow = null;
@@ -154,7 +171,7 @@ const useSheet = (numRows, numCols, initialCellContents) => {
           newEndCell.row = Math.min(numRows - 1, endCell.row + 1);
           break;
         case 'ArrowLeft':
-          newEndCell.col = Math.max(5, endCell.col - 1);
+          newEndCell.col = Math.max(5 + numberOfUneditableCells, endCell.col - 1);
           break;
         case 'ArrowRight':
           newEndCell.col = Math.min(numCols - 1, endCell.col + 1);
@@ -212,7 +229,7 @@ const useSheet = (numRows, numCols, initialCellContents) => {
               newSelectedCell.row = Math.min(numRows - 1, selectedCells[0].row + 1);
               break;
             case 'ArrowLeft':
-              newSelectedCell.col = Math.max(5, selectedCells[0].col - 1);
+              newSelectedCell.col = Math.max(5 + numberOfUneditableCells, selectedCells[0].col - 1);
               break;
             case 'ArrowRight':
               newSelectedCell.col = Math.min(numCols - 1, selectedCells[0].col + 1);
@@ -236,7 +253,7 @@ const useSheet = (numRows, numCols, initialCellContents) => {
                 newSelectedCell.row = Math.min(numRows - 1, selectedCells[0].row + 1);
                 break;
               case 'ArrowLeft':
-                newSelectedCell.col = Math.max(5, selectedCells[0].col - 1);
+                newSelectedCell.col = Math.max(5 + numberOfUneditableCells, selectedCells[0].col - 1);
                 break;
               case 'ArrowRight':
                 newSelectedCell.col = Math.min(numCols - 1, selectedCells[0].col + 1);

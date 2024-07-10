@@ -13,13 +13,6 @@ async function ProjectDeployment({ params, searchParams }) {
   const searchParameters = searchParams
   let { start, end } = searchParameters;
 
-  const formatDateMonth = (date) => {
-    return new Date(date).toLocaleDateString("en-GB", {
-      month: "long",
-      year: "numeric",
-    });
-  };
-
 
   // Fetching Project Data
   let project_response = await getProjectData(project_id);
@@ -56,8 +49,8 @@ async function ProjectDeployment({ params, searchParams }) {
     };
   });
 
-  const project_start_date = "03 July 2024"
-  const project_end_date = "03 September 2024"
+  const project_start_date = "03 April 2024"
+  const project_end_date = "04 December 2024"
 
   return (
     <div className="space-y-12">
@@ -90,9 +83,9 @@ async function ProjectDeployment({ params, searchParams }) {
           <div className="py-8 px-8 w-fit bg-white rounded-xl shadow-2xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
             <Image src="/resources/icons/budget-hours.png" height="50" width="50" />
             <div className="text-center space-y-2 sm:text-left">
-              <div className="space-y-0.5">
-                <p className="text-lg text-black font-semibold">Budget Hours</p>
-                <p className="text-slate-500 font-medium"> 456 hrs</p>
+              <div className="">
+                <p className="text-xl text-black font-semibold">456</p>
+                <p className="text-slate-500 font-medium">Budget Hours</p>
               </div>
             </div>
           </div>
@@ -100,8 +93,8 @@ async function ProjectDeployment({ params, searchParams }) {
             <Image src="/resources/icons/variance.png" height="50" width="50" />
             <div className="text-center space-y-2 sm:text-left">
               <div className="space-y-0.5">
-                <p className="text-lg text-black font-semibold">Variance</p>
-                <p className="text-red-500 font-medium"> -30% </p>
+                <p className="text-xl text-red-500 font-semibold"> -30% </p>
+                <p className="text-slate-500 font-medium">Variance</p>
               </div>
             </div>
           </div>
@@ -110,8 +103,10 @@ async function ProjectDeployment({ params, searchParams }) {
 
       <div className="space-y-4">
         <h1 className="text-3xl font-semibold">Deployment Sheet</h1>
-        <DateRangePicker project_start_date={start != undefined ? start : project_start_date} project_end_date={end != undefined ? end : project_end_date} selectionMade={start != undefined && end != undefined} />
-        <Sheet employee_data={filtered_employee_data} discipline_data={disciplines_data} start_date={start} end_date={end} />
+        <div className="date-range-months bg-white w-fit py-3 px-2 rounded-lg shadow-2xl">
+          <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start} end={end} />
+        </div>
+        <Sheet employee_data={filtered_employee_data} discipline_data={disciplines_data} project_start_date={project_start_date} project_end_date={project_end_date} start_date={start ?? null} end_date={end ?? null} />
       </div>
     </div>
   );

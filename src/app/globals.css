@@ -27,6 +27,10 @@ div:has(.react-select-dd__control):not(.panel) {
     width: 100% !important;
 }
 
+.date-range-months div:has(.react-select__control) {
+    min-width: 180px !important;
+}
+
 [class*=react-select__menu-list] {
     z-index: 200;
 }

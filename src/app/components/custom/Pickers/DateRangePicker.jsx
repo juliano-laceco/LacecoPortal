@@ -1,44 +1,77 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import DropdownRegular from '../Dropdowns/DropdownRegular';
 
-const DateRangePicker = ({ project_start_date, project_end_date, selectionMade }) => {
+const DateRangePicker = ({ project_start_date, project_end_date, start, end }) => {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const [startDate, setStartDate] = useState(searchParams.get('start') || project_start_date);
-    const [endDate, setEndDate] = useState(searchParams.get('end') || project_end_date);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [filteredEndDateOptions, setFilteredEndDateOptions] = useState([]);
 
     const handleStartDateChange = (selectedOption) => {
-        setStartDate(selectedOption.value);
-        const params = new URLSearchParams({ start: startDate, end: searchParams.get("end") });
+        const newStartDate = selectedOption.value;
+        const newEndDate = searchParams.get("end") || end;
+
+        if (new Date(newStartDate) > new Date(newEndDate)) {
+            setErrorMessage('Start date cannot be greater than end date.');
+        } else {
+            setErrorMessage('');
+        }
+
+        const params = new URLSearchParams(searchParams);
+        params.set("start", newStartDate);
+
+        if (!params.has("end")) {
+            params.set("end", end || omitDayFromDate(project_end_date));
+        }
+
         router.push(`${pathname}?${params.toString()}`);
         router.refresh();
+
+        // Filter end date options based on the selected start date
+        setFilteredEndDateOptions(generateDateOptions(newStartDate, project_end_date));
     };
 
     const handleEndDateChange = (selectedOption) => {
-        setEndDate(selectedOption.value);
-        const params = new URLSearchParams({ start: searchParams.get("start"), end: endDate });
+        const newEndDate = selectedOption.value;
+        const newStartDate = searchParams.get("start") || start;
+
+        if (new Date(newStartDate) > new Date(newEndDate)) {
+            setErrorMessage('Start date cannot be greater than end date.');
+        } else {
+            setErrorMessage('');
+        }
+
+        const params = new URLSearchParams(searchParams);
+        params.set("end", newEndDate);
+
+        if (!params.has("start")) {
+            params.set("start", start || omitDayFromDate(project_start_date));
+        }
+
         router.push(`${pathname}?${params.toString()}`);
         router.refresh();
     };
 
-
-
-
+    const omitDayFromDate = (date) => {
+        let initialDate = new Date(date);
+        return initialDate.toLocaleDateString("en-GB", {
+            month: "long",
+            year: "numeric",
+        });
+    };
 
     const generateDateOptions = (start_date, end_date) => {
         const options = new Set();
         let currentDate = new Date(start_date);
         const endDate = new Date(end_date);
 
-        // Ensure that the first and last month are fully covered
         currentDate.setDate(1); // Start from the first of the month
 
-        // Move endDate to the end of the month
         endDate.setMonth(endDate.getMonth() + 1);
         endDate.setDate(0); // This sets the date to the last day of the previous month
 
@@ -49,39 +82,32 @@ const DateRangePicker = ({ project_start_date, project_end_date, selectionMade }
             });
             options.add(formattedDateMonth);
 
-            // Move to the next month
             currentDate.setMonth(currentDate.getMonth() + 1);
         }
-
-        // Ensure the end date month is included
-        const formattedEndDateMonth = endDate.toLocaleDateString("en-GB", {
-            month: "long",
-            year: "numeric",
-        });
-        options.add(formattedEndDateMonth);
 
         return Array.from(options).map(month => ({ value: month, label: month }));
     };
 
-
-    const dateOptions = generateDateOptions(project_start_date, project_end_date);
+    const startDateOptions = generateDateOptions(project_start_date, project_end_date);
+    const endDateOptions = filteredEndDateOptions.length > 0 ? filteredEndDateOptions : generateDateOptions(project_start_date, project_end_date);
 
     return (
         <div className="space-y-4">
             <div className="flex w-[400px] items-center">
                 <DropdownRegular
                     label="From"
-                    options={dateOptions}
-                    value={startDate}
+                    options={startDateOptions}
+                    value={start || null}
                     onChange={handleStartDateChange}
                 />
                 <DropdownRegular
                     label="To"
-                    options={dateOptions}
-                    value={endDate}
+                    options={endDateOptions}
+                    value={end || null}
                     onChange={handleEndDateChange}
                 />
             </div>
+            {errorMessage && <div style={{ color: 'red' }}>{errorMessage}</div>}
         </div>
     );
 };
