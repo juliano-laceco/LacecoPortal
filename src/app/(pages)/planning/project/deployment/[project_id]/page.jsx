@@ -113,6 +113,7 @@ async function ProjectDeployment({ params, searchParams }) {
             </div>
           </div>
         </div>
+        <p className="text-3xl font-semibold mt-6">Percentage by Department</p>
         <div className="grid grid-cols-4 w-fit gap-5 select-none">
           <DepartmentTile icon_name="electrical" department_name="Electrical" percentage="23" />
           <DepartmentTile icon_name="wet-utilities" department_name="Wet Utilities" percentage="23" />
