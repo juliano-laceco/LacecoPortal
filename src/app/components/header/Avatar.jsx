@@ -11,6 +11,7 @@ function Avatar({ name, email, sub }) {
                 data-dropdown-toggle="dropdownAvatar"
                 className="flex text-sm rounded-full"
                 type="button"
+                suppressHydrationWarning
             >
                 <Image
                     className="rounded-full ring-[3px] ring-pric mob:ring-gray-300"
@@ -23,6 +24,7 @@ function Avatar({ name, email, sub }) {
             <div
                 id="dropdownAvatar"
                 className="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-2xl w-64"
+                suppressHydrationWarning
             >
                 <div className="px-4 py-3 text-sm  mob:py-2">
                     <div>{name}</div>

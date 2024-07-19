@@ -70,8 +70,8 @@ async function ProjectDeployment({ params, searchParams }) {
         </div>
         <div className="flex flex-wrap gap-5 select-none">
           <div className="py-4 px-6 w-fit bg-white rounded-xl shadow-2xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
-            <div class="relative w-10 h-10 overflow-hidden bg-red-100 rounded-full dark:bg-gray-600">
-              <svg class="absolute w-12 h-12 text-red-400 -left-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+            <div className="relative w-10 h-10 overflow-hidden bg-red-100 rounded-full dark:bg-gray-600">
+              <svg className="absolute w-12 h-12 text-red-400 -left-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
             </div>
             <div className="text-center space-y-2 sm:text-left">
               <div className="space-y-0.5">
@@ -113,6 +113,7 @@ async function ProjectDeployment({ params, searchParams }) {
           </div>
         </div>
         <p className="text-2xl font-semibold mt-6">Hours Split By Discipline</p>
+
         {/* <div className="grid grid-cols-5 w-fit gap-3 select-none bg-white shadow-2xl rounded-lg p-2">
           <DepartmentTile icon_name="electrical" department_name="Electrical" percentage="20" />
           <DepartmentTile icon_name="wet-utilities" department_name="Wet Utilities" percentage="13" />

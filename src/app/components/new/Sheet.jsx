@@ -730,7 +730,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             ...headerDates.map((date, index) => {
                 const color = getColorForMonth(date)
                 return <div
-                    key={`header-${index}`}
+                    key={`header-${index}-${crypto.randomUUID()}`}
                     className={"border border-gray-300 min-w-12 max-w-12 flex justify-center items-center px-1 py-4 text-gray-600 font-semibold"}
                     style={{
                         writingMode: "vertical-rl",
@@ -757,7 +757,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             const phase_display = getPhaseStateFromLocalStorage(phase.phase_id)
 
             rows.push(
-                <div key={`phase-${phaseIndex}`} className={`phase-header flex border-b border-gray-300 items-center sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none ${phase_display}`}>
+                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex border-b border-gray-300 items-center sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none ${phase_display}`}>
                     {phase.phase} - {" "}
                     <span className="text-red-400 text-lg mr-4">
                         {" "}
@@ -883,7 +883,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
                     assigneeRows.push(
                         <>
-                            <div className="assignee-label hidden select-none text-center bg-gray-300 text-gray-600 p-1 mt-3 sticky left-0">
+                            <div className="assignee-label hidden select-none text-center bg-gray-300 text-gray-600 p-1 mt-3 sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
                                 {assignee.assignee === "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
                             </div>
                             <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`}>
@@ -895,7 +895,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
                 assigneeRows.push(
                     <div
-                        key={`add-assignee-${phaseIndex}`}
+                        key={`add-assignee-${crypto.randomUUID()}`}
                         className={`p-2 text-white flex-1 sticky text-lg text-center w-full cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
                         onClick={() => handleAddAssignee(phaseIndex)}
                     >
@@ -905,7 +905,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             }
 
             rows.push(
-                <div key={`assignee-wrapper-${phaseIndex}`} className={`assignee-wrapper min-w-max relative ${phase_display == "collapsed" ? "hidden" : ""}`}>
+                <div key={`assignee-wrapper-${crypto.randomUUID()}`} className={`assignee-wrapper min-w-max relative ${phase_display == "collapsed" ? "hidden" : ""}`}>
                     {assigneeRows}
                 </div>
             );
