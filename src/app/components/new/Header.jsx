@@ -6,7 +6,7 @@ const Header = ({ headerDates, numCols, colors }) => {
     return colors[month];
   };
 
-  const headerCols = useMemo(() => [
+  const headerCols =  [
     <div
       key="action"
       className="border border-gray-300 flex justify-center w-16 items-center p-1 box-border bg-gray-300 text-gray-700 font-bold"
@@ -35,7 +35,7 @@ const Header = ({ headerDates, numCols, colors }) => {
         {date}
       </div>
     ))
-  ], [headerDates, colors]);
+  ]
 
   return (
     <div key="header" className="grid select-none rounded-tr-lg rounded-tl-lg overflow-hidden text-gray-800" style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` }}>

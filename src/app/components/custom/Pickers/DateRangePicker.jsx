@@ -156,7 +156,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
                     value={end || null}
                     onChange={handleEndDateChange}
                 />
-                <Image title="Clear Dates" src="/resources/icons/clear-filter.svg" height="50" width="50" className="cursor-pointer hover:bg-[#E9EBEF] mob:hidden tablet:hidden transition-all duration-200 px-2 py-2 rounded-lg" onClick={clearDates} />
+                <Image title="Clear Dates" src="/resources/icons/clear-filter.svg" height="50" width="50" className="cursor-pointer hover:bg-[#E9EBEF] mob:hidden tablet:hidden transition-all duration-200 px-2 py-2 rounded-lg" onClick={clearDates} alt="clear-filter" />
             </div>
             {errorMessage && <div className="text-pric">{errorMessage}</div>}
         </div>

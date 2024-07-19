@@ -133,14 +133,13 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
     const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 5));
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 50));
     const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData));
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
     const [initialHeaderDates, setInitialHeaderDates] = useState([]);
     const currentMonday = getThisMondayDate()
     const [edited, setEdited] = useState(false)
-    const [addedCount, setAddedCount] = useState(0)
     const uneditableCellCount = headerDates.filter((headerDate) => new Date(headerDate) < currentMonday).length
 
     const router = useRouter();
@@ -178,6 +177,15 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         setHistory([newCellContents]);
     }, [initialData, headerDates, setCellContents, setHistory]);
 
+
+
+    useEffect(() => {
+        cellRefs.current.forEach((rowRefs, rowIndex) => {
+            rowRefs.forEach((cell, colIndex) => {
+                cell.setAttribute("data-initial", cell.textContent)
+            });
+        });
+    }, [])
 
     useEffect(() => {
         setInitialHeaderDates(headerDates);
@@ -319,7 +327,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         });
 
         setHeaderDatesUpdated(true); // Set the flag to true
-        setAddedCount((prev) => prev + 1)
         !edited && setEdited(true)
 
     }, [currentEndDate, initialData, setCellContents, start_date]);
@@ -333,28 +340,49 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             behavior: "smooth"
         });
     };
-
     const removeLastWeek = useCallback(() => {
-        setHeaderDates((prevDates) => {
-            if (prevDates.length > 1) {
-                return prevDates.slice(0, -1);
+        let weekContainsData = false;
+        const lastColumnIndex = headerDates.length + 4;
+        const lastColumnCells = document.querySelectorAll(`[data-col="${lastColumnIndex}"]`);
+
+        lastColumnCells.forEach((lastColumnCell) => {
+            if (lastColumnCell.textContent?.trim() !== "") {
+                weekContainsData = true;
             }
-            return prevDates;
         });
 
-        setCellContents((prevContents) => {
-            const newContents = { ...prevContents };
-            const lastColIndex = headerDates.length + 4; // Last column index
+        const updateState = () => {
+            setHeaderDates((prevDates) => {
+                if (prevDates.length > 1) {
+                    return prevDates.slice(0, -1);
+                }
+                return prevDates;
+            });
 
-            for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
-                delete newContents[`${row}-${lastColIndex}`];
+            setCellContents((prevContents) => {
+                const newContents = { ...prevContents };
+                const lastColIndex = lastColumnIndex; // Last column index
+
+                for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
+                    delete newContents[`${row}-${lastColIndex}`];
+                }
+
+                return newContents;
+            });
+
+            !edited && setEdited(true);
+        };
+
+        if (weekContainsData) {
+            const confirmDelete = window.confirm("The week you are deleting contains data. Are you sure you would like to proceed?");
+            if (confirmDelete) {
+                updateState();
             }
-            return newContents;
-        });
+        } else {
+            updateState();
+        }
+    }, [headerDates.length, initialData, setCellContents, edited]);
 
-        !edited && setEdited(true)
-
-    }, [headerDates.length, initialData, setCellContents]);
 
 
     const getBudgetHoursCells = useCallback(
@@ -392,6 +420,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
         return phaseBudgetHours;
     }, [initialData, getBudgetHoursCells]);
+
 
     const handleAddAssignee = useCallback(
         (phaseIndex) => {
@@ -532,6 +561,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             newValue != "" && (updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue);
                         }
                     } else {
+
                         // Only check for changed cells for rows with non-UUIDs
                         const dataChanged = cell.getAttribute("data-initial") != cell.textContent;
 
@@ -838,7 +868,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 data-row={row}
                                 data-phase-id={phase.phase_id}
                                 data-phase-assignee-id={assignee.phase_assignee_id}
-                                data-initial={initialContent}
                                 onClick={col > 4 + uneditableCellCount ? () => handleClick(row, col) : undefined}
                                 onDoubleClick={col > 4 + uneditableCellCount ? () => handleDoubleClick(row, col) : undefined}
                                 onBlur={col > 4 + uneditableCellCount ? (e) => handleCellBlur(row, col, e) : undefined}

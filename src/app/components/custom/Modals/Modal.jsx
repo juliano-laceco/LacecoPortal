@@ -23,7 +23,7 @@ const Modal = ({ open = false, type, title, newPath, onClose, children, classNam
                         >
                             <div onClick={type == "server" ? closeServerSide : onClose} className="w-full bg-white flex items-center justify-between p-4">
                                 <p className="font-bold text-2xl px-2">{title}</p>
-                                <Image height="40" width="40" src="/resources/icons/close.svg" className="cursor-pointer" />
+                                <Image height="40" width="40" src="/resources/icons/close.svg" className="cursor-pointer" alt="close-icon" />
                             </div>
                             {
                                 <div className={`transition-all overflow-auto duration-500 px-6 ${open ? 'opacity-100' : 'opacity-0'}`}>

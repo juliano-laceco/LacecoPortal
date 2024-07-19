@@ -81,7 +81,7 @@ async function ProjectDeployment({ params, searchParams }) {
             </div>
           </div>
           <div className="py-4 px-6 w-fit bg-white rounded-xl shadow-2xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
-            <Image src="/resources/icons/budget-hours.png" height="40" width="40" />
+            <Image src="/resources/icons/budget-hours.png" height="40" width="40" alt="budget-hours-icon" />
             <div className="text-center space-y-2 sm:text-left">
               <div className="">
                 <p className="text-3xl text-black font-semibold">456</p>
@@ -90,7 +90,7 @@ async function ProjectDeployment({ params, searchParams }) {
             </div>
           </div>
           <div className="py-4 px-6 w-fit bg-white rounded-xl shadow-2xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
-            <Image src="/resources/icons/variance.png" height="40" width="40" />
+            <Image src="/resources/icons/variance.png" height="40" width="40" alt="variance-icon" />
             <div className="text-center space-y-2 sm:text-left">
               <div className="space-y-0.5">
                 <p className="text-3xl text-red-500 font-semibold"> -30% </p>
@@ -126,7 +126,7 @@ async function ProjectDeployment({ params, searchParams }) {
         </div> */}
 
         <div className="bg-white p-3 shadow-xl rounded-lg w-fit">
-          <img src="/resources/icons/image.png" className="w-[1000px] h-[300px]"/>
+          <img src="/resources/icons/image.png" className="w-[1000px] h-[300px]" alt="stats-image"/>
         </div>
       </div>
 
