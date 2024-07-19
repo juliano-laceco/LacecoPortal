@@ -341,7 +341,6 @@ export async function getProjectData(project_id) {
 
 
         // Fetching Selected Disciplines
-
         const selectedDisciplines = await execute(`
         SELECT pd.discipline_id as value , d.discipline_name as label
           FROM project_disciplines as pd

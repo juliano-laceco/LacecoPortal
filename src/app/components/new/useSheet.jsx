@@ -77,11 +77,9 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
   }, [historyIndex]);
 
 
-
   const handleKeyDown = useCallback((e) => {
     if ((e.key === 'c' || e.key === 'x') && e.ctrlKey) {
       e.preventDefault();
-      edited && setEdited(true)
       let prevRow = null;
       const content = selectedCells.map((cell) => {
         const cellKey = `${cell.row}-${cell.col}`;
@@ -97,6 +95,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       navigator.clipboard.writeText(content.join('\t'));
 
       if (e.key === 'x') {
+        !edited && setEdited(true)
         saveHistory(cellContents);
         const newCellContents = { ...cellContents };
         selectedCells.forEach((cell) => {
@@ -106,7 +105,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       }
     } else if (e.key === 'v' && e.ctrlKey) {
       e.preventDefault();
-      edited && setEdited(true)
+      !edited && setEdited(true)
       navigator.clipboard.readText().then((clipboardContent) => {
         const lines = clipboardContent.split('\n');
         const newCellContents = { ...cellContents };
@@ -177,13 +176,16 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       if (editableCell) {
         e.preventDefault();
+        !edited && setEdited(true)
         saveHistory(cellContents);
         const cellKey = `${editableCell.row}-${editableCell.col}`;
         const newCellContents = { ...cellContents, [cellKey]: '' };
         setCellContents(newCellContents);
       } else {
         e.preventDefault();
+        !edited && setEdited(true)
         saveHistory(cellContents);
+
         const newCellContents = { ...cellContents };
         selectedCells.forEach((cell) => {
           newCellContents[`${cell.row}-${cell.col}`] = '';

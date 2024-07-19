@@ -87,8 +87,8 @@ const generateMockData = (numPhases, assigneesPerPhase) => {
         for (let j = 1; j <= assigneesPerPhase; j++) {
             assignees.push({
                 phase_assignee_id: `${i}-${j}`,
-                discipline: `1`,
-                assignee: `370`, // Cycle through 10 users
+                discipline: `66`,
+                assignee: `390`, // Cycle through 10 users
                 projected_work_weeks: {
                     "01 July 2024": counter++,
                     "08 July 2024": counter++,
@@ -140,10 +140,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const [initialHeaderDates, setInitialHeaderDates] = useState([]);
     const currentMonday = getThisMondayDate()
     const [edited, setEdited] = useState(false)
-
-    //alert("Current Monday" + currentMonday)
-
+    const [addedCount, setAddedCount] = useState(0)
     const uneditableCellCount = headerDates.filter((headerDate) => new Date(headerDate) < currentMonday).length
+
     const router = useRouter();
     const pathname = usePathname();
 
@@ -182,7 +181,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     useEffect(() => {
         setInitialHeaderDates(headerDates);
-    }, [headerDates]);
+    }, []);
 
     useEffect(() => {
         const selectElements = document.querySelectorAll('select');
@@ -320,6 +319,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         });
 
         setHeaderDatesUpdated(true); // Set the flag to true
+        setAddedCount((prev) => prev + 1)
         !edited && setEdited(true)
 
     }, [currentEndDate, initialData, setCellContents, start_date]);
@@ -591,22 +591,21 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     const colors = useMemo(
         () => [
-            "#ff9999", // first 4 months - medium red
-            "#ff9999",
-            "#ff9999",
-            "#ff9999",
-            "#ffff99", // next 4 months - medium yellow
-            "#ffff99",
-            "#ffff99",
-            "#ffff99",
-            "#ffcc99", // last 4 months - light orange
-            "#ffcc99",
-            "#ffcc99",
-            "#ffcc99"
+            "#86cead",
+            "#80c6f7",
+            "#ffe6a1",
+            "#a6ecec",
+            "#d1b3ff",
+            "#ffce99",
+            "#e5c7eb",
+            "#f29b9b",
+            "#99e699",
+            "#d1a3ff",
+            "#b3ffff",
+            "#fff3b3"
         ],
         []
     );
-
     const getColorForMonth = useCallback(
         (date) => {
             const month = new Date(date).getMonth(); // Get month index (0-11)
@@ -855,7 +854,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
                     assigneeRows.push(
                         <>
-                            <div className="assignee-label hidden select-none w-full text-center bg-gray-300 text-gray-600 p-1 mt-3 sticky left-0">
+                            <div className="assignee-label hidden select-none text-center bg-gray-300 text-gray-600 p-1 mt-3 sticky left-0">
                                 {assignee.assignee === "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
                             </div>
                             <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`}>
@@ -868,7 +867,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 assigneeRows.push(
                     <div
                         key={`add-assignee-${phaseIndex}`}
-                        className={`p-2 text-white flex-1 sticky left-0 text-lg text-center w-full cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
+                        className={`p-2 text-white flex-1 sticky text-lg text-center w-full cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
                         onClick={() => handleAddAssignee(phaseIndex)}
                     >
                         + Add New
@@ -877,7 +876,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             }
 
             rows.push(
-                <div key={`assignee-wrapper-${phaseIndex}`} className={`assignee-wrapper ${phase_display == "collapsed" ? "hidden" : ""}`}>
+                <div key={`assignee-wrapper-${phaseIndex}`} className={`assignee-wrapper min-w-max relative ${phase_display == "collapsed" ? "hidden" : ""}`}>
                     {assigneeRows}
                 </div>
             );
@@ -942,13 +941,14 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 >
                                     +
                                 </button>
-                                <button
+                                {initialHeaderDates.length < headerDates.length && <button
                                     key="remove-week-button"
                                     className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-red-500 font-bold"
                                     onClick={removeLastWeek}
                                 >
                                     -
                                 </button>
+                                }
                             </div>
                         }
                     </div>
@@ -958,11 +958,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
                 Save
             </button>
-            <p className="row-variance hidden">
-                {headerDates.length - initialHeaderDates.length}
-            </p>
             <p className="user-tracker-visible hidden"></p>
-            <p className="first-expand hidden">0</p>
         </>
     );
 };
