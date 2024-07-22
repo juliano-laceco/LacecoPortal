@@ -4,150 +4,54 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import useSheet from "./useSheet";
 import Image from "next/image";
 import { add } from "date-fns";
-import { usePathname, useRouter } from "next/navigation";
 import DateRangePicker from "../custom/Pickers/DateRangePicker";
-
-const getThisMondayDate = () => {
-    const today = new Date();
-    const day = today.getDay();
-    const diff = today.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is Sunday 
-    const fullFormatMonday = new Date(today.setDate(diff));
-    const formattedMonday = fullFormatMonday.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-    });
-    const monday = new Date(formattedMonday)
-    return monday
-};
-
-const generateHeaderDates = (start_month_year = null, end_month_year = null) => {
-    const dates = [];
-
-    const parseMonthYear = (monthYear) => {
-        const [month, year] = monthYear.split(' ');
-        return new Date(Date.parse(`${month} 1, ${year}`));
-    };
-
-    let startDate, endDate;
-
-    if (start_month_year && end_month_year) {
-        startDate = parseMonthYear(start_month_year);
-        endDate = parseMonthYear(end_month_year);
-
-        // Ensure endDate is the last day of the end month
-        endDate.setMonth(endDate.getMonth() + 1);
-        endDate.setDate(0);
-
-    } else {
-        const today = new Date();
-
-        // Calculate start date as the first day of the previous month
-        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-
-        // Calculate end date as the last day of the month three months after the current month
-        endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
-    }
-
-    let currentDate = new Date(startDate);
-
-    // Ensure currentDate is the first Monday within the range
-    while (currentDate.getDay() !== 1) {
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    while (currentDate <= endDate) {
-        const formattedDate = currentDate.toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-        });
-        dates.push(formattedDate);
-
-        // Move to the next Monday
-        currentDate.setDate(currentDate.getDate() + 7);
-    }
-
-    return dates;
-};
-
-const getMonthNameFromDate = (date) => {
-    let initialDate = new Date(date);
-    return initialDate.toLocaleDateString("en-GB", {
-        month: "long"
-    });
-};
-
-const generateMockData = (numPhases, assigneesPerPhase) => {
-    const phases = [];
-    let counter = 1;
-
-    for (let i = 1; i <= numPhases; i++) {
-        const assignees = [];
-        for (let j = 1; j <= assigneesPerPhase; j++) {
-            assignees.push({
-                phase_assignee_id: `${i}-${j}`,
-                discipline: `66`,
-                assignee: `390`, // Cycle through 10 users
-                projected_work_weeks: {
-                    "01 July 2024": counter++,
-                    "08 July 2024": counter++,
-                    "15 July 2024": counter++,
-                    "22 July 2024": counter++,
-                },
-            });
-        }
-        phases.push({
-            phase_id: `${i}`,
-            phase: `Phase ${i}`,
-            assignees: assignees,
-        });
-    }
-    return phases;
-};
-
-const initializeCellContents = (initialData, headerDates) => {
-    const cellContents = {};
-    let rowCounter = 0;
-    initialData.forEach((phase) => {
-        phase.assignees.forEach((assignee) => {
-            headerDates.forEach((date, colIndex) => {
-                const cellIndex = colIndex + 5; // Adjust for the discipline and user columns
-                cellContents[`${rowCounter}-${cellIndex}`] = assignee.projected_work_weeks[date] || "";
-            });
-            rowCounter++;
-        });
-    });
-    return cellContents;
-};
-
-const calculateTotalAssignees = (data) => {
-    return data.reduce((total, phase) => total + phase.assignees.length, 0);
-};
+import {
+    getThisMondayDate,
+    generateHeaderDates,
+    getMonthNameFromDate,
+    generateMockData,
+    initializeCellContents,
+    calculateTotalAssignees,
+    isUUID,
+    getGradeName,
+    getEmployeeName,
+    navigateRight,
+    getColorForMonth,
+    getPhaseStateFromLocalStorage,
+    handleCollapseClick,
+    handleExpandClick
+} from './SheetUtils';
 
 
 const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date }) => {
 
+    // Memoized Employee and Discipline Data
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data])
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data])
+
+    // Header Dates Variables
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
-    const numCols = headerDates.length + 5;
+    const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false); // Flags if the headers are changed
+    const [initialHeaderDates, setInitialHeaderDates] = useState([]); // Initial Persisting Copy of initialHeader dates
+
+    // Deleted phase assignee tracking
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
+
+    // Initial Data
+    const numCols = headerDates.length + 5;
     const [initialData, setInitialData] = useState(() => generateMockData(3, 10))
     const initial_assignee_count = calculateTotalAssignees(initialData)
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initializeCellContents, initialData, headerDates])
-    const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
-    const [initialHeaderDates, setInitialHeaderDates] = useState([]);
+
+    // Date Variables
     const currentMonday = getThisMondayDate()
+    const [currentEndDate, setCurrentEndDate] = useState(end_date)
+
+    // Flag inbdicates whether the page has been edited 
     const [edited, setEdited] = useState(false)
     const uneditableCellCount = headerDates.filter((headerDate) => new Date(headerDate) < currentMonday).length
 
-    const router = useRouter();
-    const pathname = usePathname();
-
-
-    const [currentEndDate, setCurrentEndDate] = useState(end_date)
-
+    // Setting up using useSheet
     const {
         cellRefs,
         selectedCells,
@@ -171,26 +75,28 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         setEdited
     );
 
+    // Sets the cell contents whenever the data is updated
     useEffect(() => {
         const newCellContents = initializeCellContents(initialData, headerDates);
         setCellContents(newCellContents);
         setHistory([newCellContents]);
     }, [initialData, headerDates, setCellContents, setHistory]);
 
-
-
+    // Sets the initial unmutated data of the cells once on load
     useEffect(() => {
-        cellRefs.current.forEach((rowRefs, rowIndex) => {
-            rowRefs.forEach((cell, colIndex) => {
+        cellRefs.current.forEach((rowRefs) => {
+            rowRefs.forEach((cell) => {
                 cell.setAttribute("data-initial", cell.textContent)
             });
         });
     }, [])
 
+    // Saves a copy of the initial headerDates
     useEffect(() => {
         setInitialHeaderDates(headerDates);
     }, []);
 
+    // Triggers a change event as soon as the page loads
     useEffect(() => {
         const selectElements = document.querySelectorAll('select');
 
@@ -201,6 +107,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         });
     }, []);
 
+    // Scroll to the end when headerDates is updated
     useEffect(() => {
         if (headerDatesUpdated) {
             const el = document.querySelector(".sheet-container");
@@ -214,56 +121,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         }
     }, [headerDatesUpdated]);
 
-
-
-    const updateAssigneeDiscipline = useCallback(
-        (row, value) => {
-            const newInitialData = [...getUpdatedData()];
-            const phaseIndex = findPhaseIndex(row);
-            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-            newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
-            setInitialData(newInitialData);
-
-            document.querySelector(`#select-${row}-2`).value = "Select...";
-            const event = new Event('change', { bubbles: true });
-            document.querySelector(`#select-${row}-2`).dispatchEvent(event);
-        }
-    );
-
-    const updateAssigneeUser = useCallback(
-        (row, value) => {
-            const newInitialData = [...getUpdatedData()];
-            const phaseIndex = findPhaseIndex(row);
-            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-            newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
-            setInitialData(newInitialData);
-        }
-    );
-
-    const getGradeName = (employeeId) => {
-        const employee = employee_data.find(emp => emp.value == employeeId);
-        return employee ? employee.grade_code : "N/A";
-    };
-
-    const getEmployeeName = (employeeId) => {
-        const employee = employee_data.find(emp => emp.value == employeeId);
-        return employee ? employee.label : "N/A";
-    };
-
-    const handleSelectChange = useCallback(
-        (e, row, col) => {
-            const value = e.target.value;
-            if (col === 1) {
-                updateAssigneeDiscipline(row, value);
-            } else if (col === 2) {
-                updateAssigneeUser(row, value);
-            }
-        },
-        [updateAssigneeDiscipline, updateAssigneeUser]
-    );
-
-    useEffect(() => console.log('Header Dates', headerDates), [headerDates])
-
+    // Checks whether the assignee labels should appear (meaning the user is out of the viewport)
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
@@ -305,235 +163,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         };
     }, [initial_assignee_count]);
 
-    const addNewMonth = () => {
-
-        setHeaderDates(() => {
-
-            const lastDateHeader = headerDates[headerDates.length - 1]
-            console.log(lastDateHeader)
-
-            const newEndDate = add(new Date(lastDateHeader), { months: 1 }).toLocaleDateString("en-GB", {
-                month: "long",
-                year: "numeric"
-            });
-
-
-            // Generate new header dates
-            const newDates = generateHeaderDates(start_date, newEndDate);
-
-            // Update the end date
-            setCurrentEndDate(newEndDate);
-
-            // Saving the current data to avoid losing it on rerender
-            const newInitialData = [...getUpdatedData()];
-            setInitialData(newInitialData)
-
-            return newDates;
-        });
-
-        setHeaderDatesUpdated(true); // Set the flag to true
-        !edited && setEdited(true)
-
-    }
-
-    const navigateRight = () => {
-        const el = document.querySelector(".sheet-container");
-
-        // Scroll to the beginning
-        el.scrollTo({
-            left: 0,
-            behavior: "smooth"
-        });
-    };
-    const removeLastWeek = () => {
-        let weekContainsData = false;
-        const lastColumnIndex = headerDates.length + 4;
-        const lastColumnCells = document.querySelectorAll(`[data-col="${lastColumnIndex}"]`);
-
-        lastColumnCells.forEach((lastColumnCell) => {
-            if (lastColumnCell.textContent?.trim() !== "") {
-                weekContainsData = true;
-            }
-        });
-
-        const updateState = () => {
-            setHeaderDates((prevDates) => {
-                if (prevDates.length > 1) {
-                    return prevDates.slice(0, -1);
-                }
-                return prevDates;
-            });
-
-            setCellContents((prevContents) => {
-                const newContents = { ...prevContents };
-                const lastColIndex = lastColumnIndex; // Last column index
-
-                for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
-                    delete newContents[`${row}-${lastColIndex}`];
-                }
-
-                return newContents;
-            });
-
-            !edited && setEdited(true);
-        };
-
-        if (weekContainsData) {
-            const confirmDelete = window.confirm("The week you are deleting contains data. Are you sure you would like to proceed?");
-            if (confirmDelete) {
-                updateState();
-            }
-        } else {
-            updateState();
-        }
-    }
-
-
-
-    const getBudgetHoursCells = useCallback(
-        (row) => {
-            let total = 0;
-            for (let i = 5; i < numCols; i++) {
-                let content =
-                    cellContents[`${row}-${i}`] === "" || cellContents[`${row}-${i}`] === undefined || cellContents[`${row}-${i}`] === null
-                        ? 0
-                        : cellContents[`${row}-${i}`];
-                total += parseInt(content);
-            }
-            return total;
-        },
-        [cellContents, numCols]
-    );
-
-    const getPhaseBudgetHours = useMemo(() => {
-        const phaseBudgetHours = initialData.map((phase, phaseIndex) => {
-            let total = 0;
-            let rowCounter = 0;
-
-            // Calculate the starting row for the phase
-            for (let i = 0; i < phaseIndex; i++) {
-                rowCounter += initialData[i].assignees.length;
-            }
-
-            // Calculate the budget hours for each assignee in the phase
-            for (let row = rowCounter; row < rowCounter + phase.assignees.length; row++) {
-                total += getBudgetHoursCells(row);
-            }
-
-            return total;
-        });
-
-        return phaseBudgetHours;
-    }, [initialData, getBudgetHoursCells]);
-
-
-    const handleAddAssignee = useCallback(
-        (phaseIndex) => {
-            const newAssignee = {
-                phase_assignee_id: crypto.randomUUID(),
-                discipline: "",
-                assignee: "",
-                projected_work_weeks: {},
-                updated_projected_work_weeks: {},
-            };
-
-            headerDates.forEach((date) => {
-                newAssignee.projected_work_weeks[date] = "";
-            });
-
-            const updatedData = [...getUpdatedData()];
-            updatedData[phaseIndex] = {
-                ...updatedData[phaseIndex],
-                assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
-            };
-
-            setInitialData(updatedData);
-
-            const newRowIndex =
-                updatedData.reduce((acc, phase, idx) => {
-                    return idx < phaseIndex ? acc + phase.assignees.length : acc;
-                }, 0) + updatedData[phaseIndex].assignees.length - 1;
-
-            setCellContents((prevContents) => {
-                const newContents = { ...prevContents };
-                for (let col = 5; col < numCols; col++) {
-                    newContents[`${newRowIndex}-${col}`] = "";
-                }
-                return newContents;
-            });
-
-            setHistory([cellContents]);
-
-            // Trigger change event on the newly added select element
-            setTimeout(() => {
-                const selectElement = document.getElementById(`select-${newRowIndex}-1`);
-                if (selectElement) {
-                    const event = new Event('change', { bubbles: true });
-                    selectElement.dispatchEvent(event);
-                }
-            }, 0);
-        },
-        [headerDates, numCols, setCellContents, cellContents, setHistory]
-    );
-
-    const deleteAssignee = useCallback(
-        (row) => {
-            const phaseIndex = findPhaseIndex(row);
-            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-            const assigneeId = initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
-
-            if (!isUUID(assigneeId)) {
-                setDeletedPhaseAssignees((prev) => [...prev, assigneeId]);
-            }
-
-            const newInitialData = [...getUpdatedData()];
-
-            // Check if there is more than one assignee in the phase before deleting
-            if (newInitialData[phaseIndex].assignees.length > 1) {
-                const confirmDelete = window.confirm("Are you sure you want to delete this assignee?");
-                if (confirmDelete) {
-                    newInitialData[phaseIndex].assignees.splice(assigneeIndex, 1);
-                    setInitialData(newInitialData);
-                }
-            } else {
-                alert("Cannot delete the only assignee in the phase.");
-            }
-        },
-        [initialData]
-    );
-
-    const findPhaseIndex = useCallback(
-        (row) => {
-            let phaseIndex = 0;
-            let currentRow = 0;
-
-            while (phaseIndex < initialData.length && currentRow + initialData[phaseIndex].assignees.length <= row) {
-                currentRow += initialData[phaseIndex].assignees.length;
-                phaseIndex += 1;
-            }
-
-            return phaseIndex;
-        },
-        [initialData]
-    );
-
-    const findAssigneeIndex = useCallback(
-        (row, phaseIndex) => {
-            let assigneeIndex = row;
-            for (let i = 0; i < phaseIndex; i++) {
-                assigneeIndex -= initialData[i].assignees.length;
-            }
-            return assigneeIndex;
-        },
-        [initialData]
-    );
-
-    const isUUID = useCallback((id) => {
-        const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
-        return regexExp.test(id);
-    }, []);
-
-    const getUpdatedData = useCallback(() => {
+    // Function that loops over the cells to update the current data so it persists across re-renders
+    const getUpdatedData = () => {
         const updatedData = initialData.map((phase) => ({
             phase_id: phase.phase_id,
             phase: phase.phase,
@@ -585,8 +216,196 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
         updatedData.deletedAssignees = deletedPhaseAssignees;
         return updatedData;
-    }, [initialData, cellRefs, findPhaseIndex, findAssigneeIndex, isUUID, deletedPhaseAssignees]);
+    }
 
+    // Function that adds a new month to the headerDates
+    const addNewMonth = () => {
+
+        setHeaderDates(() => {
+
+            const lastDateHeader = headerDates[headerDates.length - 1]
+
+            const newEndDate = add(new Date(lastDateHeader), { months: 1 }).toLocaleDateString("en-GB", {
+                month: "long",
+                year: "numeric"
+            });
+
+
+            // Generate new header dates
+            const newDates = generateHeaderDates(start_date, newEndDate);
+
+            // Update the end date
+            setCurrentEndDate(newEndDate);
+
+            // Saving the current data to avoid losing it on rerender
+            const newInitialData = [...getUpdatedData()];
+            setInitialData(newInitialData)
+
+            return newDates;
+        });
+
+        setHeaderDatesUpdated(true); // Set the flag to true
+        !edited && setEdited(true)
+
+    }
+
+    // Function that removes the last week of the headerDates
+    const removeLastWeek = () => {
+        let weekContainsData = false;
+        const lastColumnIndex = headerDates.length + 4;
+        const lastColumnCells = document.querySelectorAll(`[data-col="${lastColumnIndex}"]`);
+
+        lastColumnCells.forEach((lastColumnCell) => {
+            if (lastColumnCell.textContent?.trim() !== "") {
+                weekContainsData = true;
+            }
+        });
+
+        const updateState = () => {
+            setHeaderDates((prevDates) => {
+                if (prevDates.length > 1) {
+                    return prevDates.slice(0, -1);
+                }
+                return prevDates;
+            });
+
+            setCellContents((prevContents) => {
+                const newContents = { ...prevContents };
+                const lastColIndex = lastColumnIndex; // Last column index
+
+                for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
+                    delete newContents[`${row}-${lastColIndex}`];
+                }
+
+                return newContents;
+            });
+
+            !edited && setEdited(true);
+        };
+
+        if (weekContainsData) {
+            const confirmDelete = window.confirm("The week you are deleting contains data. Are you sure you would like to proceed?");
+            if (confirmDelete) {
+                updateState();
+            }
+        } else {
+            updateState();
+        }
+    }
+
+    // Calculate the budget hours for the cumulative phases
+    const getBudgetHoursCells = (row) => {
+        let total = 0;
+        for (let i = 5; i < numCols; i++) {
+            let content =
+                cellContents[`${row}-${i}`] === "" || cellContents[`${row}-${i}`] === undefined || cellContents[`${row}-${i}`] === null
+                    ? 0
+                    : cellContents[`${row}-${i}`];
+            total += parseInt(content);
+        }
+        return total;
+    }
+
+    // Calculate budget hours for each phase
+    const getPhaseBudgetHours = useMemo(() => {
+        const phaseBudgetHours = initialData.map((phase, phaseIndex) => {
+            let total = 0;
+            let rowCounter = 0;
+
+            // Calculate the starting row for the phase
+            for (let i = 0; i < phaseIndex; i++) {
+                rowCounter += initialData[i].assignees.length;
+            }
+
+            // Calculate the budget hours for each assignee in the phase
+            for (let row = rowCounter; row < rowCounter + phase.assignees.length; row++) {
+                total += getBudgetHoursCells(row);
+            }
+
+            return total;
+        });
+
+        return phaseBudgetHours;
+    }, [initialData, getBudgetHoursCells]);
+
+    // Handles assignee addition
+    const handleAddAssignee = useCallback(
+        (phaseIndex) => {
+            const newAssignee = {
+                phase_assignee_id: crypto.randomUUID(),
+                discipline: "",
+                assignee: "",
+                projected_work_weeks: {},
+                updated_projected_work_weeks: {},
+            };
+
+            headerDates.forEach((date) => {
+                newAssignee.projected_work_weeks[date] = "";
+            });
+
+            const updatedData = [...getUpdatedData()];
+            updatedData[phaseIndex] = {
+                ...updatedData[phaseIndex],
+                assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
+            };
+
+            setInitialData(updatedData);
+
+            const newRowIndex =
+                updatedData.reduce((acc, phase, idx) => {
+                    return idx < phaseIndex ? acc + phase.assignees.length : acc;
+                }, 0) + updatedData[phaseIndex].assignees.length - 1;
+
+            setCellContents((prevContents) => {
+                const newContents = { ...prevContents };
+                for (let col = 5; col < numCols; col++) {
+                    newContents[`${newRowIndex}-${col}`] = "";
+                }
+                return newContents;
+            });
+
+            setHistory([cellContents]);
+
+            // Trigger change event on the newly added select element
+            setTimeout(() => {
+                const selectElement = document.getElementById(`select-${newRowIndex}-1`);
+                if (selectElement) {
+                    const event = new Event('change', { bubbles: true });
+                    selectElement.dispatchEvent(event);
+                }
+            }, 0);
+        },
+        [headerDates, numCols, setCellContents, cellContents, setHistory]
+    );
+
+    // Handles assignee deletion
+    const deleteAssignee = useCallback(
+        (row) => {
+            const phaseIndex = findPhaseIndex(row, initialData);
+            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+            const assigneeId = initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
+
+            if (!isUUID(assigneeId)) {
+                setDeletedPhaseAssignees((prev) => [...prev, assigneeId]);
+            }
+
+            const newInitialData = [...getUpdatedData()];
+
+            // Check if there is more than one assignee in the phase before deleting
+            if (newInitialData[phaseIndex].assignees.length > 1) {
+                const confirmDelete = window.confirm("Are you sure you want to delete this assignee?");
+                if (confirmDelete) {
+                    newInitialData[phaseIndex].assignees.splice(assigneeIndex, 1);
+                    setInitialData(newInitialData);
+                }
+            } else {
+                alert("Cannot delete the only assignee in the phase.");
+            }
+        },
+        [initialData]
+    );
+
+    // Handles saving to the DB
     const handleSave = useCallback(() => {
         const updatedData = getUpdatedData();
 
@@ -624,87 +443,57 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         console.log("Updated Data:", updatedData);
     }, [getUpdatedData, deletedPhaseAssignees]);
 
-    const colors = useMemo(
-        () => [
-            "#86cead",
-            "#80c6f7",
-            "#ffe6a1",
-            "#a6ecec",
-            "#d1b3ff",
-            "#ffce99",
-            "#e5c7eb",
-            "#f29b9b",
-            "#99e699",
-            "#d1a3ff",
-            "#b3ffff",
-            "#fff3b3"
-        ],
-        []
-    );
-    const getColorForMonth = useCallback(
-        (date) => {
-            const month = new Date(date).getMonth(); // Get month index (0-11)
-            return colors[month];
-        },
-        [colors]
-    );
+
+    const findPhaseIndex = (row) => {
+        let phaseIndex = 0;
+        let currentRow = 0;
+
+        while (phaseIndex < initialData.length && currentRow + initialData[phaseIndex].assignees.length <= row) {
+            currentRow += initialData[phaseIndex].assignees.length;
+            phaseIndex += 1;
+        }
+
+        return phaseIndex;
+    }
+
+    const findAssigneeIndex = (row, phaseIndex) => {
+        let assigneeIndex = row;
+        for (let i = 0; i < phaseIndex; i++) {
+            assigneeIndex -= initialData[i].assignees.length;
+        }
+        return assigneeIndex;
+    }
+
+    const updateAssigneeDiscipline = (row, value) => {
+        const newInitialData = [...getUpdatedData()];
+        const phaseIndex = findPhaseIndex(row);
+        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+        newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
+        setInitialData(newInitialData);
+
+        document.querySelector(`#select-${row}-2`).value = "Select...";
+        const event = new Event('change', { bubbles: true });
+        document.querySelector(`#select-${row}-2`).dispatchEvent(event);
+    }
+
+    const updateAssigneeUser = (row, value) => {
+        const newInitialData = [...getUpdatedData()];
+        const phaseIndex = findPhaseIndex(row);
+        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+        newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
+        setInitialData(newInitialData);
+    }
+
+    const handleSelectChange = (e, row, col) => {
+        const value = e.target.value;
+        if (col === 1) {
+            updateAssigneeDiscipline(row, value);
+        } else if (col === 2) {
+            updateAssigneeUser(row, value);
+        }
+    }
 
     const renderGrid = useCallback(() => {
-
-        const savePhaseStateToLocalStorage = (phaseId, state) => {
-
-            // Initialize local storage if it doesn't exist
-            if (!localStorage.getItem("phaseStates")) {
-                localStorage.setItem("phaseStates", JSON.stringify([]));
-            }
-
-            let phaseStates = JSON.parse(localStorage.getItem('phaseStates')) || [];
-
-            // Check if the phase already exists
-            const phaseIndex = phaseStates.findIndex(phase => phase.id == phaseId);
-
-            if (phaseIndex != -1) {
-                // Update the existing phase state
-                phaseStates[phaseIndex].state = state;
-            } else {
-                // Add the new phase state
-                phaseStates.push({ id: phaseId, state: state });
-            }
-
-            localStorage.setItem('phaseStates', JSON.stringify(phaseStates));
-
-        };
-
-        const getPhaseStateFromLocalStorage = (phaseId) => {
-            const phaseStates = JSON.parse(localStorage.getItem('phaseStates')) || [];
-            const phase = phaseStates.find(phase => phase.id == phaseId);
-            return phase ? phase.state : 'expanded'; // Default to expanded
-        };
-
-        const handleCollapseClick = (e, phaseId) => {
-            const phaseHeader = e.target.closest('.phase-header');
-            const assigneeWrapper = phaseHeader.nextElementSibling;
-
-
-            if (assigneeWrapper && assigneeWrapper.classList.contains('assignee-wrapper')) {
-                assigneeWrapper.classList.add('hidden');
-                phaseHeader.classList.remove('expanded');
-                phaseHeader.classList.add('collapsed');
-                savePhaseStateToLocalStorage(phaseId, 'collapsed');
-            }
-        };
-
-        const handleExpandClick = (e, phaseId) => {
-            const phaseHeader = e.target.closest('.phase-header');
-            const assigneeWrapper = phaseHeader.nextElementSibling;
-
-            if (assigneeWrapper && assigneeWrapper.classList.contains('assignee-wrapper')) {
-                assigneeWrapper.classList.remove('hidden');
-                phaseHeader.classList.remove('collapsed');
-                phaseHeader.classList.add('expanded');
-                savePhaseStateToLocalStorage(phaseId, 'expanded');
-            }
-        };
 
         const rows = [];
 
@@ -778,8 +567,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             if (phase?.assignees) {
                 phase.assignees.forEach((assignee, assigneeIndex) => {
-                    const assignee_grade = getGradeName(assignee.assignee);
-                    const assignee_name = getEmployeeName(assignee.assignee);
+                    const assignee_grade = getGradeName(assignee.assignee, employee_data);
+                    const assignee_name = getEmployeeName(assignee.assignee, employee_data);
 
                     const row = rowCounter;
                     rowCounter += 1;
@@ -941,10 +730,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         getEmployeeName,
     ]);
 
-
     return (
         <>
-
             <div className="flex items-start max-w-full w-fit">
                 <div className="space-y-5">
                     <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} />
