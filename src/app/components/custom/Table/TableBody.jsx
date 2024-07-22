@@ -19,7 +19,7 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
                   <div className="flex justify-center items-center gap-1">
                     {column.render('Header')}
                     <span className={column.isSortedDesc ? 'text-red-500' : ''}>
-                      {column.isSorted ? (column.isSortedDesc ? <Image src="/resources/icons/descending.svg" height="15" width="15" /> : <Image src="/resources/icons/ascending.svg" height="15" width="15" />) : ''}
+                      {column.isSorted ? (column.isSortedDesc ? <Image src="/resources/icons/descending.svg" height="15" width="15" alt="descending" /> : <Image src="/resources/icons/ascending.svg" alt="ascending" height="15" width="15" />) : ''}
                     </span>
                   </div>
 

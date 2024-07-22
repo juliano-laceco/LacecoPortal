@@ -128,14 +128,14 @@ const calculateTotalAssignees = (data) => {
 
 const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date }) => {
 
-    const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
-    const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
+    const memoizedEmployeeData = useMemo(() => employee_data, [employee_data])
+    const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data])
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
-    const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
+    const numCols = headerDates.length + 5;
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 50));
-    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData));
-    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
+    const [initialData, setInitialData] = useState(() => generateMockData(3, 10))
+    const initial_assignee_count = calculateTotalAssignees(initialData)
+    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initializeCellContents, initialData, headerDates])
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false);
     const [initialHeaderDates, setInitialHeaderDates] = useState([]);
     const currentMonday = getThisMondayDate()
@@ -262,7 +262,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         [updateAssigneeDiscipline, updateAssigneeUser]
     );
 
-
+    useEffect(() => console.log('Header Dates', headerDates), [headerDates])
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -305,9 +305,14 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         };
     }, [initial_assignee_count]);
 
-    const addNewMonth = useCallback(() => {
+    const addNewMonth = () => {
+
         setHeaderDates(() => {
-            const newEndDate = add(new Date(currentEndDate), { months: 1 }).toLocaleDateString("en-GB", {
+
+            const lastDateHeader = headerDates[headerDates.length - 1]
+            console.log(lastDateHeader)
+
+            const newEndDate = add(new Date(lastDateHeader), { months: 1 }).toLocaleDateString("en-GB", {
                 month: "long",
                 year: "numeric"
             });
@@ -329,7 +334,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         setHeaderDatesUpdated(true); // Set the flag to true
         !edited && setEdited(true)
 
-    }, [currentEndDate, initialData, setCellContents, start_date]);
+    }
 
     const navigateRight = () => {
         const el = document.querySelector(".sheet-container");
@@ -340,7 +345,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             behavior: "smooth"
         });
     };
-    const removeLastWeek = useCallback(() => {
+    const removeLastWeek = () => {
         let weekContainsData = false;
         const lastColumnIndex = headerDates.length + 4;
         const lastColumnCells = document.querySelectorAll(`[data-col="${lastColumnIndex}"]`);
@@ -381,7 +386,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         } else {
             updateState();
         }
-    }, [headerDates.length, initialData, setCellContents, edited]);
+    }
 
 
 
@@ -648,7 +653,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
         const savePhaseStateToLocalStorage = (phaseId, state) => {
 
-            console.log(phaseId)
             // Initialize local storage if it doesn't exist
             if (!localStorage.getItem("phaseStates")) {
                 localStorage.setItem("phaseStates", JSON.stringify([]));
@@ -669,8 +673,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             localStorage.setItem('phaseStates', JSON.stringify(phaseStates));
 
-            // Logging to debug
-            console.log(`Saved Phase States:`, JSON.stringify(phaseStates, null, 2));
         };
 
         const getPhaseStateFromLocalStorage = (phaseId) => {

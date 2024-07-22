@@ -6,7 +6,7 @@ import useScreenSize from "@/app/hooks/UseScreenSize";
 function TablePagination({ canNextPage, canPreviousPage, previousPage, nextPage, pageCount, pageOptions, pageSizeOptions, gotoPage, pageSize, setPageSize, pageIndex }) {
 
     const screenSize = useScreenSize();
-    console.log(screenSize)
+
  
     const maxPageButtons = screenSize == "mob" ? 3 : 5 
     // Calculate the start and end page numbers based on the current page
