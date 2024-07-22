@@ -1,5 +1,5 @@
 import DepartmentTile from '@/app/components/DepartmentTile';
-import Sheet from '@/app/components/new/Sheet';
+import Sheet from '@/app/components/Sheet/Sheet';
 import { getAllEmployees } from '@/utilities/employee/employee-utils';
 import { getDisciplines } from '@/utilities/lookups/lookup-utils';
 import { getProjectData } from '@/utilities/project/project-utils';
@@ -81,7 +81,7 @@ async function ProjectDeployment({ params, searchParams }) {
             </div>
           </div>
           <div className="py-4 px-6 w-fit bg-white rounded-xl shadow-2xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
-            <Image src="/resources/icons/budget-hours.png" height="40" width="40" alt="budget-hours-icon" />
+            {/* <Image src="/resources/icons/budget-hours.png" height="40" width="40" alt="budget-hours-icon" /> */}
             <div className="text-center space-y-2 sm:text-left">
               <div className="">
                 <p className="text-3xl text-black font-semibold">456</p>
@@ -90,7 +90,7 @@ async function ProjectDeployment({ params, searchParams }) {
             </div>
           </div>
           <div className="py-4 px-6 w-fit bg-white rounded-xl shadow-2xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
-            <Image src="/resources/icons/variance.png" height="40" width="40" alt="variance-icon" />
+            {/* <Image src="/resources/icons/variance.png" height="40" width="40" alt="variance-icon" /> */}
             <div className="text-center space-y-2 sm:text-left">
               <div className="space-y-0.5">
                 <p className="text-3xl text-red-500 font-semibold"> -30% </p>
@@ -112,22 +112,9 @@ async function ProjectDeployment({ params, searchParams }) {
             </div>
           </div>
         </div>
-        <p className="text-2xl font-semibold mt-6">Hours Split By Discipline</p>
-
-        {/* <div className="grid grid-cols-5 w-fit gap-3 select-none bg-white shadow-2xl rounded-lg p-2">
-          <DepartmentTile icon_name="electrical" department_name="Electrical" percentage="20" />
-          <DepartmentTile icon_name="wet-utilities" department_name="Wet Utilities" percentage="13" />
-          <DepartmentTile icon_name="structure" department_name="Structure" percentage="17" />
-          <DepartmentTile icon_name="roads" department_name="Roads" percentage="16" />
-          <DepartmentTile icon_name="environment" department_name="Environment" percentage="10" />
-          <DepartmentTile icon_name="interior-design" department_name="Interior Design" percentage="12" />
-          <DepartmentTile icon_name="mechanical" department_name="Mechanical" percentage="10" />
-          <DepartmentTile icon_name="landscape" department_name="Landscape" percentage="5" />
-          <DepartmentTile icon_name="management" department_name="Management" percentage="5" />
-        </div> */}
-
+        <p className="text-2xl font-semibold mt-8">Hours Split By Discipline</p>
         <div className="bg-white p-3 shadow-xl rounded-lg w-fit">
-          <img src="/resources/icons/image.png" className="w-[1000px] h-[300px]" alt="stats-image"/>
+          <Image src="/resources/icons/image.png" height="300" width="1000" alt="stats-image" />
         </div>
       </div>
 

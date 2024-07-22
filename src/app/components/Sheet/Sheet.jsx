@@ -127,7 +127,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             (entries) => {
                 entries.forEach((entry) => {
                     // Check horizontal visibility
-                    const isVisibleHorizontally = entry.isIntersecting && entry.intersectionRatio === 1;
+                    const isVisibleHorizontally = entry.isIntersecting;
 
                     document.querySelectorAll(".assignee-label").forEach(assignee_label_div => {
                         if (!isVisibleHorizontally) {
@@ -162,6 +162,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             });
         };
     }, [initial_assignee_count]);
+
 
     // Function that loops over the cells to update the current data so it persists across re-renders
     const getUpdatedData = () => {

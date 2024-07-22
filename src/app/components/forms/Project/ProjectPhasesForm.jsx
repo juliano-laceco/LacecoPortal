@@ -92,7 +92,14 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, 
                                         alt="delete-icon"
                                     />
                                 ) : (
-                                    <p className="text-pric text-xs">Phase Contains Assignees</p>
+                                    <Image
+                                        height="30"
+                                        width="30"
+                                        src="/resources/icons/bin.svg"
+                                        className="bg-gray-300 p-2 rounded-md cursor-not-allowed transition-all duration-200 ease"
+                                        alt="delete-icon"
+                                        title="Phase contains assignees. Unable to delete"
+                                    />
                                 )
                             }
                         </div>

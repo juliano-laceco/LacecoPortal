@@ -52,6 +52,11 @@ div:has(.react-select__control):not(.panel) {
 } */
 
 
+
+.assignee-label-hidden .arrow-left {
+    display: none;
+}
+
 .collapsed .collapsePhase {
     display: none;
 }
