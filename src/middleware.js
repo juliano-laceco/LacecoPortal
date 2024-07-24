@@ -8,14 +8,16 @@ export default withAuth(
         const page = req.nextUrl.pathname
         const role = req.nextauth.token?.role_name
 
-        //  console.log("THIS IS THE ROLE :", role)
-        //  console.log("THIS IS THE PATHNAME :", page)
+        // console.log("THIS IS THE ROLE :", role)
+        // console.log("THIS IS THE PATHNAME :", page)
 
         switch (true) {
             case /^\/hr(\/|$)/.test(page):
-                if (role !== "HR") return NextResponse.redirect(new URL("/forbidden", req.url))
+                if (role != "HR") return NextResponse.redirect(new URL("/forbidden", req.url))
+                    break;
             case /^\/planning(\/|$)/.test(page):
-                if (role !== "Planning Administrator") return NextResponse.redirect(new URL("/forbidden", req.url))
+                if (role != "Planning Administrator") return NextResponse.redirect(new URL("/forbidden", req.url))
+                    break;
         }
     },
     {

@@ -12,6 +12,8 @@ async function EmployeeFormLoader({ params, isEdit }) {
         const employee_id = params?.employee_id
         const employeeRes = await getEmployeeData(employee_id)
         const employeeDataRes = employeeRes.data ?? []
+
+      
         employeeCount = employeeDataRes.length
         employeeData = employeeDataRes[0]
     }

@@ -123,7 +123,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
     // Defining loading State Variables
     const [loadingDisciplines, setLoadingDisciplines] = useState(false);
     const [filteredDisciplines, setFilteredDisciplines] = useState([]);
-    const [loadingPositions, setLoadingPositions] = useState(false);
+
     const [filteredPositions, setFilteredPositions] = useState([]);
 
 
@@ -160,10 +160,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
     async function handleDivisionChange(division_id) {
 
         setLoadingDisciplines(true);
-
         clearDiscipline();
-        clearPosition();
-        clearPositionDetails();
 
         const disciplinesRes = await getDisciplines(division_id);
         const disciplines = disciplinesRes?.data ?? [];
@@ -174,16 +171,11 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
     async function handleDisciplineChange(discipline_id) {
 
-        setLoadingPositions(true);
-
-        clearPosition();
-        clearPositionDetails();
-
         const positionsRes = await getPositions(discipline_id);
         const positions = positionsRes?.data ?? [];
 
         setFilteredPositions(positions);
-        setLoadingPositions(false);
+
     }
 
     async function handlePositionChange(position_id) {
@@ -207,10 +199,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
     function clearPositionDetails() {
         setValue("level_of_management_name", "");
         setValue("grade_name", "");
-    }
-
-    function clearPosition() {
-        setValue("position_id", "");
     }
 
     function clearDiscipline() {
@@ -325,8 +313,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                 <DropdownLookup
                     className="select-input"
                     label="Position"
-                    options={filteredPositions}
-                    isLoading={loadingPositions}
+                    options={optionsData.positions}
                     input_name="position_id"
                     control={control}
                     handler={handlePositionChange}

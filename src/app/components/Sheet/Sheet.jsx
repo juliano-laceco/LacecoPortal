@@ -40,7 +40,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     // Initial Data
     const numCols = headerDates.length + 5;
     const [initialData, setInitialData] = useState(() => generateMockData(3, 10))
-    const initial_assignee_count = calculateTotalAssignees(initialData)
+    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData), [initialData, calculateTotalAssignees])
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initializeCellContents, initialData, headerDates])
 
     // Date Variables
@@ -86,10 +86,13 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     useEffect(() => {
         cellRefs.current.forEach((rowRefs) => {
             rowRefs.forEach((cell) => {
-                cell.setAttribute("data-initial", cell.textContent)
+                if (cell) { // Check if the cell is defined
+                    console.log('Setting attribute for cell:', cell);
+                    cell.setAttribute("data-initial", cell.textContent);
+                }
             });
         });
-    }, [])
+    }, []);
 
     // Saves a copy of the initial headerDates
     useEffect(() => {
@@ -129,20 +132,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     // Check horizontal visibility
                     const isVisibleHorizontally = entry.isIntersecting;
 
-                    document.querySelectorAll(".assignee-label").forEach(assignee_label_div => {
-                        if (!isVisibleHorizontally) {
-                            assignee_label_div.classList.remove('hidden');
-                            document.querySelector(".user-tracker-visible").innerHTML = "visible";
-                        } else {
-                            assignee_label_div.classList.add('hidden');
-                            document.querySelector(".user-tracker-visible").innerHTML = "hidden";
-                        }
-                    });
-
-                    if (!isVisibleHorizontally) {
-                        document.querySelector(".arrow-left")?.classList.remove("hidden");
+                    if (isVisibleHorizontally) {
+                        document.querySelector(".sheet-container").classList.add("out-of-view")
                     } else {
-                        document.querySelector(".arrow-left")?.classList.add("hidden");
+                        document.querySelector(".sheet-container").classList.remove("out-of-view")
                     }
                 });
             },
@@ -162,7 +155,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             });
         };
     }, [initial_assignee_count]);
-
 
     // Function that loops over the cells to update the current data so it persists across re-renders
     const getUpdatedData = () => {
@@ -652,7 +644,13 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 }}
                                 className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : `min-w-12 max-w-12 cursor-cell focus:cursor-auto ${col >= 5 && col < 5 + uneditableCellCount ? "bg-gray-200 cursor-not-allowed" : ""}`} justify-center items-center p-1 box-border text-center z-0 select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
-                                onMouseDown={col > 4 + uneditableCellCount ? () => handleMouseDown(row, col) : undefined}
+                                onMouseDown={
+                                    col > 4 + uneditableCellCount ?
+                                        (e) => {
+                                            handleMouseDown(row, col);
+                                        }
+                                        : undefined
+                                }
                                 onMouseEnter={col > 4 + uneditableCellCount ? () => handleMouseEnter(row, col) : undefined}
                                 onMouseUp={col > 4 + uneditableCellCount ? handleMouseUp : undefined}
                                 data-date={col > 4 ? headerDates[col - 5] : ""}
@@ -666,7 +664,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 onKeyUp={col > 4 + uneditableCellCount ? (e) => !edited && setEdited(true) : undefined}
                                 contentEditable={isContentEditable}
                                 suppressContentEditableWarning
-                                suppressHydrationWarning
+
                             >
                                 {content}
                             </div>
@@ -675,7 +673,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
                     assigneeRows.push(
                         <>
-                            <div className="assignee-label hidden select-none text-center bg-gray-300 text-gray-600 p-1 mt-3 sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
+                            <div className="assignee-label select-none text-center bg-gray-300 text-gray-600 p-1 mt-3 w-[100vw] sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
                                 {assignee.assignee === "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
                             </div>
                             <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`}>
@@ -688,7 +686,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 assigneeRows.push(
                     <div
                         key={`add-assignee-${crypto.randomUUID()}`}
-                        className={`p-2 text-white flex-1 sticky text-lg text-center w-full cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease`}
+                        className={`p-2 text-white flex-1 text-lg text-center w-[100vw] cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease sticky left-0`}
                         onClick={() => handleAddAssignee(phaseIndex)}
                     >
                         + Add New
@@ -739,7 +737,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     <div className="flex gap-2">
                         <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
                             {renderGrid()}
-                            <div className="arrow-left sticky bottom-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer hidden">
+                            <div className="arrow-left sticky bottom-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer">
                                 <div className="relative flex justify-center items-center">
                                     <div className="absolute w-12 h-12 rounded-full bg-lightRed animate-pulseRing"></div>
                                     <div className="absolute w-16 h-16 rounded-full bg-red-400 animate-pulseRing"></div>
@@ -777,7 +775,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
                 Save
             </button>
-            <p className="user-tracker-visible hidden"></p>
+            <p className="user-tracker-visible"></p>
         </>
     );
 };

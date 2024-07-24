@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroups, page, prepareRow }) {
+function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroups, page, prepareRow, data }) {
   return (
     <table {...getTableProps()} className="min-w-full divide-y rounded-lg shadow-lg overflow-hidden divide-gray-200 table-auto">
       <thead>
@@ -22,7 +22,6 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
                       {column.isSorted ? (column.isSortedDesc ? <Image src="/resources/icons/descending.svg" height="15" width="15" alt="descending" /> : <Image src="/resources/icons/ascending.svg" alt="ascending" height="15" width="15" />) : ''}
                     </span>
                   </div>
-
                 </th>
               );
             })}
@@ -59,6 +58,14 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
             </td>
           </tr>
         )}
+
+        {page.length > 0 &&
+          <tr>
+            <td colSpan={tableHeaders.length} className="px-6 py-4 text-left text-sm text-pric bg-gray-100">
+              Showing {page.length} out of {data.length} entries
+            </td>
+          </tr>
+        }
       </tbody>
     </table>
   );

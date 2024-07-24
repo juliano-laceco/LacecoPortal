@@ -65,6 +65,11 @@ div:has(.react-select__control):not(.panel) {
     display: none;
 }
 
+.out-of-view .assignee-label,
+.out-of-view .arrow-left {
+    display: none;
+}
+
 /* For WebKit browsers (Chrome, Safari) */
 ::-webkit-scrollbar {
     width: 15px;
