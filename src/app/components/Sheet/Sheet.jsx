@@ -21,9 +21,11 @@ import {
     handleCollapseClick,
     handleExpandClick
 } from './SheetUtils';
+import { data } from "jquery";
+import { saveDeployment } from "@/utilities/project/project-utils";
 
 
-const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date }) => {
+const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date, deployment_data }) => {
 
     // Memoized Employee and Discipline Data
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data])
@@ -40,7 +42,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     // Initial Data
     const numCols = headerDates.length + 5;
-    const [initialData, setInitialData] = useState(() => generateMockData(3, 10))
+    // const [initialData, setInitialData] = useState(() => generateMockData(3, 5))
+    const [initialData, setInitialData] = useState(() => deployment_data)
     const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData), [initialData, calculateTotalAssignees])
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initializeCellContents, initialData, headerDates])
 
@@ -80,6 +83,11 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         setIsFirstRender(false)
     }, [])
 
+
+    useEffect(() => {
+
+        console.log(initialData)
+    }, [initialData])
     // Sets the cell contents whenever the data is updated
     useEffect(() => {
         const newCellContents = initializeCellContents(initialData, headerDates);
@@ -164,7 +172,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const getUpdatedData = () => {
         const updatedData = initialData.map((phase) => ({
             phase_id: phase.phase_id,
-            phase: phase.phase,
+            phase_name: phase.phase_name,
             assignees: phase.assignees.map((assignee) => ({
                 phase_assignee_id: assignee.phase_assignee_id,
                 discipline: assignee.discipline,
@@ -191,7 +199,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         } else if (colIndex === 2) {
                             updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
                         } else if (colIndex > 4) {
-                            newValue != "" && (updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue);
+                            if (newValue != "") {
+                                updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
+                            }
                         }
                     } else {
 
@@ -204,12 +214,15 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
                         } else if (colIndex > 4) {
                             updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
-                            dataChanged && (updatedData[phaseIndex].assignees[assigneeIndex].updated_projected_work_weeks[date] = newValue);
+                            if (dataChanged) {
+                                updatedData[phaseIndex].assignees[assigneeIndex].updated_projected_work_weeks[date] = newValue;
+                            }
                         }
                     }
                 }
             });
         });
+
 
         updatedData.deletedAssignees = deletedPhaseAssignees;
         return updatedData;
@@ -248,6 +261,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     // Function that removes the last week of the headerDates
     const removeLastWeek = () => {
+
         let weekContainsData = false;
         const lastColumnIndex = headerDates.length + 4;
         const lastColumnCells = document.querySelectorAll(`[data-col="${lastColumnIndex}"]`);
@@ -325,7 +339,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         return phaseBudgetHours;
     }, [initialData, getBudgetHoursCells]);
 
-    // Handles assignee addition
+
     const handleAddAssignee = useCallback(
         (phaseIndex) => {
             const newAssignee = {
@@ -333,7 +347,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 discipline: "",
                 assignee: "",
                 projected_work_weeks: {},
-                updated_projected_work_weeks: {},
             };
 
             headerDates.forEach((date) => {
@@ -353,8 +366,19 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     return idx < phaseIndex ? acc + phase.assignees.length : acc;
                 }, 0) + updatedData[phaseIndex].assignees.length - 1;
 
+            // Adjust the indices of the cell contents for all subsequent rows
             setCellContents((prevContents) => {
-                const newContents = { ...prevContents };
+                const newContents = {};
+                Object.keys(prevContents).forEach(key => {
+                    const [row, col] = key.split('-').map(Number);
+                    if (row >= newRowIndex) {
+                        newContents[`${row + 1}-${col}`] = prevContents[key];
+                    } else {
+                        newContents[key] = prevContents[key];
+                    }
+                });
+
+                // Add the new row's cells
                 for (let col = 5; col < numCols; col++) {
                     newContents[`${newRowIndex}-${col}`] = "";
                 }
@@ -372,8 +396,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 }
             }, 0);
         },
-        [headerDates, numCols, setCellContents, cellContents, setHistory]
+        [headerDates, numCols, setCellContents, cellContents, setHistory, getUpdatedData, setInitialData]
     );
+
 
     // Handles assignee deletion
     const deleteAssignee = useCallback(
@@ -438,6 +463,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         }
 
         console.log("Updated Data:", updatedData);
+        saveDeployment(updatedData)
     }, [getUpdatedData, deletedPhaseAssignees]);
 
 
@@ -546,7 +572,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             rows.push(
                 <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex border-b border-gray-300 items-center sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none ${phase_display}`}>
-                    {phase.phase} - {" "}
+                    {phase.phase_name} - {" "}
                     <span className="text-red-400 text-lg mr-4">
                         {" "}
                         {getPhaseBudgetHours[phaseIndex]} hrs
@@ -588,7 +614,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     id={`select-${row}-${col}`}
                                     value={assignee.discipline || 1}
                                     onChange={(e) => handleSelectChange(e, row, col)}
-                                    className="native-select border border-gray-300 rounded-md px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer select-none w-full  focus:border-none"
+                                    className="native-select border border-gray-300 rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer select-none w-full  focus:border-none"
                                 >
                                     <option key={crypto.randomUUID()} value="Select...">Select...</option>
                                     {memoizedDisciplineData.map((option) => (
@@ -605,7 +631,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                         id={`select-${row}-${col}`}
                                         value={assignee.assignee}
                                         onChange={(e) => handleSelectChange(e, row, col)}
-                                        className="native-select border border-gray-300 rounded-md px-3 py-1 box-border text-center text-ellipsis cursor-pointer select-none w-full focus:ring-gray-500 focus:ring-[1.5px] focus:border-none"
+                                        className="native-select border border-gray-300 rounded-sm px-3 py-1 box-border text-center text-ellipsis cursor-pointer select-none w-full focus:ring-gray-500 focus:ring-[1.5px] focus:border-none"
                                     >
                                         <option key={crypto.randomUUID()} value="Select...">Select...</option>
                                         {memoizedEmployeeData
@@ -614,7 +640,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                                 <option key={option.value} value={option.value}>
                                                     {option.label}
                                                 </option>
-                                            ))}
+                                            ))
+                                        }
                                     </select>
                                 </>
                             );
@@ -661,7 +688,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 data-col={col}
                                 data-row={row}
                                 data-phase-id={phase.phase_id}
-                                data-initial={isFirstRender ? content : cellRefs.current[row][col].getAttribute("data-initial")}
+                                data-initial={isFirstRender ? content : cellRefs.current[row][col]?.getAttribute("data-initial")}
                                 data-phase-assignee-id={assignee.phase_assignee_id}
                                 onClick={col > 4 + uneditableCellCount ? () => handleClick(row, col) : undefined}
                                 onDoubleClick={col > 4 + uneditableCellCount ? () => handleDoubleClick(row, col) : undefined}
@@ -669,7 +696,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 onKeyUp={col > 4 + uneditableCellCount ? (e) => !edited && setEdited(true) : undefined}
                                 contentEditable={isContentEditable}
                                 suppressContentEditableWarning
-
                             >
                                 {content}
                             </div>
@@ -678,7 +704,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
                     assigneeRows.push(
                         <>
-                            <div className="assignee-label select-none text-center bg-gray-300 text-gray-600 p-1 mt-3 w-[100vw] sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
+                            <div className="assignee-label select-none text-center bg-gray-300 text-gray-600 p-1 mt-3 max-w-[100vw] sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
                                 {assignee.assignee === "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
                             </div>
                             <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`}>
@@ -691,12 +717,18 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 assigneeRows.push(
                     <div
                         key={`add-assignee-${crypto.randomUUID()}`}
-                        className={`p-2 text-white flex-1 text-lg text-center w-[100vw] cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease sticky left-0`}
+                        className={`p-2 text-white flex-1 text-lg text-center max-w-[100vw] cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease sticky left-0`}
                         onClick={() => handleAddAssignee(phaseIndex)}
                     >
                         + Add New
                     </div>
                 );
+            }
+
+            if (phase?.assignees.length == 0) {
+                rows.push(
+                    <div className="text-center max-w-[100vw] p-3 text-pric"> No assignees found </div>
+                )
             }
 
             rows.push(
@@ -735,20 +767,14 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         getEmployeeName,
     ]);
 
-
-
-
     return (
         <>
-            <p className="abracada">{isFirstRender ? "yes" : "no"}</p>
             <div className="flex items-start max-w-full w-fit">
                 <div className="space-y-5">
                     <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} />
                     <div className="flex gap-2">
                         <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
-
                             {renderGrid()}
-
                             <div className="arrow-left sticky bottom-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer">
                                 <div className="relative flex justify-center items-center">
                                     <div className="absolute w-12 h-12 rounded-full bg-lightRed animate-pulseRing"></div>

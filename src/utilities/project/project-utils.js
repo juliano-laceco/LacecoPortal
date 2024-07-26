@@ -4,6 +4,7 @@ import db from "@/config/db";
 import { dynamicQuery, execute, getTableFields, renameAmbiguousColumns } from "../db/db-utils";
 import * as res from "../response-utils"
 import { getLoggedInId } from "../auth/auth-utils";
+import { formatDate } from "../date/date-utils";
 
 export async function checkProjectCodeExists(code) {
 
@@ -281,6 +282,7 @@ export async function updateProject(projectData) {
 
 export async function getProjectData(project_id) {
     try {
+
         // Query to get the project data with formatted dates, handling NULLs
         const projectRows = await execute(`
             SELECT
@@ -311,7 +313,9 @@ export async function getProjectData(project_id) {
                 DATE_FORMAT(p.created_on, '%Y-%m-%d %H:%i:%s') AS created_on,
                 p.created_by,
                 isBaselined
-            FROM project p JOIN employee e on p.employee_id = e.employee_id JOIN position pos on e.position_id = pos.position_id
+            FROM project p 
+            JOIN employee e on p.employee_id = e.employee_id 
+            JOIN position pos on e.position_id = pos.position_id
             WHERE project_id = ?
         `, [project_id]);
 
@@ -322,43 +326,185 @@ export async function getProjectData(project_id) {
 
         let projectData = { projectInfo: projectRows[0] };
 
-        const phaseRows = await execute(`
-        SELECT 
-            p.phase_id,
-            p.phase_name, 
-            CASE WHEN p.planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_startdate, '%Y-%m-%d') END AS planned_startdate,
-            CASE WHEN p.planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_enddate, '%Y-%m-%d') END AS planned_enddate,
-            p.project_id, 
-            p.actioned_by,
-            EXISTS (
+        let phaseRows = await execute(`
+            SELECT 
+                p.phase_id,
+                p.phase_name, 
+                CASE WHEN p.planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_startdate, '%d %M %Y') END AS planned_startdate,
+                CASE WHEN p.planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_enddate, '%d %M %Y') END AS planned_enddate,
+                p.project_id, 
+                p.actioned_by,
+                EXISTS (
                 SELECT 1 
                 FROM phase_assignee pa 
                 WHERE pa.phase_id = p.phase_id
-            ) AS hasAssignees
-        FROM phase p
-        WHERE p.project_id = ?
-    `, [project_id]);
+                ) AS hasAssignees
+            FROM phase p
+            WHERE p.project_id = ?
+        `, [project_id]);
 
+        // Fetching assignees for each phase and adding them to phaseRows
+        for (let i = 0; i < phaseRows.length; i++) {
+            const phase = phaseRows[i];
+            const assigneeQuery = `
+                SELECT 
+                    pw.projected_work_week_id, 
+                    pa.phase_assignee_id ,
+                    e.discipline_id AS discipline,
+                    e.employee_id AS assignee,
+                    pw.hours_expected, 
+                    pw.projected_work_week_id, 
+                    DATE_FORMAT(pw.week_start, '%d %M %Y') AS week_start
+                FROM phase_assignee pa
+                JOIN projected_work_week pw ON pa.phase_assignee_id = pw.phase_assignee_id
+                JOIN employee e ON pa.assignee_id = e.employee_id
+                WHERE pa.phase_id = ?
+            `;
+
+            const assigneeRows = await execute(assigneeQuery, [phase.phase_id]);
+
+            const assigneeMap = {};
+
+            assigneeRows.forEach((row) => {
+
+                if (!assigneeMap[row.phase_assignee_id]) {
+                    assigneeMap[row.phase_assignee_id] = {
+                        phase_assignee_id: row.phase_assignee_id,
+                        discipline: row.discipline,
+                        assignee: row.assignee,
+                        projected_work_weeks: {}
+                    };
+                }
+                assigneeMap[row.phase_assignee_id].projected_work_weeks[row.week_start] = row.hours_expected;
+            });
+
+            const assignees = Object.values(assigneeMap);
+            phase.assignees = assignees;
+        }
+
+        let allDates = []
+
+        if (phaseRows.some((phaseRow) => phaseRow.hasAssignees > 0)) {
+            phaseRows.map((phaseRow) => {
+                const assignees = phaseRow.assignees
+
+                assignees.map((assignee) => {
+                    allDates.push(...Object.keys(assignee.projected_work_weeks))
+                })
+            })
+
+            allDates = new Set(allDates)
+
+            const { minDate, maxDate } = getMinMaxDate(allDates)
+            projectData.projectInfo = { ...(projectData.projectInfo), minDate, maxDate }
+
+        }
 
         // Fetching Selected Disciplines
         const selectedDisciplines = await execute(`
-        SELECT pd.discipline_id as value , d.discipline_name as label
-          FROM project_disciplines as pd
-          INNER JOIN discipline as d ON pd.discipline_id = d.discipline_id
-          WHERE pd.project_id = ?
-    `, [project_id]);
+            SELECT pd.discipline_id as value , d.discipline_name as label
+            FROM project_disciplines as pd
+            INNER JOIN discipline as d ON pd.discipline_id = d.discipline_id
+            WHERE pd.project_id = ?
+        `, [project_id]);
 
         // Add the phases to the project data
         projectData = { ...projectData, phases: phaseRows };
 
         // Add the disciplines
-        projectData.projectInfo.disciplines = selectedDisciplines
+        projectData.projectInfo.disciplines = selectedDisciplines;
 
         return res.success_data(projectData);
+
     } catch (error) {
         console.error('Error fetching project data:', error);
         return res.failed();
     }
+}
+
+
+export async function saveDeployment(deployment_data) {
+
+    deployment_data.map((phase) => {
+
+        const { phase_id, phase_name, assignees } = phase
+
+        assignees.map(async (assigneeItem) => {
+            const { phase_assignee_id, discipline, assignee, projected_work_weeks, updated_projected_work_weeks } = assigneeItem
+
+            const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+            const isNew = regexExp.test(phase_assignee_id ?? "");
+
+            if (!isNew) {
+                const paQuery = "UPDATE phase_assignee SET assignee_id = ? WHERE phase_assignee_id = ?";
+                await execute(paQuery, [assignee, phase_assignee_id])
+
+                Object.keys(updated_projected_work_weeks).map(async (dateKey) => {
+
+
+                    const newVal = updated_projected_work_weeks[dateKey]
+
+                    if (newVal != "") {
+                        // Prepare the query
+                        const updatedWeekQuery =
+                            `UPDATE projected_work_week pw
+                             JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
+                             JOIN phase p  ON pa.phase_id = p.phase_id
+                             SET pw.hours_expected = ?
+                             WHERE pw.phase_assignee_id = ?
+                             AND pw.week_start = ?
+                             AND p.phase_id = ? ;
+                             `;
+
+                        await execute(updatedWeekQuery, [updated_projected_work_weeks[dateKey], phase_assignee_id, formatDate(dateKey), phase_id])
+                    } else {
+
+                        const updatedWeekQuery =
+                            `DELETE FROM projected_work_week 
+                             WHERE phase_assignee_id = ?
+                             AND week_start = ?
+                             AND phase_assignee_id IN (
+                                 SELECT pa.phase_assignee_id
+                                 FROM phase_assignee pa
+                                 JOIN phase p ON pa.phase_id = p.phase_id
+                                 WHERE p.phase_id = ?
+                             );
+                            `;
+
+                        await execute(updatedWeekQuery, [phase_assignee_id, formatDate(dateKey), phase_id])
+                    }
+
+                })
+
+            } else {
+                const paQuery = "INSERT INTO phase_assignee (assignee_id , phase_id)  VALUES ( ? , ? )"
+                const paRes = await execute(paQuery, [assignee, phase_id])
+                const insertedAssignee = paRes.insertId
+
+                Object.keys(projected_work_weeks).map(async (dateKey) => {
+                    const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id , week_start , hours_expected)  VALUES ( ? , ? , ?)"
+                    await execute(projectedQuery, [insertedAssignee, formatDate(dateKey), projected_work_weeks[dateKey]])
+                })
+
+            }
+        })
+    })
+}
+
+function getMinMaxDate(dateSet) {
+
+    // Convert dates to Date objects for comparison
+    const dateObjects = Array.from(dateSet).map(dateStr => new Date(dateStr));
+
+    // Find min and max dates using Date objects
+    const minDate = new Date(Math.min(...dateObjects));
+    const maxDate = new Date(Math.max(...dateObjects));
+
+    // Format min and max dates back to strings
+    const minDateString = minDate.toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' });
+    const maxDateString = maxDate.toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    return { minDate: minDateString, maxDate: maxDateString, initialDeployment: false };
 }
 
 
@@ -405,6 +551,7 @@ export async function getAllProjects(qs = {}) {
     try {
 
         const selectClause = await renameAmbiguousColumns(resp.data)
+
         // Base query
         let query = `SELECT ${selectClause.slice(2)} 
                      FROM project p 
