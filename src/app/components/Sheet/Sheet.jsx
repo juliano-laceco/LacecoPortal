@@ -33,6 +33,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false); // Flags if the headers are changed
     const [initialHeaderDates, setInitialHeaderDates] = useState([]); // Initial Persisting Copy of initialHeader dates
+    const [isFirstRender, setIsFirstRender] = useState(true)
 
     // Deleted phase assignee tracking
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
@@ -75,6 +76,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         setEdited
     );
 
+    useEffect(() => {
+        setIsFirstRender(false)
+    }, [])
+
     // Sets the cell contents whenever the data is updated
     useEffect(() => {
         const newCellContents = initializeCellContents(initialData, headerDates);
@@ -87,7 +92,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         cellRefs.current.forEach((rowRefs) => {
             rowRefs.forEach((cell) => {
                 if (cell) { // Check if the cell is defined
-                    console.log('Setting attribute for cell:', cell);
                     cell.setAttribute("data-initial", cell.textContent);
                 }
             });
@@ -657,6 +661,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 data-col={col}
                                 data-row={row}
                                 data-phase-id={phase.phase_id}
+                                data-initial={isFirstRender ? content : cellRefs.current[row][col].getAttribute("data-initial")}
                                 data-phase-assignee-id={assignee.phase_assignee_id}
                                 onClick={col > 4 + uneditableCellCount ? () => handleClick(row, col) : undefined}
                                 onDoubleClick={col > 4 + uneditableCellCount ? () => handleDoubleClick(row, col) : undefined}
@@ -699,6 +704,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     {assigneeRows}
                 </div>
             );
+
         });
 
         return rows;
@@ -729,14 +735,20 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         getEmployeeName,
     ]);
 
+
+
+
     return (
         <>
+            <p className="abracada">{isFirstRender ? "yes" : "no"}</p>
             <div className="flex items-start max-w-full w-fit">
                 <div className="space-y-5">
                     <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} />
                     <div className="flex gap-2">
                         <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
+
                             {renderGrid()}
+
                             <div className="arrow-left sticky bottom-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer">
                                 <div className="relative flex justify-center items-center">
                                     <div className="absolute w-12 h-12 rounded-full bg-lightRed animate-pulseRing"></div>
@@ -744,6 +756,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     <div className="absolute w-20 h-20 rounded-full animate-pulseRing"></div>
                                     <div className="relative z-10 flex justify-center items-center bg-transparent rounded-full p-2">
                                         <Image src="/resources/icons/arrow.png" height="20" width="20" className="select-none" alt="arrow" onClick={navigateRight} />
+
                                     </div>
                                 </div>
 

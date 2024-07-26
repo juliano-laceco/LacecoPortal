@@ -13,8 +13,8 @@ export default withAuth(
 
         switch (true) {
             case /^\/hr(\/|$)/.test(page):
-                if (role != "HR") return NextResponse.redirect(new URL("/forbidden", req.url))
-                    break;
+                // if (role != "HR") return NextResponse.redirect(new URL("/forbidden", req.url))
+                //     break;
             case /^\/planning(\/|$)/.test(page):
                 if (role != "Planning Administrator") return NextResponse.redirect(new URL("/forbidden", req.url))
                     break;
