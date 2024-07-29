@@ -102,8 +102,8 @@ export const generateMockData = (numPhases, assigneesPerPhase) => {
 export const initializeCellContents = (initialData, headerDates) => {
     const cellContents = {};
     let rowCounter = 0;
-    initialData.forEach((phase) => {
-        phase.assignees.forEach((assignee) => {
+    initialData?.forEach((phase) => {
+        phase.assignees?.forEach((assignee) => {
             headerDates.forEach((date, colIndex) => {
                 const cellIndex = colIndex + 5; // Adjust for the discipline and user columns
                 cellContents[`${rowCounter}-${cellIndex}`] = assignee.projected_work_weeks[date] || "";
@@ -115,7 +115,7 @@ export const initializeCellContents = (initialData, headerDates) => {
 };
 
 export const calculateTotalAssignees = (data) => {
-    return data.reduce((total, phase) => total + phase.assignees.length, 0);
+    return data.reduce((total, phase) => total + phase?.assignees?.length, 0);
 };
 
 export const getGradeName = (employeeId, employee_data) => {

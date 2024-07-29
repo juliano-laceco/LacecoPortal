@@ -21,8 +21,10 @@ import {
     handleCollapseClick,
     handleExpandClick
 } from './SheetUtils';
-import { data } from "jquery";
+
 import { saveDeployment } from "@/utilities/project/project-utils";
+import Modal from "../custom/Modals/Modal";
+import Button from "../custom/Button";
 
 
 const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date, deployment_data }) => {
@@ -30,6 +32,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     // Memoized Employee and Discipline Data
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data])
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data])
+
+
+    // Combined state for modal visibility and content
+    const [modal, setModal] = useState(null);
 
     // Header Dates Variables
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
@@ -83,11 +89,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         setIsFirstRender(false)
     }, [])
 
-
-    useEffect(() => {
-
-        console.log(initialData)
-    }, [initialData])
     // Sets the cell contents whenever the data is updated
     useEffect(() => {
         const newCellContents = initializeCellContents(initialData, headerDates);
@@ -145,9 +146,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     const isVisibleHorizontally = entry.isIntersecting;
 
                     if (isVisibleHorizontally) {
-                        document.querySelector(".sheet-container").classList.add("out-of-view")
+                        document.querySelector(".sheet-container")?.classList?.add("out-of-view")
                     } else {
-                        document.querySelector(".sheet-container").classList.remove("out-of-view")
+                        document.querySelector(".sheet-container")?.classList?.remove("out-of-view")
                     }
                 });
             },
@@ -223,9 +224,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             });
         });
 
-
-        updatedData.deletedAssignees = deletedPhaseAssignees;
-        updatedData.initialDateHeaders = initialHeaderDates;
         return updatedData;
     }
 
@@ -296,10 +294,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         };
 
         if (weekContainsData) {
-            const confirmDelete = window.confirm("The week you are deleting contains data. Are you sure you would like to proceed?");
-            if (confirmDelete) {
-                updateState();
-            }
+            openModal(updateState, "Cannot Delete Week");
         } else {
             updateState();
         }
@@ -330,7 +325,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             }
 
             // Calculate the budget hours for each assignee in the phase
-            for (let row = rowCounter; row < rowCounter + phase.assignees.length; row++) {
+            for (let row = rowCounter; row < rowCounter + phase.assignees?.length; row++) {
                 total += getBudgetHoursCells(row);
             }
 
@@ -364,7 +359,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             const newRowIndex =
                 updatedData.reduce((acc, phase, idx) => {
-                    return idx < phaseIndex ? acc + phase.assignees.length : acc;
+                    return idx < phaseIndex ? acc + phase.assignees?.length : acc;
                 }, 0) + updatedData[phaseIndex].assignees.length - 1;
 
             // Adjust the indices of the cell contents for all subsequent rows
@@ -416,17 +411,15 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             // Check if there is more than one assignee in the phase before deleting
             if (newInitialData[phaseIndex].assignees.length > 1) {
-                const confirmDelete = window.confirm("Are you sure you want to delete this assignee?");
-                if (confirmDelete) {
-                    newInitialData[phaseIndex].assignees.splice(assigneeIndex, 1);
-                    setInitialData(newInitialData);
-                }
+                openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
             } else {
-                alert("Cannot delete the only assignee in the phase.");
+                openModal(null, "Cannot Delete Assignee")
             }
         },
         [initialData]
     );
+
+
 
     // Handles saving to the DB
     const handleSave = useCallback(() => {
@@ -437,7 +430,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         let noticeMessage = "";
 
         updatedData.forEach((phase) => {
-            phase.assignees.forEach((assignee) => {
+            phase?.assignees?.forEach((assignee) => {
                 if (assignee.discipline == "Select..." || assignee.assignee == "Select...") {
                     isValid = false;
                     noticeMessage = "All assignees must have a discipline and a user.";
@@ -464,7 +457,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         }
 
         console.log("Updated Data:", updatedData);
-        saveDeployment(updatedData)
+        saveDeployment(updatedData, deletedPhaseAssignees)
     }, [getUpdatedData, deletedPhaseAssignees]);
 
 
@@ -516,6 +509,95 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             updateAssigneeUser(row, value);
         }
     }
+
+    const openModal = (data = null, type) => {
+        const renderModalContent = (message, buttons) => (
+            <Modal open={true} onClose={() => setModal(null)}>
+                <div className="flex items-center gap-4">
+                    <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
+                    <div className="mob:text-xs">
+                        <p>{message}</p>
+                    </div>
+                </div>
+                <div className="flex justify-center gap-4 mb-4 mt-5">
+                    {buttons.map((button, index) => (
+                        <Button
+                            key={index}
+                            variant={button.variant}
+                            small
+                            name={button.name}
+                            onClick={button.onClick}
+                        >
+                            {button.name}
+                        </Button>
+                    ))}
+                </div>
+            </Modal>
+        );
+
+        let modalContent;
+        switch (type) {
+            case "Assignee Delete":
+                const { newInitialData, phaseIndex, assigneeIndex } = data;
+                modalContent = renderModalContent(
+                    "Are you sure you would like to delete this assignee and all assigned weeks?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Proceed",
+                            onClick: () => {
+                                newInitialData[phaseIndex].assignees.splice(assigneeIndex, 1);
+                                setInitialData(newInitialData);
+                                setModal(null);
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ]
+                );
+                break;
+            case "Cannot Delete Assignee":
+                modalContent = renderModalContent(
+                    "Unable to delete. Phase must contain at least one assignee.",
+                    [
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ]
+                );
+                break;
+            case "Cannot Delete Week":
+                modalContent = renderModalContent(
+                    "The week you are deleting contains data. Are you sure you would like to proceed?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Proceed",
+                            onClick: () => {
+                                data();
+                                setModal(null);
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ]
+                );
+                break;
+        }
+        setModal(modalContent);
+    };
+
+
+
+
 
     const renderGrid = useCallback(() => {
 
@@ -590,7 +672,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             const assigneeRows = [];
 
             if (phase?.assignees) {
-                phase.assignees.forEach((assignee, assigneeIndex) => {
+                phase?.assignees?.forEach((assignee, assigneeIndex) => {
                     const assignee_grade = getGradeName(assignee.assignee, employee_data);
                     const assignee_name = getEmployeeName(assignee.assignee, employee_data);
 
@@ -726,7 +808,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 );
             }
 
-            if (phase?.assignees.length == 0) {
+            if (phase?.assignees?.length == 0) {
                 rows.push(
                     <div className="text-center max-w-[100vw] p-3 text-pric"> No assignees found </div>
                 )
@@ -770,9 +852,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     return (
         <>
+            {modal}
             <div className="flex items-start max-w-full w-fit">
                 <div className="space-y-5">
-                    <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} />
+                    <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} setModal={setModal} modal={modal} />
                     <div className="flex gap-2">
                         <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
                             {renderGrid()}
@@ -811,7 +894,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     </div>
                 </div>
             </div>
-
             <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
                 Save
             </button>

@@ -140,3 +140,25 @@ export async function renameAmbiguousColumns(columns) {
 
 
 }
+
+// Utility functions for transaction management
+export const startTransaction = async () => {
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+    return connection;
+};
+
+export const executeTrans = async (query, params, connection) => {
+    const [results] = await connection.execute(query, params);
+    return results;
+};
+
+export const commitTransaction = async (connection) => {
+    await connection.commit();
+    connection.release();
+};
+
+export const rollbackTransaction = async (connection) => {
+    await connection.rollback();
+    connection.release();
+};

@@ -17,7 +17,7 @@ const Modal = ({ open = false, type, title, newPath, onClose, children, classNam
         <>
             {open &&
                 <>
-                    <div className='absolute bg-black w-screen flex justify-center items-center h-screen bg-opacity-30 overflow-auto' >
+                    <div className={`modal-container fixed bg-black w-screen flex justify-center items-center h-screen bg-opacity-30 overflow-auto ${open ? "isVisible" : ""}`} >
                         <div
                             className={`fixed bg-white border shadow-2xl rounded-lg opacity-100 overflow-y-auto transition-all duration-500 z-30 max-w-[70ex] max-h-screen min-h-fit ${className}`}
                         >

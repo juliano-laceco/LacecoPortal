@@ -61,7 +61,7 @@ function Form({
                     {children}
                 </div>
                 <div className="flex items-center justify-between gap-2 mt-3">
-                    <div>{AdditionalButton}</div>
+                    <div className="flex gap-3 items-center">{AdditionalButton}</div>
                     <div className="col-span-full">
                         <Button name={submitText} submit={submit} isDisabled={isDisabled || isSubmitting} />
                     </div>

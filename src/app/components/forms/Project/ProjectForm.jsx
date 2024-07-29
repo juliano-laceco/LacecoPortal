@@ -8,13 +8,17 @@ import Stepper from '@/app/components/custom/Flow/Stepper';
 import { createProject, updateProject } from '@/utilities/project/project-utils';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/utilities/toast-utils';
+import Modal from '../../custom/Modals/Modal';
+import Image from 'next/image';
+import Button from '../../custom/Button';
+
 
 const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
 
     const router = useRouter()
 
     const [data, setData] = useState(defaultData ?? {})
-
+    const [modalIsOpen, setModalIsOpen] = useState(true)
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
     const onNext = useCallback((dataFromStep) => {
@@ -44,7 +48,7 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
         setData(updatedData);
 
         let result;
-        
+
         if (!isEdit) {
             result = await createProject(preprocessData(updatedData));
         } else {
@@ -76,13 +80,34 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
         { id: 2, name: 'Project Phases' }
     ];
 
+    const navigateToAllProjects = () => {
+        router.replace("/planning/project/all");
+    }
 
     return (
         <>
+            <Modal open={modalIsOpen} onClose={() => setModalIsOpen(false)} >
+                <div className="flex items-center gap-4">
+                    <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
+                    <div className="mob:text-xs">
+                        <p>Cancelling this operation will discard any changes made.</p>
+                        <p>Are you sure you wish to proceed?</p>
+                    </div>
+                </div>
+                <div className="flex justify-center gap-4 mb-4 mt-5">
+                    <Button variant="primary" small name="Proceed" onClick={navigateToAllProjects}>
+                        Proceed
+                    </Button>
+                    <Button variant="secondary" small name="Close" onClick={() => setModalIsOpen(false)}>
+                        Close
+                    </Button>
+
+                </div>
+            </Modal>
             <Stepper steps={steps} currentStep={currentStepIndex} />
             <Flow currentIndex={currentStepIndex} onNext={onNext} onBack={onBack} onDone={onDone}>
-                <MemoizedProjectInfoForm data={data.projectInfo} dropdowns={projectDropdowns.projectInfoDropdowns} isEdit={isEdit} />
-                <MemoizedProjectPhasesForm data={data.phases} dropdowns={projectDropdowns.phaseCreationDropdowns} isEdit={isEdit} />
+                <MemoizedProjectInfoForm data={data.projectInfo} dropdowns={projectDropdowns.projectInfoDropdowns} isEdit={isEdit} confirmModal={setModalIsOpen} />
+                <MemoizedProjectPhasesForm data={data.phases} dropdowns={projectDropdowns.phaseCreationDropdowns} isEdit={isEdit} confirmModal={setModalIsOpen} />
             </Flow>
         </>
     );

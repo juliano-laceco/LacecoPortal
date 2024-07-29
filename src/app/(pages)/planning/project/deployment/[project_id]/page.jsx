@@ -112,10 +112,10 @@ async function ProjectDeployment({ params, searchParams }) {
             </div>
           </div>
         </div>
-        <p className="text-2xl font-semibold mt-8">Hours Split By Discipline</p>
-        <div className="bg-white p-3 shadow-xl rounded-lg w-fit">
-          <Image src="/resources/icons/image.png" height="300" width="1000" alt="stats-image" />
-        </div>
+        {/* <p className="text-2xl font-semibold mt-8">Hours Split By Discipline</p> */}
+        {/* <div className="bg-white p-3 shadow-xl rounded-lg w-fit"> */}
+        {/* <Image src="/resources/icons/image.png" height="300" width="1000" alt="stats-image" /> */}
+        {/* </div> */}
       </div>
 
       <div className="space-y-4">

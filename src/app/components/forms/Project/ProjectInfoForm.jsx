@@ -12,10 +12,11 @@ import { formatDate } from '@/utilities/date/date-utils';
 import { checkDisciplineIsPhaseAssigned, checkProjectCodeExists } from '@/utilities/project/project-utils';
 import Modal from "../../custom/Modals/Modal"
 import UnremovableDiscipline from './UnremovableDiscipline';
+import Link from 'next/link';
 
 
 
-const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, isEdit }) => {
+const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, isEdit, confirmModal }) => {
 
 
     const [modalIsOpen, setModalIsOpen] = useState(false)
@@ -134,12 +135,7 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
         } else {
             goNext({ projectInfo: preprocessData(formData) });
         }
-
-
     };
-
-
-
     function findRemovedItems(array1, array2) {
         // Convert array2 to a Set for faster lookup, normalize to string for comparison
         const set2 = new Set(array2.map(item => String(item.value)));
@@ -164,11 +160,16 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
                 submitText="Next"
                 columns={{ default: 1, mob: 1, lap: 4, desk: 4, tablet: 2 }}
                 AdditionalButton={
-                    !isFirstStep && (
-                        <Button variant="secondary" medium name="Back" onClick={goBack}>
-                            Back
+                    <>
+                        {!isFirstStep && (
+                            <Button variant="secondary" medium name="Back" onClick={goBack}>
+                                Back
+                            </Button>
+                        )}
+                        <Button variant="secondary" medium name="Cancel" onClick={() => confirmModal(true)}>
+                            Cancel
                         </Button>
-                    )
+                    </>
                 }
                 submit
             >
@@ -241,7 +242,7 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
                     control={control}
                     error={errors.employee_id?.message}
                 />
-            </Form>
+            </Form >
             <Modal title="Cannot Remove Disciplines" open={modalIsOpen} type="client" onClose={() => setModalIsOpen(false)}>
                 <UnremovableDiscipline unremovableDisciplines={unremovableDisciplines} />
             </Modal >

@@ -1,7 +1,7 @@
 "use server"
 
 import db from "@/config/db";
-import { dynamicQuery, execute, getTableFields, renameAmbiguousColumns } from "../db/db-utils";
+import { commitTransaction, dynamicQuery, execute, executeTrans, getTableFields, renameAmbiguousColumns, rollbackTransaction, startTransaction } from "../db/db-utils";
 import * as res from "../response-utils"
 import { getLoggedInId } from "../auth/auth-utils";
 import { formatDate } from "../date/date-utils";
@@ -37,7 +37,6 @@ export async function createProject(projectData) {
         await connection.beginTransaction();
 
         const projectInfo = projectData.projectInfo;
-        const phases = projectData.phases;
         const disciplines = projectInfo.disciplines
         const initiatorId = await getLoggedInId();
 
@@ -68,36 +67,6 @@ export async function createProject(projectData) {
         );
 
         const projectId = projectInsertResult[0].insertId;
-
-        // Insert phases into the phases table
-        for (const phase of phases) {
-            // Check if the trimmed phase_name exists in the phase_name table
-            const trimmedPhaseName = phase.phase_name.trim();
-            const [existingPhaseName] = await connection.query(`
-                SELECT phase_name 
-                FROM lacecodb.phase_name 
-                WHERE phase_name = ?`,
-                [trimmedPhaseName]
-            );
-
-            // If the phase_name doesn't exist, insert it
-            if (existingPhaseName.length === 0) {
-                await connection.query(`
-                    INSERT INTO lacecodb.phase_name 
-                    (phase_name) 
-                    VALUES (?)`,
-                    [trimmedPhaseName]
-                );
-            }
-
-            // Insert the phase into the phase table
-            await connection.query(`
-                INSERT INTO phase
-                (phase_name, planned_startdate, planned_enddate, project_id , actioned_by) 
-                VALUES (?, ?, ?, ? , ?)`,
-                [trimmedPhaseName, phase.planned_startdate, phase.planned_enddate, projectId, initiatorId]
-            );
-        }
 
         // Insert project disciplines into the project_disciplines table
 
@@ -132,14 +101,12 @@ export async function createProject(projectData) {
 
 export async function updateProject(projectData) {
 
-    let connection;
+    let transaction;
     const initiatorId = await getLoggedInId();
 
     try {
-        // Get a connection from the pool
-        connection = await db.getConnection();
         // Start the transaction
-        await connection.beginTransaction();
+        transaction = await startTransaction();
 
         const projectInfo = projectData?.projectInfo;
         const phases = projectData?.phases;
@@ -147,7 +114,7 @@ export async function updateProject(projectData) {
         const project_id = projectData?.project_id;
 
         // Update project information in the project table
-        await connection.query(`
+        await executeTrans(`
             UPDATE project
             SET employee_id = ?, 
                 planned_enddate = ?, 
@@ -184,100 +151,84 @@ export async function updateProject(projectData) {
                 projectInfo.code,
                 projectInfo.title,
                 project_id
-            ]
+            ],
+            transaction
         );
 
         // Delete existing records related to disciplines for the project
-        await connection.query(`
+        await executeTrans(`
             DELETE FROM project_disciplines
             WHERE project_id = ?`,
-            [project_id]
+            [project_id],
+            transaction
         );
 
         // Insert new discipline data into the project_disciplines table
         for (const discipline of disciplines) {
-            await connection.query(`
+            await executeTrans(`
                 INSERT INTO project_disciplines
                 (project_id, discipline_id) 
                 VALUES (?, ?)`,
-                [project_id, discipline]
+                [project_id, discipline],
+                transaction
             );
         }
 
-
         // Delete phases with no assignees from the database
-        await connection.query(`
+        await executeTrans(`
              DELETE p
              FROM phase p
              LEFT JOIN phase_assignee pa ON p.phase_id = pa.phase_id
              WHERE pa.phase_id IS NULL
              AND p.project_id = ?`,
-            [project_id]
+            [project_id],
+            transaction
         );
 
         // Update data for phases with assignees
         const phasesToUpdate = phases.filter(phase => phase.hasAssignees == 1);
         for (const phase of phasesToUpdate) {
-            await connection.query(`
-        UPDATE phase
-        SET phase_name = ?, 
-            planned_startdate = ?, 
-            planned_enddate = ?
-        WHERE project_id = ? AND phase_id = ?`,
-                [phase.phase_name, phase.planned_startdate, phase.planned_enddate, project_id, phase.phase_id]
+            await executeTrans(`
+                UPDATE phase
+                SET phase_name = ?, 
+                    planned_startdate = ?, 
+                    planned_enddate = ?
+                WHERE project_id = ? AND phase_id = ?`,
+                [phase.phase_name, phase.planned_startdate, phase.planned_enddate, project_id, phase.phase_id],
+                transaction
             );
         }
 
         // Insert phases with no assignees into the database
         const phasesToInsert = phases.filter(phase => !phase.hasAssignees);
         for (const phase of phasesToInsert) {
-            await connection.query(`
-        INSERT INTO phase
-        (phase_name, planned_startdate, planned_enddate, project_id, actioned_by) 
-        VALUES (?, ?, ?, ?, ?)`,
-                [phase.phase_name, phase.planned_startdate, phase.planned_enddate, project_id, initiatorId]
+            await executeTrans(`
+                INSERT INTO phase
+                (phase_name, planned_startdate, planned_enddate, project_id, actioned_by) 
+                VALUES (?, ?, ?, ?, ?)`,
+                [phase.phase_name, phase.planned_startdate, phase.planned_enddate, project_id, initiatorId],
+                transaction
             );
-        }
-
-        // Add phase names that are not in the DB
-        for (const phase of phases) {
-            const trimmedPhaseName = phase.phase_name.trim()
-            const [existingPhaseName] = await connection.query(`
-            SELECT phase_name 
-            FROM lacecodb.phase_name 
-            WHERE phase_name = ?`,
-                [trimmedPhaseName]
-            );
-
-            // If the phase_name doesn't exist, insert it
-            if (existingPhaseName.length === 0) {
-                await connection.query(`
-                INSERT INTO lacecodb.phase_name 
-                (phase_name) 
-                VALUES (?)`,
-                    [trimmedPhaseName]
-                );
-            }
         }
 
         // Commit the transaction if all queries are successful
-        await connection.commit();
-
-        // Release the connection
-        connection.release();
+        await commitTransaction(transaction);
 
         return res.success();
 
     } catch (error) {
         // Rollback the transaction if any query fails
-        if (connection) {
-            await connection.rollback();
-            connection.release();
+        if (transaction) {
+            await rollbackTransaction(transaction);
         }
         console.error('Transaction failed:', error);
         return res.failed();
+    } finally {
+        // Release the connection
+        if (transaction) transaction.release();
     }
 }
+
 
 
 export async function getProjectData(project_id) {
@@ -330,8 +281,8 @@ export async function getProjectData(project_id) {
             SELECT 
                 p.phase_id,
                 p.phase_name, 
-                CASE WHEN p.planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_startdate, '%d %M %Y') END AS planned_startdate,
-                CASE WHEN p.planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_enddate, '%d %M %Y') END AS planned_enddate,
+                CASE WHEN p.planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_startdate, '%Y-%m-%d') END AS planned_startdate,
+                CASE WHEN p.planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_enddate, '%Y-%m-%d') END AS planned_enddate,
                 p.project_id, 
                 p.actioned_by,
                 EXISTS (
@@ -423,96 +374,95 @@ export async function getProjectData(project_id) {
 }
 
 
-export async function saveDeployment(deployment_data) {
+export async function saveDeployment(deployment_data, deletedAssignees) {
+    const transaction = await startTransaction();
 
-    deployment_data.map((phase) => {
+    try {
+        for (const phase of deployment_data) {
+            const { phase_id, phase_name, assignees } = phase;
 
-        const { phase_id, phase_name, assignees } = phase
+            for (const assigneeItem of assignees) {
+                const { phase_assignee_id, discipline, assignee, projected_work_weeks, updated_projected_work_weeks } = assigneeItem;
 
-        assignees.map(async (assigneeItem) => {
+                const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+                const isNew = regexExp.test(phase_assignee_id ?? "");
 
-            const { phase_assignee_id, discipline, assignee, projected_work_weeks, updated_projected_work_weeks } = assigneeItem
+                if (!isNew) {
+                    const paQuery = "UPDATE phase_assignee SET assignee_id = ? WHERE phase_assignee_id = ?";
+                    await executeTrans(paQuery, [assignee, phase_assignee_id], transaction);
 
-            const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
-            const isNew = regexExp.test(phase_assignee_id ?? "");
+                    for (const dateKey of Object.keys(updated_projected_work_weeks)) {
+                        const newVal = updated_projected_work_weeks[dateKey];
 
-            if (!isNew) {
-                const paQuery = "UPDATE phase_assignee SET assignee_id = ? WHERE phase_assignee_id = ?";
-                await execute(paQuery, [assignee, phase_assignee_id])
-
-                Object.keys(updated_projected_work_weeks).map(async (dateKey) => {
-
-
-                    const newVal = updated_projected_work_weeks[dateKey]
-
-                    if (newVal != "") {
-
-
-                        const weekExistsQuery = `
-                        SELECT COUNT(pw.projected_work_week_id)
-                        FROM projected_work_week pw
-                        JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
-                        JOIN phase p  ON pa.phase_id = p.phase_id
-                        WHERE pw.phase_assignee_id = ?
-                        AND pw.week_start = ?
-                        `
-
-                        const weekExists = await execute(weekExistsQuery, [phase_assignee_id, formatDate(dateKey)])
-
-                        if (weekExists[0]["COUNT(pw.projected_work_week_id)"] > 0) {
-
-                            // Prepare the query
-                            const updatedWeekQuery =
-                            `UPDATE projected_work_week pw
-                             JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
-                             JOIN phase p  ON pa.phase_id = p.phase_id
-                             SET pw.hours_expected = ?
-                             WHERE pw.phase_assignee_id = ?
-                             AND pw.week_start = ?
-                             AND p.phase_id = ? ;
-                             `;
-
-                            await execute(updatedWeekQuery, [updated_projected_work_weeks[dateKey], phase_assignee_id, formatDate(dateKey), phase_id])
-
-                        } else {
-                            const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id , week_start , hours_expected)  VALUES ( ? , ? , ?)"
-                            await execute(projectedQuery, [phase_assignee_id, formatDate(dateKey), projected_work_weeks[dateKey]])
-                        }
-
-
-
-                    } else {
-
-                        const updatedWeekQuery =
-                            `DELETE FROM projected_work_week 
-                             WHERE phase_assignee_id = ?
-                             AND week_start = ?
-                             AND phase_assignee_id IN (
-                                 SELECT pa.phase_assignee_id
-                                 FROM phase_assignee pa
-                                 JOIN phase p ON pa.phase_id = p.phase_id
-                                 WHERE p.phase_id = ?
-                             );
+                        if (newVal !== "") {
+                            const weekExistsQuery = `
+                                SELECT COUNT(pw.projected_work_week_id) AS count
+                                FROM projected_work_week pw
+                                JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
+                                JOIN phase p ON pa.phase_id = p.phase_id
+                                WHERE pw.phase_assignee_id = ?
+                                AND pw.week_start = ?
                             `;
 
-                        await execute(updatedWeekQuery, [phase_assignee_id, formatDate(dateKey), phase_id])
+                            const weekExists = await executeTrans(weekExistsQuery, [phase_assignee_id, formatDate(dateKey)], transaction);
+
+                            if (weekExists[0].count > 0) {
+                                const updatedWeekQuery = `
+                                    UPDATE projected_work_week pw
+                                    JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
+                                    JOIN phase p ON pa.phase_id = p.phase_id
+                                    SET pw.hours_expected = ?
+                                    WHERE pw.phase_assignee_id = ?
+                                    AND pw.week_start = ?
+                                    AND p.phase_id = ?;
+                                `;
+                                await executeTrans(updatedWeekQuery, [newVal, phase_assignee_id, formatDate(dateKey), phase_id], transaction);
+                            } else {
+                                const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected) VALUES (?, ?, ?)";
+                                await executeTrans(projectedQuery, [phase_assignee_id, formatDate(dateKey), newVal], transaction);
+                            }
+                        } else {
+                            const deleteWeekQuery = `
+                                DELETE FROM projected_work_week 
+                                WHERE phase_assignee_id = ?
+                                AND week_start = ?
+                                AND phase_assignee_id IN (
+                                    SELECT pa.phase_assignee_id
+                                    FROM phase_assignee pa
+                                    JOIN phase p ON pa.phase_id = p.phase_id
+                                    WHERE p.phase_id = ?
+                                );
+                            `;
+                            await executeTrans(deleteWeekQuery, [phase_assignee_id, formatDate(dateKey), phase_id], transaction);
+                        }
                     }
+                } else {
+                    const paQuery = "INSERT INTO phase_assignee (assignee_id, phase_id) VALUES (?, ?)";
+                    const { insertId } = await executeTrans(paQuery, [assignee, phase_id], transaction);
+                    // const insertedAssignee = paRes["insertId"];
 
-                })
 
-            } else {
-                const paQuery = "INSERT INTO phase_assignee (assignee_id , phase_id)  VALUES ( ? , ? )"
-                const paRes = await execute(paQuery, [assignee, phase_id])
-                const insertedAssignee = paRes.insertId
-
-                Object.keys(projected_work_weeks).map(async (dateKey) => {
-                    const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id , week_start , hours_expected)  VALUES ( ? , ? , ?)"
-                    await execute(projectedQuery, [insertedAssignee, formatDate(dateKey), projected_work_weeks[dateKey]])
-                })
-
+                    for (const dateKey of Object.keys(projected_work_weeks)) {
+                        const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected) VALUES (?, ?, ?)";
+                        await executeTrans(projectedQuery, [insertId, formatDate(dateKey), projected_work_weeks[dateKey]], transaction);
+                    }
+                }
             }
-        })
-    })
+        }
+
+        if (deletedAssignees && deletedAssignees.length > 0) {
+            for (const assignee_id of deletedAssignees) {
+                const deleteAssigneeQuery = "DELETE FROM phase_assignee WHERE phase_assignee_id = ?";
+                await execute(deleteAssigneeQuery, [assignee_id], transaction);
+            }
+        }
+
+        await commitTransaction(transaction);
+    } catch (error) {
+        await rollbackTransaction(transaction);
+        console.error("Transaction failed and rolled back:", error);
+        throw error;
+    }
 }
 
 function getMinMaxDate(dateSet) {
