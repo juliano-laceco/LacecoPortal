@@ -430,6 +430,7 @@ export async function saveDeployment(deployment_data) {
         const { phase_id, phase_name, assignees } = phase
 
         assignees.map(async (assigneeItem) => {
+
             const { phase_assignee_id, discipline, assignee, projected_work_weeks, updated_projected_work_weeks } = assigneeItem
 
             const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
@@ -445,8 +446,23 @@ export async function saveDeployment(deployment_data) {
                     const newVal = updated_projected_work_weeks[dateKey]
 
                     if (newVal != "") {
-                        // Prepare the query
-                        const updatedWeekQuery =
+
+
+                        const weekExistsQuery = `
+                        SELECT COUNT(pw.projected_work_week_id)
+                        FROM projected_work_week pw
+                        JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
+                        JOIN phase p  ON pa.phase_id = p.phase_id
+                        WHERE pw.phase_assignee_id = ?
+                        AND pw.week_start = ?
+                        `
+
+                        const weekExists = await execute(weekExistsQuery, [phase_assignee_id, formatDate(dateKey)])
+
+                        if (weekExists[0]["COUNT(pw.projected_work_week_id)"] > 0) {
+
+                            // Prepare the query
+                            const updatedWeekQuery =
                             `UPDATE projected_work_week pw
                              JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
                              JOIN phase p  ON pa.phase_id = p.phase_id
@@ -456,7 +472,15 @@ export async function saveDeployment(deployment_data) {
                              AND p.phase_id = ? ;
                              `;
 
-                        await execute(updatedWeekQuery, [updated_projected_work_weeks[dateKey], phase_assignee_id, formatDate(dateKey), phase_id])
+                            await execute(updatedWeekQuery, [updated_projected_work_weeks[dateKey], phase_assignee_id, formatDate(dateKey), phase_id])
+
+                        } else {
+                            const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id , week_start , hours_expected)  VALUES ( ? , ? , ?)"
+                            await execute(projectedQuery, [phase_assignee_id, formatDate(dateKey), projected_work_weeks[dateKey]])
+                        }
+
+
+
                     } else {
 
                         const updatedWeekQuery =

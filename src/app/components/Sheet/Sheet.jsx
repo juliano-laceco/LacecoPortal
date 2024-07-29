@@ -225,6 +225,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
 
         updatedData.deletedAssignees = deletedPhaseAssignees;
+        updatedData.initialDateHeaders = initialHeaderDates;
         return updatedData;
     }
 
