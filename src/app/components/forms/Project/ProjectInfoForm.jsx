@@ -73,13 +73,15 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
             .typeError('Planned Start Date must be a valid date')
             .required('Planned Start Date is required')
             .test('is-future', 'Planned Start Date must be in the future', function (value) {
-                return new Date(value) > new Date();
+                // return new Date(value) > new Date();
+                return true
             }),
         planned_enddate: yup.date()
             .typeError('Planned End Date must be a valid date')
             .required('Planned End Date is required')
             .test('is-future', 'Planned End Date must be in the future', function (value) {
-                return new Date(value) > new Date();
+                // return new Date(value) > new Date();
+                return true
             })
             .test('is-after-start', 'End Date must be greater than Start Date', function (value) {
                 const { planned_startdate } = this.parent; // Access parent field value

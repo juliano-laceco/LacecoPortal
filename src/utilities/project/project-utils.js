@@ -176,8 +176,6 @@ export async function updateProject(projectData) {
         );
 
 
-        disciplines.push('78')
-
         // Insert new discipline data into the project_disciplines table
         for (const discipline of disciplines) {
             await executeTrans(`
@@ -269,8 +267,8 @@ export async function getProjectData(project_id) {
                 Landscape, 
                 ParkingArea, 
                 DesignArea, 
-                CASE WHEN planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(planned_startdate, '%d %M %Y') END AS planned_startdate,
-                CASE WHEN planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(planned_enddate, '%d %M %Y') END AS planned_enddate,
+                CASE WHEN planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(planned_startdate, '%Y-%m-%d') END AS planned_startdate,
+                CASE WHEN planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(planned_enddate, '%Y-%m-%d') END AS planned_enddate,
                 CASE WHEN start_date IS NULL THEN NULL ELSE DATE_FORMAT(start_date, '%Y-%m-%d') END AS start_date,
                 CASE WHEN end_date IS NULL THEN NULL ELSE DATE_FORMAT(end_date, '%Y-%m-%d') END AS end_date,
                 variance, 

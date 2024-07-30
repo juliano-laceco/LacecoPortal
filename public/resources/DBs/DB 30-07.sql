@@ -573,7 +573,7 @@ CREATE TABLE `phase` (
   KEY `project_id` (`project_id`),
   CONSTRAINT `phase_ibfk_1` FOREIGN KEY (`actioned_by`) REFERENCES `employee` (`employee_id`),
   CONSTRAINT `phase_ibfk_3` FOREIGN KEY (`project_id`) REFERENCES `project` (`project_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=126 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=129 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -582,7 +582,7 @@ CREATE TABLE `phase` (
 
 LOCK TABLES `phase` WRITE;
 /*!40000 ALTER TABLE `phase` DISABLE KEYS */;
-INSERT INTO `phase` VALUES (13,'Master Plan','2025-04-03','2026-04-03',NULL,NULL,'Pending',20,'2024-06-07 16:13:29',1),(32,'Pre-Conceptual Design','2025-04-03','2026-04-03',NULL,NULL,'Pending',20,'2024-06-10 14:56:49',1),(107,'Conceptual Design','2025-04-03','2026-04-03',NULL,NULL,'Pending',20,'2024-07-26 11:24:25',1),(116,'Schematic Design','2025-04-03','2026-04-03',NULL,NULL,'Pending',20,'2024-07-29 12:37:20',1),(121,'Hydrology Coordination','2025-03-04','2026-03-04',NULL,NULL,'Pending',28,'2024-07-30 13:27:15',1),(122,'Master Plan','2025-03-04','2026-03-04',NULL,NULL,'Pending',28,'2024-07-30 13:27:15',1),(123,'100% DD','2025-03-04','2026-03-04',NULL,NULL,'Pending',28,'2024-07-30 13:27:15',1),(124,'TD','2025-03-04','2026-03-04',NULL,NULL,'Pending',28,'2024-07-30 13:27:15',1);
+INSERT INTO `phase` VALUES (13,'Master Plan','2025-04-03','2026-04-03',NULL,NULL,'Pending',20,'2024-06-07 16:13:29',1),(32,'Pre-Conceptual Design','2025-04-03','2026-04-03',NULL,NULL,'Pending',20,'2024-06-10 14:56:49',1),(107,'Conceptual Design','2025-04-03','2026-04-03',NULL,NULL,'Pending',20,'2024-07-26 11:24:25',1),(116,'Schematic Design','2025-04-03','2026-04-03',NULL,NULL,'Pending',20,'2024-07-29 12:37:20',1),(121,'Hydrology Coordination','2025-03-04','2026-03-04',NULL,NULL,'Pending',28,'2024-07-30 13:27:15',1),(122,'Master Plan','2025-03-04','2026-03-04',NULL,NULL,'Pending',28,'2024-07-30 13:27:15',1),(123,'100% DD','2025-03-04','2026-03-04',NULL,NULL,'Pending',28,'2024-07-30 13:27:15',1),(126,'Master Plan','2025-03-04','2026-03-04',NULL,NULL,'Pending',25,'2024-07-30 16:25:20',1),(127,'Master Plan','2025-03-04','2026-03-04',NULL,NULL,'Pending',27,'2024-07-30 16:25:32',1),(128,'TD','2025-03-04','2026-03-04',NULL,NULL,'Pending',28,'2024-07-30 16:26:43',1);
 /*!40000 ALTER TABLE `phase` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -705,7 +705,7 @@ CREATE TABLE `phase_versions` (
 
 LOCK TABLES `phase_versions` WRITE;
 /*!40000 ALTER TABLE `phase_versions` DISABLE KEYS */;
-INSERT INTO `phase_versions` VALUES (140,'Hydrology Coordination','2025-03-04','2026-03-04',NULL,NULL,'Pending',121,1,'2024-07-30',1),(141,'Master Plan','2025-03-04','2026-03-04',NULL,NULL,'Pending',122,1,'2024-07-30',1),(142,'100% DD','2025-03-04','2026-03-04',NULL,NULL,'Pending',123,1,'2024-07-30',1),(143,'TD','2025-03-04','2026-03-04',NULL,NULL,'Pending',124,1,'2024-07-30',1);
+INSERT INTO `phase_versions` VALUES (140,'Hydrology Coordination','2025-03-04','2026-03-04',NULL,NULL,'Pending',121,1,'2024-07-30',1),(141,'Master Plan','2025-03-04','2026-03-04',NULL,NULL,'Pending',122,1,'2024-07-30',1),(142,'100% DD','2025-03-04','2026-03-04',NULL,NULL,'Pending',123,1,'2024-07-30',1);
 /*!40000 ALTER TABLE `phase_versions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -818,7 +818,7 @@ CREATE TABLE `project` (
 
 LOCK TABLES `project` WRITE;
 /*!40000 ALTER TABLE `project` DISABLE KEYS */;
-INSERT INTO `project` VALUES (20,'JABAL','JABAL_961_2024','Albania','ALBANIAN CITY',4,'Sports','Public','Infrastructure Engineering',150000,12510,12150,7000,18000,'2024-08-01','2025-08-06',NULL,NULL,0,295,'Highly Probable','2024-06-07 16:13:29',1,0),(24,'BRIDI','BRIDI_961_2024','Lebanon','BEIRUT',5,'Residential','Private','Masterplanning',15200,12000,14200,1200,1400,'2025-04-03','2026-04-03',NULL,NULL,0,385,'Highly Probable','2024-06-10 17:04:46',1,0),(25,'KALBA','KALBA_961_2024','Lebanon','Beirut',2,'Residential','Private','Masterplanning',1250000,12000,9000,6000,18000,'2025-03-04','2026-03-04',NULL,NULL,0,364,'Inactive','2024-06-11 10:46:14',1,0),(27,'DEMO_PROJECT','PROJECT_DEMO_961_2024','Lebanon','Beirut',6,'Residential','Private','Masterplanning',180000,12000,14200,1200,1400,'2025-04-03','2026-04-03',NULL,NULL,0,385,'Highly Probable','2024-07-22 14:38:10',1,0),(28,'NOMAD-KL','NOMAD_KL_961_2024','Saudi Arabia','Riyadh',7,'Residential','Private','Masterplanning',1752,12000,9000,6000,18000,'2023-12-11','2024-09-11',NULL,NULL,0,385,'Highly Probable','2024-07-30 13:24:51',1,0);
+INSERT INTO `project` VALUES (20,'JABAL','JABAL_961_2024','Albania','ALBANIAN CITY',4,'Sports','Public','Infrastructure Engineering',150000,12510,12150,7000,18000,'2024-08-01','2025-08-06',NULL,NULL,0,295,'Highly Probable','2024-06-07 16:13:29',1,0),(25,'KALBA','KALBA_961_2024','Lebanon','Beirut',2,'Residential','Private','Masterplanning',1250000,12000,9000,6000,18000,'2025-03-04','2026-03-04',NULL,NULL,0,364,'Inactive','2024-06-11 10:46:14',1,0),(27,'DEMO_PROJECT','PROJECT_DEMO_961_2024','Lebanon','Beirut',6,'Residential','Private','Masterplanning',180000,12000,14200,1200,1400,'2025-04-03','2026-04-03',NULL,NULL,0,385,'Highly Probable','2024-07-22 14:38:10',1,0),(28,'NOMAD-KL','NOMAD_KL_961_2024','Saudi Arabia','Riyadh',7,'Residential','Private','Masterplanning',1752,12000,9000,6000,18000,'2023-12-11','2024-09-11',NULL,NULL,0,385,'Highly Probable','2024-07-30 13:24:51',1,0);
 /*!40000 ALTER TABLE `project` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -872,7 +872,7 @@ CREATE TABLE `project_disciplines` (
   KEY `ibfk_discipline_id_idx` (`discipline_id`),
   CONSTRAINT `ibfk_discipline_id` FOREIGN KEY (`discipline_id`) REFERENCES `discipline` (`discipline_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `ibfk_project_id` FOREIGN KEY (`project_id`) REFERENCES `project` (`project_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=366 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=385 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -881,7 +881,7 @@ CREATE TABLE `project_disciplines` (
 
 LOCK TABLES `project_disciplines` WRITE;
 /*!40000 ALTER TABLE `project_disciplines` DISABLE KEYS */;
-INSERT INTO `project_disciplines` VALUES (203,25,65),(204,25,66),(205,25,68),(206,25,61),(207,25,64),(210,24,60),(211,24,62),(212,24,65),(213,24,66),(234,27,61),(235,27,66),(236,27,60),(237,27,80),(310,20,63),(311,20,66),(312,20,60),(313,20,61),(314,20,84),(315,20,78),(349,28,80),(350,28,83),(351,28,67),(352,28,63),(353,28,68),(354,28,66),(355,28,61),(356,28,64),(357,28,69),(358,28,78),(359,28,78),(360,28,78),(361,28,78);
+INSERT INTO `project_disciplines` VALUES (310,20,63),(311,20,66),(312,20,60),(313,20,61),(314,20,84),(315,20,78),(366,25,65),(367,25,66),(368,25,68),(369,25,61),(370,25,64),(371,27,61),(372,27,66),(373,27,60),(374,27,80),(375,28,80),(376,28,83),(377,28,67),(378,28,63),(379,28,68),(380,28,66),(381,28,61),(382,28,64),(383,28,69),(384,28,78);
 /*!40000 ALTER TABLE `project_disciplines` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1200,4 +1200,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-07-30 16:20:21
+-- Dump completed on 2024-07-30 16:36:15
