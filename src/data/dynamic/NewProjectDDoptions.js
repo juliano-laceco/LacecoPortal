@@ -10,7 +10,9 @@ export default async function getDropdownData() {
     const clients = clientsRes.data
 
     const disciplinesRes = await getDisciplines(8)
-    const disciplines = disciplinesRes.data
+    const disciplinesUnfiltered = disciplinesRes.data
+
+    const disciplines = disciplinesUnfiltered.filter((discipline) => discipline.label != "Proposals")
 
     const employeesRes = await getEmployees()
     const employees = employeesRes.data
@@ -18,7 +20,7 @@ export default async function getDropdownData() {
     const phaseNamesRes = await getPhaseNames()
     const phaseNames = phaseNamesRes.data
 
-  
+
     return { projectInfoDropdowns: { clients, interventions, project_statuses, sectors, typologies, disciplines, employees, countries, phaseNames }, phaseCreationDropdowns: phaseNames }
 }
 

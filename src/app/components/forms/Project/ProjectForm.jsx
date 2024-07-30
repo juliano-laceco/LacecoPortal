@@ -18,7 +18,7 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
     const router = useRouter()
 
     const [data, setData] = useState(defaultData ?? {})
-    const [modalIsOpen, setModalIsOpen] = useState(true)
+    const [modalIsOpen, setModalIsOpen] = useState(false)
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
     const onNext = useCallback((dataFromStep) => {

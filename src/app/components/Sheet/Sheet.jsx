@@ -9,7 +9,6 @@ import {
     getThisMondayDate,
     generateHeaderDates,
     getMonthNameFromDate,
-    generateMockData,
     initializeCellContents,
     calculateTotalAssignees,
     isUUID,
@@ -25,6 +24,7 @@ import {
 import { saveDeployment } from "@/utilities/project/project-utils";
 import Modal from "../custom/Modals/Modal";
 import Button from "../custom/Button";
+import { usePathname, useRouter } from "next/navigation";
 
 
 const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date, deployment_data }) => {
@@ -33,6 +33,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data])
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data])
 
+
+    // Router Utils
+    const router = useRouter()
+    const pathname = usePathname()
 
     // Combined state for modal visibility and content
     const [modal, setModal] = useState(null);
@@ -59,7 +63,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     // Flag inbdicates whether the page has been edited 
     const [edited, setEdited] = useState(false)
-    const uneditableCellCount = headerDates.filter((headerDate) => new Date(headerDate) < currentMonday).length
+    const uneditableCellCount = 0;
 
     // Setting up using useSheet
     const {
@@ -422,7 +426,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
 
     // Handles saving to the DB
-    const handleSave = useCallback(() => {
+    const handleSave = (refresh = true) => {
         const updatedData = getUpdatedData();
 
         // Validation logic
@@ -452,14 +456,32 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         });
 
         if (!isValid) {
-            alert(noticeMessage);
+            openModal(noticeMessage, "Missing Data");
             return;
         }
 
         console.log("Updated Data:", updatedData);
         saveDeployment(updatedData, deletedPhaseAssignees)
-    }, [getUpdatedData, deletedPhaseAssignees]);
 
+        if (refresh) {
+            clearPath()
+        }
+
+
+    };
+
+
+
+    const clearPath = () => {
+
+        if (initialHeaderDates.length != headerDates.length) {
+            router.push(`${pathname}`);
+            router.refresh();
+        } else {
+            router.refresh();
+        }
+
+    }
 
     const findPhaseIndex = (row) => {
         let phaseIndex = 0;
@@ -510,32 +532,35 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         }
     }
 
+    const renderModalContent = (message, buttons) => (
+        <Modal open={true} onClose={() => setModal(null)}>
+            <div className="flex items-center gap-4">
+                <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
+                <div className="mob:text-xs">
+                    <p>{message}</p>
+                </div>
+            </div>
+            <div className="flex justify-center gap-4 mb-4 mt-5">
+                {buttons.map((button, index) => (
+                    <Button
+                        key={index}
+                        variant={button.variant}
+                        small
+                        name={button.name}
+                        onClick={button.onClick}
+                    >
+                        {button.name}
+                    </Button>
+                ))}
+            </div>
+        </Modal>
+    );
+
+
     const openModal = (data = null, type) => {
-        const renderModalContent = (message, buttons) => (
-            <Modal open={true} onClose={() => setModal(null)}>
-                <div className="flex items-center gap-4">
-                    <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
-                    <div className="mob:text-xs">
-                        <p>{message}</p>
-                    </div>
-                </div>
-                <div className="flex justify-center gap-4 mb-4 mt-5">
-                    {buttons.map((button, index) => (
-                        <Button
-                            key={index}
-                            variant={button.variant}
-                            small
-                            name={button.name}
-                            onClick={button.onClick}
-                        >
-                            {button.name}
-                        </Button>
-                    ))}
-                </div>
-            </Modal>
-        );
 
         let modalContent;
+
         switch (type) {
             case "Assignee Delete":
                 const { newInitialData, phaseIndex, assigneeIndex } = data;
@@ -591,12 +616,75 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     ]
                 );
                 break;
+            case "Missing Data":
+                modalContent = renderModalContent(
+                    data,
+                    [
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ]
+                );
+                break;
+            case "Date Clear":
+                modalContent = renderModalContent(
+                    "Clearing date filters will discard all your updated data. Are you sure you wish to proceed?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Save & Proceed",
+                            onClick: () => {
+                                handleSave(false);
+                                data();
+                                setModal(null);
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ]
+                )
+                break;
+            case "Date Change":
+                modalContent = renderModalContent(
+                    "Changing the date range will discard all your updated data. Are you sure you wish to proceed?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Save & Proceed",
+                            onClick: () => {
+                                handleSave(false);
+                                data();
+                                setModal(null);
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ]
+                )
+                break;
+            case "Invalid Dates":
+                modalContent = renderModalContent(
+                    "Start date must be less than or equal to the end date.",
+                    [
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ]
+                )
+                break;
         }
         setModal(modalContent);
     };
-
-
-
 
 
     const renderGrid = useCallback(() => {
@@ -855,7 +943,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             {modal}
             <div className="flex items-start max-w-full w-fit">
                 <div className="space-y-5">
-                    <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} setModal={setModal} modal={modal} />
+                    <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} openModal={openModal} handleSave={handleSave} />
                     <div className="flex gap-2">
                         <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
                             {renderGrid()}

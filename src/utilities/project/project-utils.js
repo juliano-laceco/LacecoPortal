@@ -37,6 +37,7 @@ export async function createProject(projectData) {
         await connection.beginTransaction();
 
         const projectInfo = projectData.projectInfo;
+        const phases = projectData.phases;
         const disciplines = projectInfo.disciplines
         const initiatorId = await getLoggedInId();
 
@@ -68,8 +69,20 @@ export async function createProject(projectData) {
 
         const projectId = projectInsertResult[0].insertId;
 
-        // Insert project disciplines into the project_disciplines table
 
+        // Insert phases into the phases table
+        for (const phase of phases) {
+            await connection.query(`
+                INSERT INTO phase
+                (phase_name, planned_startdate, planned_enddate, project_id , actioned_by) 
+                VALUES (?, ?, ?, ? , ?)`,
+                [phase.phase_name, phase.planned_startdate, phase.planned_enddate, projectId, initiatorId]
+            );
+        }
+
+        disciplines.push('78')
+
+        // Insert project disciplines into the project_disciplines table
         for (const discipline of disciplines) {
             await connection.query(`
                     INSERT INTO project_disciplines
@@ -78,7 +91,6 @@ export async function createProject(projectData) {
                 [projectId, discipline]
             );
         }
-
 
         // Commit the transaction if all queries are successful
         await connection.commit();
@@ -162,6 +174,9 @@ export async function updateProject(projectData) {
             [project_id],
             transaction
         );
+
+
+        disciplines.push('78')
 
         // Insert new discipline data into the project_disciplines table
         for (const discipline of disciplines) {
@@ -254,8 +269,8 @@ export async function getProjectData(project_id) {
                 Landscape, 
                 ParkingArea, 
                 DesignArea, 
-                CASE WHEN planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(planned_startdate, '%Y-%m-%d') END AS planned_startdate,
-                CASE WHEN planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(planned_enddate, '%Y-%m-%d') END AS planned_enddate,
+                CASE WHEN planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(planned_startdate, '%d %M %Y') END AS planned_startdate,
+                CASE WHEN planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(planned_enddate, '%d %M %Y') END AS planned_enddate,
                 CASE WHEN start_date IS NULL THEN NULL ELSE DATE_FORMAT(start_date, '%Y-%m-%d') END AS start_date,
                 CASE WHEN end_date IS NULL THEN NULL ELSE DATE_FORMAT(end_date, '%Y-%m-%d') END AS end_date,
                 variance, 
@@ -275,8 +290,12 @@ export async function getProjectData(project_id) {
             return res.failed('Project not found');
         }
 
+
+        // Project Info is populated as teh first property
         let projectData = { projectInfo: projectRows[0] };
 
+
+        // Adding the phase rows
         let phaseRows = await execute(`
             SELECT 
                 p.phase_id,
@@ -347,8 +366,11 @@ export async function getProjectData(project_id) {
             allDates = new Set(allDates)
 
             const { minDate, maxDate } = getMinMaxDate(allDates)
-            projectData.projectInfo = { ...(projectData.projectInfo), minDate, maxDate }
+            projectData.projectInfo = { ...(projectData.projectInfo), minDate, maxDate, initialDeployment: false }
 
+        } else {
+
+            projectData.projectInfo.initialDeployment = true
         }
 
         // Fetching Selected Disciplines

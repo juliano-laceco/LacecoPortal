@@ -5,13 +5,16 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import DropdownRegular from '../Dropdowns/DropdownRegular';
 import Image from 'next/image';
 
-const DateRangePicker = ({ project_start_date, project_end_date, start, end, edited }) => {
+
+const DateRangePicker = ({ project_start_date, project_end_date, start, end, edited, openModal }) => {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
     const [errorMessage, setErrorMessage] = useState('');
     const [filteredEndDateOptions, setFilteredEndDateOptions] = useState([]);
+
+
 
     const handleStartDateChange = (selectedOption) => {
         const newStartDate = selectedOption.value;
@@ -25,7 +28,6 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
             setErrorMessage('');
         }
 
-        // Only update URL and refresh if the new start date is different from the current one
         if (newStartDate != currentStartDate) {
             const proceedWithChange = () => {
                 const params = new URLSearchParams(searchParams);
@@ -35,23 +37,20 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
                     params.set("end", end || omitDayFromDate(project_end_date));
                 }
 
+                setFilteredEndDateOptions(generateDateOptions(newStartDate, project_end_date));
+
                 router.push(`${pathname}?${params.toString()}`);
                 router.refresh();
-
-                // Filter end date options based on the selected start date
-                setFilteredEndDateOptions(generateDateOptions(newStartDate, project_end_date));
             };
 
             if (edited) {
-                const userConfirmed = confirm('Your changes will be discarded, would you like to proceed?');
-                if (userConfirmed) {
-                    proceedWithChange();
-                }
+                openModal(proceedWithChange, "Date Change");
             } else {
                 proceedWithChange();
             }
         }
     };
+
 
     const handleEndDateChange = (selectedOption) => {
         const newEndDate = selectedOption.value;
@@ -59,7 +58,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
         const currentEndDate = searchParams.get("end") || end;
 
         if (new Date(currentStartDate) > new Date(newEndDate)) {
-            setErrorMessage('Start date cannot be greater than end date.');
+            openModal(null, "Invalid Dates")
             return; // Return early if the date is invalid
         } else {
             setErrorMessage('');
@@ -68,6 +67,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
         // Only update URL and refresh if the new end date is different from the current one
         if (newEndDate != currentEndDate) {
             const proceedWithChange = () => {
+
                 const params = new URLSearchParams(searchParams);
                 params.set("end", newEndDate);
 
@@ -80,10 +80,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
             };
 
             if (edited) {
-                const userConfirmed = confirm('Your changes will be discarded, would you like to proceed?');
-                if (userConfirmed) {
-                    proceedWithChange();
-                }
+                openModal(proceedWithChange, "Date Change")
             } else {
                 proceedWithChange();
             }
@@ -107,10 +104,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
         };
 
         if (edited) {
-            const userConfirmed = confirm('Your changes will be discarded, would you like to proceed?');
-            if (userConfirmed) {
-                proceedWithClear();
-            }
+            openModal(proceedWithClear, "Date Clear");
         } else {
             proceedWithClear();
         }
