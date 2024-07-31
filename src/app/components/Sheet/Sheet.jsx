@@ -18,21 +18,23 @@ import {
     getColorForMonth,
     getPhaseStateFromLocalStorage,
     handleCollapseClick,
-    handleExpandClick
+    handleExpandClick,
+    scrollToFirstWarning
 } from './SheetUtils';
 
-import { saveDeployment } from "@/utilities/project/project-utils";
+import { baselineProject, saveDeployment } from "@/utilities/project/project-utils";
 import Modal from "../custom/Modals/Modal";
 import Button from "../custom/Button";
 import { usePathname, useRouter } from "next/navigation";
+import { formatDate } from "@/utilities/date/date-utils";
 
-
-const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date, deployment_data }) => {
+const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date, deployment_data, project_data }) => {
 
     // Memoized Employee and Discipline Data
     const memoizedEmployeeData = useMemo(() => employee_data, [employee_data])
     const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data])
-
+    const [isLoading, setIsLoading] = useState(false);
+    const [populated, setPopulated] = useState(false);
 
     // Router Utils
     const router = useRouter()
@@ -44,7 +46,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     // Header Dates Variables
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false); // Flags if the headers are changed
-    const [initialHeaderDates, setInitialHeaderDates] = useState([]); // Initial Persisting Copy of initialHeader dates
+    const [initialHeaderDates, setInitialHeaderDates] = useState([]);    // Initial Persisting Copy of initialHeader dates
     const [isFirstRender, setIsFirstRender] = useState(true)
 
     // Deleted phase assignee tracking
@@ -125,6 +127,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             const event = new Event('change', { bubbles: true });
             select.dispatchEvent(event);
         });
+
+        setPopulated(true)
+
     }, []);
 
     // Scroll to the end when headerDates is updated
@@ -238,10 +243,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             const lastDateHeader = headerDates[headerDates.length - 1]
 
-            const newEndDate = add(new Date(lastDateHeader), { months: 1 }).toLocaleDateString("en-GB", {
-                month: "long",
-                year: "numeric"
-            });
+            const newEndDate = formatDate(add(new Date(lastDateHeader), { months: 1 }), "m-y")
 
 
             // Generate new header dates
@@ -414,11 +416,14 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             const newInitialData = [...getUpdatedData()];
 
             // Check if there is more than one assignee in the phase before deleting
-            if (newInitialData[phaseIndex].assignees.length > 1) {
-                openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
-            } else {
-                openModal(null, "Cannot Delete Assignee")
-            }
+            // if (newInitialData[phaseIndex].assignees.length > 1) {
+            //     openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
+            // } else {
+            //     openModal(null, "Cannot Delete Assignee")
+
+            openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
+            setEdited(true)
+
         },
         [initialData]
     );
@@ -426,7 +431,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
 
     // Handles saving to the DB
-    const handleSave = (refresh = true) => {
+    const handleSave = async (refresh = true) => {
+        setIsLoading(true);
+
         const updatedData = getUpdatedData();
 
         // Validation logic
@@ -440,36 +447,36 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     noticeMessage = "All assignees must have a discipline and a user.";
                 }
 
-                let hasDateFilled = false;
-                for (const date in assignee.projected_work_weeks) {
-                    if (assignee.projected_work_weeks[date] !== "") {
-                        hasDateFilled = true;
-                        break;
-                    }
-                }
+                // let hasDateFilled = false;
+                // for (const date in assignee.projected_work_weeks) {
+                //     if (assignee.projected_work_weeks[date] !== "") {
+                //         hasDateFilled = true;
+                //         break;
+                //     }
+                // }
 
-                if (!hasDateFilled) {
-                    isValid = false;
-                    noticeMessage = "At least one date cell must be filled for each assignee.";
-                }
+                //  if (!hasDateFilled) {
+                //      isValid = false;
+                //      noticeMessage = "At least one date cell must be filled for each assignee.";
+                //  }
             });
         });
 
         if (!isValid) {
             openModal(noticeMessage, "Missing Data");
+            setIsLoading(false);
             return;
         }
 
-        console.log("Updated Data:", updatedData);
-        saveDeployment(updatedData, deletedPhaseAssignees)
+        // console.log("Updated Data:", updatedData);
+        await saveDeployment(updatedData, deletedPhaseAssignees);
 
         if (refresh) {
-            clearPath()
+            clearPath();
         }
 
-
+        setIsLoading(false);
     };
-
 
 
     const clearPath = () => {
@@ -504,6 +511,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     }
 
     const updateAssigneeDiscipline = (row, value) => {
+
         const newInitialData = [...getUpdatedData()];
         const phaseIndex = findPhaseIndex(row);
         const assigneeIndex = findAssigneeIndex(row, phaseIndex);
@@ -524,12 +532,16 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     }
 
     const handleSelectChange = (e, row, col) => {
+
         const value = e.target.value;
+
         if (col === 1) {
             updateAssigneeDiscipline(row, value);
         } else if (col === 2) {
             updateAssigneeUser(row, value);
         }
+        !edited && populated && setEdited(true)
+
     }
 
     const renderModalContent = (message, buttons) => (
@@ -623,7 +635,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         {
                             variant: "secondary",
                             name: "Close",
-                            onClick: () => setModal(null),
+                            onClick: () => {
+                                setModal(null)
+                                scrollToFirstWarning()
+                            },
                         },
                     ]
                 );
@@ -729,7 +744,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             }),
         ];
         rows.push(
-            <div key="header" className="flex select-none rounded-lg sticky top-0 z-30 w-fit">
+            <div key="header" className="flex rounded-lg sticky top-0 z-30 w-fit">
                 {headerCols}
             </div>
         );
@@ -742,7 +757,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             const phase_display = getPhaseStateFromLocalStorage(phase.phase_id)
 
             rows.push(
-                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex border-b border-gray-300 items-center sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3 select-none ${phase_display}`}>
+                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex border-b border-gray-300 items-center sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3  ${phase_display}`}>
                     {phase.phase_name} - {" "}
                     <span className="text-red-400 text-lg mr-4">
                         {" "}
@@ -780,29 +795,35 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 </div>
                             );
                         } else if (col === 1) {
+
+                            const isEmpty = assignee.discipline == "Select..."
                             content = (
-                                <select
-                                    id={`select-${row}-${col}`}
-                                    value={assignee.discipline || 1}
-                                    onChange={(e) => handleSelectChange(e, row, col)}
-                                    className="native-select border border-gray-300 rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer select-none w-full  focus:border-none"
-                                >
-                                    <option key={crypto.randomUUID()} value="Select...">Select...</option>
-                                    {memoizedDisciplineData.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="flex flex-col items-center">
+                                    <select
+                                        id={`select-${row}-${col}`}
+                                        value={assignee.discipline || 1}
+                                        onChange={(e) => handleSelectChange(e, row, col)}
+                                        className={`native-select border ${!isEmpty ? "border-gray-300" : "border-pric"} rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer  w-full  focus:border-none`}
+                                    >
+                                        <option key={crypto.randomUUID()} value="Select...">Select...</option>
+                                        {memoizedDisciplineData.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             );
                         } else if (col === 2) {
+
+                            const isEmpty = assignee.assignee == "Select..."
                             content = (
                                 <>
                                     <select
                                         id={`select-${row}-${col}`}
                                         value={assignee.assignee}
                                         onChange={(e) => handleSelectChange(e, row, col)}
-                                        className="native-select border border-gray-300 rounded-sm px-3 py-1 box-border text-center text-ellipsis cursor-pointer select-none w-full focus:ring-gray-500 focus:ring-[1.5px] focus:border-none"
+                                        className={`native-select border ${!isEmpty ? "border-gray-300" : "border-pric"} rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer  w-full  focus:border-none`}
                                     >
                                         <option key={crypto.randomUUID()} value="Select...">Select...</option>
                                         {memoizedEmployeeData
@@ -817,11 +838,11 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 </>
                             );
                         } else if (col === 3) {
-                            content = <div className="select-none font-semibold min-w-24">{assignee_grade}</div>;
+                            content = <div className=" font-semibold min-w-24">{assignee_grade}</div>;
                         } else if (col === 4) {
                             content = (
                                 <>
-                                    <div className="select-none font-semibold min-w-24 budget-hour-cell">
+                                    <div className=" font-semibold min-w-24 budget-hour-cell">
                                         {getBudgetHoursCells(row)}
                                     </div>
                                 </>
@@ -844,7 +865,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 ref={(el) => {
                                     cellRefs.current[row][col] = el;
                                 }}
-                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : `min-w-12 max-w-12 cursor-cell focus:cursor-auto ${col >= 5 && col < 5 + uneditableCellCount ? "bg-gray-200 cursor-not-allowed" : ""}`} justify-center items-center p-1 box-border text-center z-0 select-none ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
+                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : `min-w-12 max-w-12 cursor-cell focus:cursor-auto ${col >= 5 && col < 5 + uneditableCellCount ? "bg-gray-200 cursor-not-allowed" : ""}`} justify-center items-center p-1 box-border text-center z-0  ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
                                 onMouseDown={
                                     col > 4 + uneditableCellCount ?
@@ -873,9 +894,11 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         );
                     }
 
+
+
                     assigneeRows.push(
                         <>
-                            <div className="assignee-label select-none text-center bg-gray-300 text-gray-600 p-1 mt-3 max-w-[100vw] sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
+                            <div className="assignee-label  text-center bg-gray-300 text-gray-600 p-1 mt-3 max-w-[100vw] sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
                                 {assignee.assignee === "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
                             </div>
                             <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`}>
@@ -883,23 +906,24 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             </div>
                         </>
                     );
+
+
                 });
 
+                if (phase?.assignees?.length == 0) {
+                    assigneeRows.push(
+                        <div className="text-center max-w-[100vw] p-3 text-pric sticky left-0"> No assignees found </div>
+                    )
+                }
                 assigneeRows.push(
                     <div
                         key={`add-assignee-${crypto.randomUUID()}`}
-                        className={`p-2 text-white flex-1 text-lg text-center max-w-[100vw] cursor-pointer select-none bg-gray-400 hover:bg-gray-500 transition duration-200 ease sticky left-0`}
+                        className={`p-2 text-white flex-1 text-lg text-center max-w-[100vw] cursor-pointer  bg-gray-400 hover:bg-gray-500 transition duration-200 ease sticky left-0`}
                         onClick={() => handleAddAssignee(phaseIndex)}
                     >
                         + Add New
                     </div>
                 );
-            }
-
-            if (phase?.assignees?.length == 0) {
-                rows.push(
-                    <div className="text-center max-w-[100vw] p-3 text-pric"> No assignees found </div>
-                )
             }
 
             rows.push(
@@ -945,7 +969,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 <div className="space-y-5">
                     <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} openModal={openModal} handleSave={handleSave} />
                     <div className="flex gap-2">
-                        <div className="sheet-container flex-1 outline-none border h-[750px] border-gray-300 rounded-lg user-select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
+                        <div className="sheet-container flex-1 outline-none border h-[900px] border-gray-300 rounded-lg  select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
                             {renderGrid()}
                             <div className="arrow-left sticky bottom-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer">
                                 <div className="relative flex justify-center items-center">
@@ -953,10 +977,41 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     <div className="absolute w-16 h-16 rounded-full bg-red-400 animate-pulseRing"></div>
                                     <div className="absolute w-20 h-20 rounded-full animate-pulseRing"></div>
                                     <div className="relative z-10 flex justify-center items-center bg-transparent rounded-full p-2">
-                                        <Image src="/resources/icons/arrow.png" height="20" width="20" className="select-none" alt="arrow" onClick={navigateRight} />
+                                        <Image src="/resources/icons/arrow.png" height="20" width="20" className="" alt="arrow" onClick={navigateRight} />
 
                                     </div>
                                 </div>
+
+                            </div>
+                            <div className="flex gap-4 items-center justify-center bg-white sticky left-0 bottom-0 max-w-[100vw] z-50 p-3 border-t border-gray-300 shadow-top-only">
+                                <Button
+                                    onClick={handleSave}
+                                    medium
+                                    variant="primary"
+                                    name="Save"
+                                    isDisabled={!edited || isLoading}
+                                    loading={isLoading}
+                                >
+
+                                    Save
+                                </Button>
+                                {project_data.isBaselined == 'No' &&
+                                    <Button
+                                        onClick={async (e) => {
+                                            setIsLoading(true);
+                                            await baselineProject(project_data.project_id);
+                                            router.refresh();
+                                            setIsLoading(false);
+                                        }}
+                                        medium
+                                        variant="primary"
+                                        name="Baseline Project"
+                                        isDisabled={isLoading}
+                                        loading={isLoading}
+                                    >
+                                        Baseline Project
+                                    </Button>
+                                }
 
                             </div>
                         </div>
@@ -982,9 +1037,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     </div>
                 </div>
             </div>
-            <button onClick={handleSave} className="px-8 py-3 bg-pric text-white rounded-lg mt-2">
-                Save
-            </button>
+
             <p className="user-tracker-visible"></p>
         </>
     );

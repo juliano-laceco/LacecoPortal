@@ -121,7 +121,7 @@ async function ProjectDeployment({ params, searchParams }) {
       <div className="space-y-4">
         <h1 className="text-2xl font-semibold">Deployment Sheet</h1>
 
-        <Sheet employee_data={filtered_employee_data} discipline_data={disciplines_data} project_start_date={project_start_date} project_end_date={project_end_date} deployment_data={project_response.data.phases} start_date={start ?? null} end_date={end ?? null} />
+        <Sheet employee_data={filtered_employee_data} discipline_data={disciplines_data} project_start_date={project_start_date} project_end_date={project_end_date} deployment_data={project_response.data.phases} start_date={start ?? null} end_date={end ?? null} project_data={project_data} />
       </div>
     </div>
   );

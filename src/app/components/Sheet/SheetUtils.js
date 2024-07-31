@@ -1,15 +1,13 @@
 "use client"
 
+import { formatDate } from "@/utilities/date/date-utils";
+
 export const getThisMondayDate = () => {
     const today = new Date();
     const day = today.getDay();
     const diff = today.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is Sunday 
     const fullFormatMonday = new Date(today.setDate(diff));
-    const formattedMonday = fullFormatMonday.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-    });
+    const formattedMonday = formatDate(fullFormatMonday, 'd-m-y')
     const monday = new Date(formattedMonday)
     return monday
 };
@@ -50,11 +48,7 @@ export const generateHeaderDates = (start_month_year = null, end_month_year = nu
     }
 
     while (currentDate <= endDate) {
-        const formattedDate = currentDate.toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-        });
+        const formattedDate = formatDate(currentDate, "d-m-y")
         dates.push(formattedDate);
 
         // Move to the next Monday
@@ -66,9 +60,7 @@ export const generateHeaderDates = (start_month_year = null, end_month_year = nu
 
 export const getMonthNameFromDate = (date) => {
     let initialDate = new Date(date);
-    return initialDate.toLocaleDateString("en-GB", {
-        month: "long"
-    });
+    return formatDate(initialDate, "m")
 };
 
 export const generateMockData = (numPhases, assigneesPerPhase) => {
@@ -99,6 +91,13 @@ export const generateMockData = (numPhases, assigneesPerPhase) => {
     return phases;
 };
 
+
+export const scrollToFirstWarning = () => {
+    const firstWarningElement = document.querySelector('select.border-pric');
+    if (firstWarningElement) {
+        firstWarningElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
 export const initializeCellContents = (initialData, headerDates) => {
     const cellContents = {};
     let rowCounter = 0;

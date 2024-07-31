@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import DropdownRegular from '../Dropdowns/DropdownRegular';
 import Image from 'next/image';
+import { formatDate } from '@/utilities/date/date-utils';
 
 
 const DateRangePicker = ({ project_start_date, project_end_date, start, end, edited, openModal }) => {
+
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -14,9 +16,8 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
     const [errorMessage, setErrorMessage] = useState('');
     const [filteredEndDateOptions, setFilteredEndDateOptions] = useState([]);
 
-
-
     const handleStartDateChange = (selectedOption) => {
+
         const newStartDate = selectedOption.value;
         const currentEndDate = searchParams.get("end") || end;
         const currentStartDate = searchParams.get("start") || start;
@@ -53,7 +54,9 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
 
 
     const handleEndDateChange = (selectedOption) => {
+
         const newEndDate = selectedOption.value;
+
         const currentStartDate = searchParams.get("start") || start;
         const currentEndDate = searchParams.get("end") || end;
 
@@ -91,10 +94,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
 
     const omitDayFromDate = (date) => {
         let initialDate = new Date(date);
-        return initialDate.toLocaleDateString("en-GB", {
-            month: "long",
-            year: "numeric",
-        });
+        return formatDate(initialDate, "m-y")
     };
 
     const clearDates = () => {
@@ -103,11 +103,16 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
             router.refresh();
         };
 
-        if (edited) {
-            openModal(proceedWithClear, "Date Clear");
-        } else {
-            proceedWithClear();
+
+        if (start != null && end != null) {
+            if (edited) {
+                openModal(proceedWithClear, "Date Clear");
+            } else {
+                proceedWithClear();
+            }
         }
+
+
     };
 
     const generateDateOptions = (start_date, end_date) => {
@@ -121,10 +126,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
         endDate.setDate(0); // This sets the date to the last day of the previous month
 
         while (currentDate <= endDate) {
-            const formattedDateMonth = currentDate.toLocaleDateString("en-GB", {
-                month: "long",
-                year: "numeric",
-            });
+            const formattedDateMonth = formatDate(currentDate, "m-y")
             options.add(formattedDateMonth);
             currentDate.setMonth(currentDate.getMonth() + 1);
         }
@@ -150,7 +152,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
                     value={end || null}
                     onChange={handleEndDateChange}
                 />
-                <Image title="Clear Dates" src="/resources/icons/clear-filter.svg" height="50" width="50" className="cursor-pointer hover:bg-[#E9EBEF] mob:hidden tablet:hidden transition-all duration-200 px-2 py-2 rounded-lg" onClick={clearDates} alt="clear-filter" />
+                <Image title="Clear Dates" src="/resources/icons/reset.svg" height="40" width="40" className={`cursor-pointer hover:bg-[#E9EBEF] transition-all duration-200 px-2 py-2 rounded-lg"`} onClick={clearDates} alt="clear-filter" />
             </div>
             {errorMessage && <div className="text-pric">{errorMessage}</div>}
         </div>

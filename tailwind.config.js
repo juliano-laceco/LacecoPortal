@@ -8,6 +8,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      boxShadow: {
+        'top-only': '0 -6px 10px -2px rgba(0, 0, 0, 0.3), 0 -3px 6px -2px rgba(0, 0, 0, 0.1)',
+      },
       colors: {
         "pric": "#e84a40",
         "pri-lightc": "#ffa099",

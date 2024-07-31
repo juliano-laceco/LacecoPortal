@@ -1,6 +1,5 @@
 "use client"
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells, edited, setEdited) => {
@@ -11,10 +10,6 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
   const [selectedCells, setSelectedCells] = useState([]);
   const [editableCell, setEditableCell] = useState(null);
   const [historyIndex, setHistoryIndex] = useState(0);
-
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const cellRefs = useRef([]);
 
@@ -95,7 +90,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       navigator.clipboard.writeText(content.join('\t'));
 
       if (e.key === 'x') {
-        !edited && setEdited(true)
+        !edited && selectedCells.length > 0 && setEdited(true)
         saveHistory(cellContents);
         const newCellContents = { ...cellContents };
         selectedCells.forEach((cell) => {
@@ -105,7 +100,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       }
     } else if (e.key === 'v' && e.ctrlKey) {
       e.preventDefault();
-      !edited && setEdited(true)
+      !edited && selectedCells.length > 0 && setEdited(true)
       navigator.clipboard.readText().then((clipboardContent) => {
         const lines = clipboardContent.split('\n');
         const newCellContents = { ...cellContents };
@@ -176,14 +171,14 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       if (editableCell) {
         e.preventDefault();
-        !edited && setEdited(true)
+        !edited && selectedCells.length > 0 && setEdited(true)
         saveHistory(cellContents);
         const cellKey = `${editableCell.row}-${editableCell.col}`;
         const newCellContents = { ...cellContents, [cellKey]: '' };
         setCellContents(newCellContents);
       } else {
         e.preventDefault();
-        !edited && setEdited(true)
+        !edited && selectedCells.length > 0 && setEdited(true)
         saveHistory(cellContents);
 
         const newCellContents = { ...cellContents };

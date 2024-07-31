@@ -46,6 +46,11 @@ body:has(.modal-container.isVisible) {
     overflow: hidden !important;
 }
 
+
+.select-warning {
+    display: none !important;
+}
+
 body:has(.modal-container.isVisible) .sheet-container,
 body:has(.modal-container.isVisible) .sheet-container * {
     overflow: hidden !important;

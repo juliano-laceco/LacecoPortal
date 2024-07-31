@@ -2,7 +2,7 @@
 
 
 import * as res from '../response-utils';
-import { getLoggedInId, getSession } from "../auth/auth-utils";
+import { getLoggedInId } from "../auth/auth-utils";
 import { nullifyEmpty } from '../misc-utils';
 import { dynamicQuery, execute, getTableFields } from '../db/db-utils';
 
@@ -103,8 +103,12 @@ export async function createEmployee(data) {
                 position_id,  
                 country, 
                 role_id,
-                created_on
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                created_on,
+                created_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? , ?)`;
+
+
+        const initiatorId = await getLoggedInId()
 
         const {
             first_name,
@@ -141,7 +145,8 @@ export async function createEmployee(data) {
             position_id,
             country,
             role_id,
-            created_on
+            created_on,
+            initiatorId
         ]);
 
         if (result.affectedRows > 0) {
@@ -342,9 +347,6 @@ export async function getEmployeeData(employee_id) {
                        WHERE employee_id = ?`;
 
         const results = await execute(query, [employee_id])
-
-
-        console.log(results)
         return res.success_data(results);
     } catch (error) {
         console.error('Error fetching employee details:', error);

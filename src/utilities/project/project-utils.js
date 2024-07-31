@@ -246,7 +246,6 @@ export async function updateProject(projectData) {
 
 export async function getProjectData(project_id) {
     try {
-
         // Query to get the project data with formatted dates, handling NULLs
         const projectRows = await execute(`
             SELECT
@@ -288,10 +287,8 @@ export async function getProjectData(project_id) {
             return res.failed('Project not found');
         }
 
-
-        // Project Info is populated as teh first property
+        // Project Info is populated as the first property
         let projectData = { projectInfo: projectRows[0] };
-
 
         // Adding the phase rows
         let phaseRows = await execute(`
@@ -316,15 +313,13 @@ export async function getProjectData(project_id) {
             const phase = phaseRows[i];
             const assigneeQuery = `
                 SELECT 
-                    pw.projected_work_week_id, 
-                    pa.phase_assignee_id ,
+                    pa.phase_assignee_id,
                     e.discipline_id AS discipline,
                     e.employee_id AS assignee,
                     pw.hours_expected, 
-                    pw.projected_work_week_id, 
                     DATE_FORMAT(pw.week_start, '%d %M %Y') AS week_start
                 FROM phase_assignee pa
-                JOIN projected_work_week pw ON pa.phase_assignee_id = pw.phase_assignee_id
+                LEFT JOIN projected_work_week pw ON pa.phase_assignee_id = pw.phase_assignee_id
                 JOIN employee e ON pa.assignee_id = e.employee_id
                 WHERE pa.phase_id = ?
             `;
@@ -334,7 +329,6 @@ export async function getProjectData(project_id) {
             const assigneeMap = {};
 
             assigneeRows.forEach((row) => {
-
                 if (!assigneeMap[row.phase_assignee_id]) {
                     assigneeMap[row.phase_assignee_id] = {
                         phase_assignee_id: row.phase_assignee_id,
@@ -343,7 +337,9 @@ export async function getProjectData(project_id) {
                         projected_work_weeks: {}
                     };
                 }
-                assigneeMap[row.phase_assignee_id].projected_work_weeks[row.week_start] = row.hours_expected;
+                if (row.week_start) {
+                    assigneeMap[row.phase_assignee_id].projected_work_weeks[row.week_start] = row.hours_expected;
+                }
             });
 
             const assignees = Object.values(assigneeMap);
@@ -392,6 +388,7 @@ export async function getProjectData(project_id) {
         return res.failed();
     }
 }
+
 
 
 export async function saveDeployment(deployment_data, deletedAssignees) {
@@ -459,13 +456,14 @@ export async function saveDeployment(deployment_data, deletedAssignees) {
                 } else {
                     const paQuery = "INSERT INTO phase_assignee (assignee_id, phase_id) VALUES (?, ?)";
                     const { insertId } = await executeTrans(paQuery, [assignee, phase_id], transaction);
-                    // const insertedAssignee = paRes["insertId"];
 
-
-                    for (const dateKey of Object.keys(projected_work_weeks)) {
-                        const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected) VALUES (?, ?, ?)";
-                        await executeTrans(projectedQuery, [insertId, formatDate(dateKey), projected_work_weeks[dateKey]], transaction);
+                    if (projected_work_weeks != {}) {
+                        for (const dateKey of Object.keys(projected_work_weeks)) {
+                            const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected) VALUES (?, ?, ?)";
+                            await executeTrans(projectedQuery, [insertId, formatDate(dateKey), projected_work_weeks[dateKey]], transaction);
+                        }
                     }
+
                 }
             }
         }
@@ -495,15 +493,36 @@ function getMinMaxDate(dateSet) {
     const maxDate = new Date(Math.max(...dateObjects));
 
     // Format min and max dates back to strings
-    const minDateString = minDate.toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' });
-    const maxDateString = maxDate.toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' });
+    const minDateString = formatDate(minDate, "d-m-y")
+    const maxDateString = formatDate(maxDate, "d-m-y")
 
     return { minDate: minDateString, maxDate: maxDateString, initialDeployment: false };
 }
 
 
 export async function baselineProject(project_id) {
-    // To be implemented
+
+    let transaction;
+
+    try {
+        transaction = await startTransaction()
+
+        await executeTrans('CALL CopyProjectToVersion(?)', [project_id], transaction);
+
+        // Commit the transaction if all queries are successful
+        await commitTransaction(transaction);
+
+    } catch (error) {
+        // Rollback the transaction if any query fails
+        if (transaction) {
+            await rollbackTransaction(transaction);
+        }
+        console.error('Transaction failed:', error);
+        return res.failed();
+    } finally {
+        // Release the connection
+        if (transaction) transaction.release();
+    }
 }
 
 export async function checkDisciplineIsPhaseAssigned(disciplines, project_id) {

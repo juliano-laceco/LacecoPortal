@@ -34,6 +34,21 @@ export function formatDate(date, format = 'YYYY-MM-DD') {
             return `${month}`;
         case 'DD':
             return `${day}`;
+        case 'm-y':
+            return parsedDate.toLocaleDateString("en-GB", {
+                month: "long",
+                year: "numeric"
+            });
+        case 'd-m-y':
+            return parsedDate.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+            });
+        case 'm':
+            return parsedDate.toLocaleDateString("en-GB", {
+                month: "long"
+            });
         // Add more cases for different formats as needed
         default:
             throw new Error('Unsupported date format');
