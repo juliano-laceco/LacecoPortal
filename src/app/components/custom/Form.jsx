@@ -45,7 +45,7 @@ function Form({
         return () => {
             window.removeEventListener("resize", updateGridColumns);
         };
-    }, []);
+    }, [updateGridColumns]);
 
     const inlineGridCols = {
         display: 'grid',

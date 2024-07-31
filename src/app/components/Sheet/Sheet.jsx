@@ -56,8 +56,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const numCols = headerDates.length + 5;
     // const [initialData, setInitialData] = useState(() => generateMockData(3, 5))
     const [initialData, setInitialData] = useState(() => deployment_data)
-    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData), [initialData, calculateTotalAssignees])
-    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initializeCellContents, initialData, headerDates])
+    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData), [initialData])
+    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates])
 
     // Date Variables
     const currentMonday = getThisMondayDate()
@@ -425,7 +425,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             setEdited(true)
 
         },
-        [initialData]
+        [initialData , findAssigneeIndex , findPhaseIndex , getUpdatedData , openModal]
     );
 
 
@@ -955,11 +955,11 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         handleSelectChange,
         handleAddAssignee,
         cellRefs,
-        getColorForMonth,
         memoizedDisciplineData,
         memoizedEmployeeData,
-        getGradeName,
-        getEmployeeName,
+        edited,
+        employee_data,
+        isFirstRender
     ]);
 
     return (

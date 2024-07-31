@@ -134,7 +134,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             handleDivisionChange(divisionId);
             setDefaultDiscipline();
         }
-    }, [defaultValues.division_id]
+    }, [defaultValues.division_id , handleDivisionChange , setDefaultDiscipline]
     );
 
     useEffect(() => {
@@ -144,7 +144,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             handleDisciplineChange(disciplineId);
             setDefaultPosition();
         }
-    }, [defaultValues.discipline_id]
+    }, [defaultValues.discipline_id , setDefaultPosition]
     );
 
     useEffect(() => {
@@ -152,7 +152,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
         if (positionId) {
             handlePositionChange(positionId);
         }
-    }, [defaultValues.position_id]
+    }, [defaultValues.position_id , handlePositionChange]
     );
 
 

@@ -261,7 +261,6 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
     selectedCells,
     cellContents,
     editableCell,
-    drawing,
     endCell,
     history,
     historyIndex,
@@ -269,7 +268,10 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
     numCols,
     saveHistory,
     startCell,
-    getCellsInSelection
+    getCellsInSelection,
+    edited,
+    numberOfUneditableCells,
+    setEdited
   ]);
 
   const handleCellBlur = useCallback((row, col, e) => {

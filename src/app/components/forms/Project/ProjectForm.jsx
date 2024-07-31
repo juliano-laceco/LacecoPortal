@@ -66,7 +66,7 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
 
 
 
-    }, [data]);
+    }, [data, defaultData?.project_id, isEdit, router]);
 
 
     const preprocessData = (finalData) => {
