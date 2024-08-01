@@ -389,99 +389,100 @@ export async function getProjectData(project_id) {
     }
 }
 
-
-
 export async function saveDeployment(deployment_data, deletedAssignees) {
-    const transaction = await startTransaction();
+    const maxRetries = 5;
+    let attempts = 0;
 
-    try {
-        for (const phase of deployment_data) {
-            const { phase_id, phase_name, assignees } = phase;
+    while (attempts < maxRetries) {
+        attempts += 1;
+        const transaction = await startTransaction();
 
-            for (const assigneeItem of assignees) {
-                const { phase_assignee_id, discipline, assignee, projected_work_weeks, updated_projected_work_weeks } = assigneeItem;
+        try {
+            for (const phase of deployment_data) {
+                const { phase_id, assignees } = phase;
 
-                const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
-                const isNew = regexExp.test(phase_assignee_id ?? "");
+                for (const assigneeItem of assignees) {
+                    const { phase_assignee_id, assignee, projected_work_weeks, updated_projected_work_weeks } = assigneeItem;
 
-                if (!isNew) {
-                    const paQuery = "UPDATE phase_assignee SET assignee_id = ? WHERE phase_assignee_id = ?";
-                    await executeTrans(paQuery, [assignee, phase_assignee_id], transaction);
+                    const regexExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[4][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+                    const isNew = regexExp.test(phase_assignee_id ?? "");
 
-                    for (const dateKey of Object.keys(updated_projected_work_weeks)) {
-                        const newVal = updated_projected_work_weeks[dateKey];
+                    if (!isNew) {
+                        const paQuery = "UPDATE phase_assignee SET assignee_id = ? WHERE phase_assignee_id = ?";
+                        await executeTrans(paQuery, [assignee, phase_assignee_id], transaction);
 
-                        if (newVal !== "") {
-                            const weekExistsQuery = `
-                                SELECT COUNT(pw.projected_work_week_id) AS count
-                                FROM projected_work_week pw
-                                JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
-                                JOIN phase p ON pa.phase_id = p.phase_id
-                                WHERE pw.phase_assignee_id = ?
-                                AND pw.week_start = ?
-                            `;
+                        for (const dateKey of Object.keys(updated_projected_work_weeks)) {
+                            const newVal = updated_projected_work_weeks[dateKey];
 
-                            const weekExists = await executeTrans(weekExistsQuery, [phase_assignee_id, formatDate(dateKey)], transaction);
-
-                            if (weekExists[0].count > 0) {
-                                const updatedWeekQuery = `
-                                    UPDATE projected_work_week pw
+                            if (newVal !== "") {
+                                const weekExistsQuery = `
+                                    SELECT COUNT(pw.projected_work_week_id) AS count
+                                    FROM projected_work_week pw
                                     JOIN phase_assignee pa ON pw.phase_assignee_id = pa.phase_assignee_id
-                                    JOIN phase p ON pa.phase_id = p.phase_id
-                                    SET pw.hours_expected = ?
                                     WHERE pw.phase_assignee_id = ?
                                     AND pw.week_start = ?
-                                    AND p.phase_id = ?;
                                 `;
-                                await executeTrans(updatedWeekQuery, [newVal, phase_assignee_id, formatDate(dateKey), phase_id], transaction);
+
+                                const weekExists = await executeTrans(weekExistsQuery, [phase_assignee_id, formatDate(dateKey)], transaction);
+
+                                if (weekExists[0].count > 0) {
+                                    const updatedWeekQuery = `
+                                        UPDATE projected_work_week
+                                        SET hours_expected = ?
+                                        WHERE phase_assignee_id = ?
+                                        AND week_start = ?;
+                                    `;
+                                    await executeTrans(updatedWeekQuery, [newVal, phase_assignee_id, formatDate(dateKey)], transaction);
+                                } else {
+                                    const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected) VALUES (?, ?, ?)";
+                                    await executeTrans(projectedQuery, [phase_assignee_id, formatDate(dateKey), newVal], transaction);
+                                }
                             } else {
-                                const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected) VALUES (?, ?, ?)";
-                                await executeTrans(projectedQuery, [phase_assignee_id, formatDate(dateKey), newVal], transaction);
+                                const deleteWeekQuery = `
+                                    DELETE FROM projected_work_week 
+                                    WHERE phase_assignee_id = ?
+                                    AND week_start = ?;
+                                `;
+                                await executeTrans(deleteWeekQuery, [phase_assignee_id, formatDate(dateKey)], transaction);
                             }
-                        } else {
-                            const deleteWeekQuery = `
-                                DELETE FROM projected_work_week 
-                                WHERE phase_assignee_id = ?
-                                AND week_start = ?
-                                AND phase_assignee_id IN (
-                                    SELECT pa.phase_assignee_id
-                                    FROM phase_assignee pa
-                                    JOIN phase p ON pa.phase_id = p.phase_id
-                                    WHERE p.phase_id = ?
-                                );
-                            `;
-                            await executeTrans(deleteWeekQuery, [phase_assignee_id, formatDate(dateKey), phase_id], transaction);
+                        }
+                    } else {
+                        const paQuery = "INSERT INTO phase_assignee (assignee_id, phase_id) VALUES (?, ?)";
+                        const { insertId } = await executeTrans(paQuery, [assignee, phase_id], transaction);
+
+                        if (projected_work_weeks != {}) {
+                            for (const dateKey of Object.keys(projected_work_weeks)) {
+                                const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected) VALUES (?, ?, ?)";
+                                await executeTrans(projectedQuery, [insertId, formatDate(dateKey), projected_work_weeks[dateKey]], transaction);
+                            }
                         }
                     }
-                } else {
-                    const paQuery = "INSERT INTO phase_assignee (assignee_id, phase_id) VALUES (?, ?)";
-                    const { insertId } = await executeTrans(paQuery, [assignee, phase_id], transaction);
-
-                    if (projected_work_weeks != {}) {
-                        for (const dateKey of Object.keys(projected_work_weeks)) {
-                            const projectedQuery = "INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected) VALUES (?, ?, ?)";
-                            await executeTrans(projectedQuery, [insertId, formatDate(dateKey), projected_work_weeks[dateKey]], transaction);
-                        }
-                    }
-
                 }
             }
-        }
 
-        if (deletedAssignees && deletedAssignees.length > 0) {
-            for (const assignee_id of deletedAssignees) {
-                const deleteAssigneeQuery = "DELETE FROM phase_assignee WHERE phase_assignee_id = ?";
-                await execute(deleteAssigneeQuery, [assignee_id], transaction);
+            if (deletedAssignees && deletedAssignees.length > 0) {
+                for (const assignee_id of deletedAssignees) {
+                    const deleteAssigneeQuery = "DELETE FROM phase_assignee WHERE phase_assignee_id = ?";
+                    await executeTrans(deleteAssigneeQuery, [assignee_id], transaction);
+                }
+            }
+
+            await commitTransaction(transaction);
+            break; // If transaction is successful, exit the loop
+        } catch (error) {
+            await rollbackTransaction(transaction);
+            if (error.code === 'ER_LOCK_WAIT_TIMEOUT' && attempts < maxRetries) {
+                console.warn(`Lock wait timeout exceeded, retrying... (Attempt ${attempts}/${maxRetries})`);
+                await new Promise(res => setTimeout(res, 1000)); // Wait 1 second before retrying
+            } else {
+                console.error("Transaction failed and rolled back:", error);
+                throw error;
             }
         }
-
-        await commitTransaction(transaction);
-    } catch (error) {
-        await rollbackTransaction(transaction);
-        console.error("Transaction failed and rolled back:", error);
-        throw error;
     }
 }
+
+
 
 function getMinMaxDate(dateSet) {
 

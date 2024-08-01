@@ -425,7 +425,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             setEdited(true)
 
         },
-        [initialData , findAssigneeIndex , findPhaseIndex , getUpdatedData , openModal]
+        [initialData]
     );
 
 
