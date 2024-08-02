@@ -44,7 +44,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const [modal, setModal] = useState(null);
 
     // Header Dates Variables
-    const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date));
+    const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date, project_end_date));
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false); // Flags if the headers are changed
     const [initialHeaderDates, setInitialHeaderDates] = useState([]);    // Initial Persisting Copy of initialHeader dates
     const [isFirstRender, setIsFirstRender] = useState(true)
@@ -182,6 +182,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const getUpdatedData = () => {
         const updatedData = initialData.map((phase) => ({
             phase_id: phase.phase_id,
+            expected_work_hours: phase.expected_work_hours,
             phase_name: phase.phase_name,
             assignees: phase.assignees.map((assignee) => ({
                 phase_assignee_id: assignee.phase_assignee_id,
@@ -245,9 +246,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             const newEndDate = formatDate(add(new Date(lastDateHeader), { months: 1 }), "m-y")
 
-
             // Generate new header dates
-            const newDates = generateHeaderDates(start_date, newEndDate);
+            const newDates = generateHeaderDates(start_date, newEndDate, project_end_date);
 
             // Update the end date
             setCurrentEndDate(newEndDate);
@@ -719,7 +719,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 Discipline
             </div>,
             <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 text-gray-600 font-semibold min-w-[160pt] max-w-[160pt]">
-                User
+                Employee
             </div>,
             <div key="grade-header" className="grade-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 text-gray-600 font-semibold min-w-24 max-w-24">
                 Grade
@@ -761,7 +761,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     {phase.phase_name} - {" "}
                     <span className="text-red-400 text-lg mr-4">
                         {" "}
-                        {getPhaseBudgetHours[phaseIndex]} hrs
+                        &nbsp; Current : {getPhaseBudgetHours[phaseIndex]} hrs  / Initial : {phase.expected_work_hours} hrs
                     </span>
                     <p className="collapsePhase cursor-pointer" onClick={(e) => handleCollapseClick(e, phase.phase_id)}>
                         <Image src="/resources/icons/arrow-up.png" height="20" width="20" alt="collapse" />
@@ -992,7 +992,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     isDisabled={!edited || isLoading}
                                     loading={isLoading}
                                 >
-
                                     Save
                                 </Button>
                                 {project_data.isBaselined == 'No' &&
@@ -1015,7 +1014,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
                             </div>
                         </div>
-                        {getMonthNameFromDate(end_date) == getMonthNameFromDate(project_end_date) &&
+                        {getMonthNameFromDate(end_date ?? project_end_date) == getMonthNameFromDate(project_end_date) &&
                             <div className="space-y-1">
                                 <button
                                     key="add-week-button"

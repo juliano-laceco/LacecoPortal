@@ -12,7 +12,7 @@ export const getThisMondayDate = () => {
     return monday
 };
 
-export const generateHeaderDates = (start_month_year = null, end_month_year = null) => {
+export const generateHeaderDates = (start_month_year = null, end_month_year = null, project_end_date = null) => {
     const dates = [];
 
     const parseMonthYear = (monthYear) => {
@@ -36,8 +36,16 @@ export const generateHeaderDates = (start_month_year = null, end_month_year = nu
         // Calculate start date as the first day of the previous month
         startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
 
-        // Calculate end date as the last day of the month three months after the current month
-        endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+
+        if (end_month_year) {
+            endDate = parseMonthYear(end_month_year)
+            // Ensure endDate is the last day of the end month
+            endDate.setMonth(endDate.getMonth() + 1);
+            endDate.setDate(0);
+        } else {
+            // Calculate end date as the last day of the month three months after the current month
+            endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0);
+        }
     }
 
     let currentDate = new Date(startDate);
@@ -187,9 +195,15 @@ export const savePhaseStateToLocalStorage = (phaseId, state) => {
 };
 
 export const getPhaseStateFromLocalStorage = (phaseId) => {
-    const phaseStates = JSON.parse(localStorage.getItem('phaseStates')) || [];
-    const phase = phaseStates.find(phase => phase.id == phaseId);
-    return phase ? phase.state : 'expanded'; // Default to expanded
+
+    if (localStorage) {
+        const phaseStates = JSON.parse(localStorage.getItem('phaseStates')) || [];
+        const phase = phaseStates.find(phase => phase.id == phaseId);
+        return phase ? phase.state : 'expanded'; // Default to expanded  
+    }
+
+    return null
+
 };
 
 export const handleCollapseClick = (e, phaseId) => {

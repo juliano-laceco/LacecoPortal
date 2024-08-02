@@ -297,6 +297,7 @@ export async function getProjectData(project_id) {
                 p.phase_name, 
                 CASE WHEN p.planned_startdate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_startdate, '%Y-%m-%d') END AS planned_startdate,
                 CASE WHEN p.planned_enddate IS NULL THEN NULL ELSE DATE_FORMAT(p.planned_enddate, '%Y-%m-%d') END AS planned_enddate,
+                p.expected_work_hours,
                 p.project_id, 
                 p.actioned_by,
                 EXISTS (
