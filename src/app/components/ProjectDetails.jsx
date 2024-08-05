@@ -4,10 +4,15 @@ import EmployeeNameCard from './EmployeeNameCard';
 import StatTile from './StatTile';
 
 const ProjectDetails = ({
-    project_data
+    project_data,
+    phase_data
 }) => {
 
-    const { project_id, title, code, first_name, last_name, position_name, variance } = project_data
+    const { project_id, title, code, first_name, last_name, position_name, percentJuniors } = project_data
+
+    const total_budget_hours = phase_data?.reduce((accumulator, phase) => {
+        return accumulator + phase.expected_work_hours;
+    }, 0);
 
     return (
         <div className="space-y-6">
@@ -26,23 +31,23 @@ const ProjectDetails = ({
             </div>
             <div className="flex flex-wrap gap-5 select-none">
                 <EmployeeNameCard name={first_name + " " + last_name} position={position_name} />
-                <StatTile data={{ val: 452, label: "Budget Hours" }} />
+                <StatTile data={{ val: total_budget_hours, label: "Budget Hours" }} />
                 <StatTile
                     data={{
                         val:
-                            <p className="text-3xl text-red-500 font-semibold"> {variance} </p>
+                            <p className="text-3xl text-red-500 font-semibold"> {0} </p>
                         ,
                         label: "Variance"
                     }} />
                 <StatTile
                     data={[
                         {
-                            val: "30%"
+                            val: percentJuniors + "%"
                             ,
                             label: "Juniors"
                         },
                         {
-                            val: "70%"
+                            val: 100 - percentJuniors + "%"
                             ,
                             label: "Seniors"
                         }

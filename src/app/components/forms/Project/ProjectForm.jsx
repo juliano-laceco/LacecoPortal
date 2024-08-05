@@ -36,7 +36,7 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
 
     const onDone = useCallback(async (dataFromStep) => {
 
-        const successMessage = `Project ${isEdit ? "Updated" : "Created"} Successfully`;
+        const successMessage = `${data?.projectInfo?.title} ${isEdit ? "Updated" : "Created"} Successfully`;
         const errorMessage = `Error Occurred while ${isEdit ? "updating" : "creating"} project`;
 
         const updatedData = {

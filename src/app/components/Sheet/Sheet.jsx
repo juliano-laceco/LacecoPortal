@@ -27,6 +27,7 @@ import Modal from "../custom/Modals/Modal";
 import Button from "../custom/Button";
 import { usePathname, useRouter } from "next/navigation";
 import { formatDate } from "@/utilities/date/date-utils";
+import { showToast } from "@/utilities/toast-utils";
 
 const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date, deployment_data, project_data }) => {
 
@@ -432,7 +433,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     // Handles saving to the DB
     const handleSave = async (refresh = true) => {
-        setIsLoading(true);
+
 
         const updatedData = getUpdatedData();
 
@@ -468,14 +469,18 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             return;
         }
 
-        // console.log("Updated Data:", updatedData);
-        await saveDeployment(updatedData, deletedPhaseAssignees);
+        openModal({
+            handlerFunction: async () => {
+                try {
+                    await saveDeployment(updatedData, deletedPhaseAssignees)
+                    showToast("success", "Successfully Saved Deployment")
+                } catch (error) {
+                    showToast("failed", "Failed To Save Deployment")
+                }
 
-        if (refresh) {
-            clearPath();
-        }
-
-        setIsLoading(false);
+            }
+            , refresh
+        }, "Save")
     };
 
 
@@ -545,7 +550,12 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     }
 
     const renderModalContent = (message, buttons) => (
-        <Modal open={true} onClose={() => setModal(null)}>
+        <Modal open={true} onClose={() => {
+            setModal(null);
+            if (isLoading) {
+                setIsLoading(false);
+            }
+        }}>
             <div className="flex items-center gap-4">
                 <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
                 <div className="mob:text-xs">
@@ -556,10 +566,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 {buttons.map((button, index) => (
                     <Button
                         key={index}
-                        variant={button.variant}
                         small
-                        name={button.name}
-                        onClick={button.onClick}
+                        {...button}
                     >
                         {button.name}
                     </Button>
@@ -697,6 +705,32 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     ]
                 )
                 break;
+            case "Save":
+                modalContent = renderModalContent(
+                    "Are you sure you want to save the current deployment data? This is operation is not reversible.",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Save",
+                            onClick: async () => {
+                                setIsLoading(true)
+                                await data.handlerFunction()
+                                if (data.refresh) {
+                                    clearPath();
+                                }
+                                setIsLoading(false);
+                            },
+                            loading: isLoading,
+                            isDisabled: isLoading
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => { setModal(null); setIsLoading(false); },
+                        },
+                    ]
+                )
+                break;
         }
         setModal(modalContent);
     };
@@ -761,7 +795,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     {phase.phase_name} - {" "}
                     <span className="text-red-400 text-lg mr-4">
                         {" "}
-                        &nbsp; Current : {getPhaseBudgetHours[phaseIndex]} hrs  / Initial : {phase.expected_work_hours} hrs
+                        &nbsp; Current : {getPhaseBudgetHours[phaseIndex]} hrs / Initial : {phase.expected_work_hours} hrs
                     </span>
                     <p className="collapsePhase cursor-pointer" onClick={(e) => handleCollapseClick(e, phase.phase_id)}>
                         <Image src="/resources/icons/arrow-up.png" height="20" width="20" alt="collapse" />
@@ -978,7 +1012,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     <div className="absolute w-20 h-20 rounded-full animate-pulseRing"></div>
                                     <div className="relative z-10 flex justify-center items-center bg-transparent rounded-full p-2">
                                         <Image src="/resources/icons/arrow.png" height="20" width="20" className="" alt="arrow" onClick={navigateRight} />
-
                                     </div>
                                 </div>
 
@@ -1014,7 +1047,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
                             </div>
                         </div>
-                        {getMonthNameFromDate(end_date ?? project_end_date) == getMonthNameFromDate(project_end_date) &&
+                        {getMonthNameFromDate(initialHeaderDates[initialHeaderDates.length - 1]) == getMonthNameFromDate(project_end_date) &&
                             <div className="space-y-1">
                                 <button
                                     key="add-week-button"

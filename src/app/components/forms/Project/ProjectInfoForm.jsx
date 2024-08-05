@@ -12,7 +12,7 @@ import { formatDate } from '@/utilities/date/date-utils';
 import { checkDisciplineIsPhaseAssigned, checkProjectCodeExists } from '@/utilities/project/project-utils';
 import Modal from "../../custom/Modals/Modal"
 import UnremovableDiscipline from './UnremovableDiscipline';
-import Link from 'next/link';
+
 
 
 
@@ -87,7 +87,8 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
                 const { planned_startdate } = this.parent; // Access parent field value
                 return new Date(value) > new Date(planned_startdate);
             }),
-        employee_id: yup.string().required('Project Manager is required'),
+        employee_id: yup.string().required('Project Manager is required')
+
     });
 
     const {
@@ -153,6 +154,8 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
         setValue("disciplines", disciplines)
         trigger("disciplines");
     };
+
+    console.log(data)
 
     return (
         <>
@@ -244,10 +247,11 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
                     control={control}
                     error={errors.employee_id?.message}
                 />
+                {isEdit && <Input label="Baselined" type="text" {...register("isBaselined")} error={errors.isBaselined?.message} isDisabled={true} />}
             </Form >
             <Modal title="Cannot Remove Disciplines" open={modalIsOpen} type="client" onClose={() => setModalIsOpen(false)}>
                 <UnremovableDiscipline unremovableDisciplines={unremovableDisciplines} />
-            </Modal >
+            </Modal>
         </>
     );
 });

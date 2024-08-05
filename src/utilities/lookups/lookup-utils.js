@@ -54,11 +54,11 @@ export async function getContractTypes() {
     }
 }
 
-export async function getPositions(discipline_id = null) {
+export async function getPositions() {
 
     try {
-        const query = !!discipline_id ? "SELECT position_id as value, position_name as label FROM position where discipline_id = ?" : "SELECT position_id as value, position_name as label FROM position"
-        const results = !!discipline_id ? await execute(query, [discipline_id]) : await execute(query)
+        const query = "SELECT position_id as value, position_name as label FROM position"
+        const results = await execute(query)
         return res.success_data(results);
     } catch (error) {
         console.error('Error fetching positions:', error);

@@ -1,9 +1,16 @@
-const { default: ProjectFormLoader } = require("@/app/components/forms/Project/ProjectFormLoader");
+import getDropdownData from "@/data/dynamic/NewProjectDDoptions";
 
-function ProjectPage(props) {
+export const metadata = {
+    title: "New Project",
+    description: "New project creation",
+};
+
+async function ProjectPage() {
+    const projectDropdowns = await getDropdownData();
+
     return (
-        <ProjectFormLoader  {...props} isEdit={false} />
-    )
+        <ProjectForm isEdit={false} projectDropdowns={projectDropdowns} />
+    );
 }
 
 export default ProjectPage

@@ -1,11 +1,13 @@
-import EmployeeFormLoader from "@/app/components/forms/Employee/EmployeeFormLoader"
+import EmployeeForm from "@/app/components/forms/Employee/EmployeeForm"
+import getDropdownData from "@/data/dynamic/NewEmployeeDDOptions"
 
-async function AddEmployee({ params }) {
+async function AddEmployee() {
+
+  const optionsData = await getDropdownData()
 
   return (
-    <EmployeeFormLoader params={params} />
+    <EmployeeForm isEdit={false} defaultValues={{}} optionsData={optionsData} />
   )
-
 }
 
 export default AddEmployee

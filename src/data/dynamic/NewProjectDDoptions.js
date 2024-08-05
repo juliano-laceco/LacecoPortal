@@ -13,6 +13,7 @@ export default async function getDropdownData() {
     const disciplinesUnfiltered = disciplinesRes.data
 
     const disciplines = disciplinesUnfiltered.filter((discipline) => discipline.label != "Proposals")
+    disciplines.push({ value: 78, label: "Project Management Unit" })
 
     const employeesRes = await getEmployees()
     const employees = employeesRes.data

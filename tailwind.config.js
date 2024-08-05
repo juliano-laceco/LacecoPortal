@@ -48,7 +48,7 @@ module.exports = {
         "active": "#6ABE6B",
         "inactive": "#e84a40",
         "on-hold": "#ff9f00",
-        "highly-probable": "#f0cc44",
+        "highly-probable": "#ff9248",
         "lightRed": '#e84a40',
         "lightRed1": '#f28478', // Lighter shade
         "lightRed2": '#faa49c', // Even lighter shade

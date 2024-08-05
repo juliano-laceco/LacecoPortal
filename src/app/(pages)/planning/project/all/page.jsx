@@ -5,6 +5,12 @@ import Link from "next/link";
 import { getAllProjects } from "@/utilities/project/project-utils";
 import project_statuses from "@/data/static/project-statuses";
 
+
+export const metadata = {
+    title: "All Projects",
+    description: "Displays all projects",
+};
+
 async function TablePage({ searchParams }) {
 
     const results = await getAllProjects(searchParams);

@@ -80,8 +80,6 @@ export async function createProject(projectData) {
             );
         }
 
-        disciplines.push('78')
-
         // Insert project disciplines into the project_disciplines table
         for (const discipline of disciplines) {
             await connection.query(`
@@ -318,16 +316,21 @@ export async function getProjectData(project_id) {
                     e.discipline_id AS discipline,
                     e.employee_id AS assignee,
                     pw.hours_expected, 
-                    DATE_FORMAT(pw.week_start, '%d %M %Y') AS week_start
+                    DATE_FORMAT(pw.week_start, '%d %M %Y') AS week_start,
+                    g.grade_code
                 FROM phase_assignee pa
                 LEFT JOIN projected_work_week pw ON pa.phase_assignee_id = pw.phase_assignee_id
                 JOIN employee e ON pa.assignee_id = e.employee_id
+                JOIN position pos ON e.position_id = pos.position_id
+                JOIN grade g ON pos.grade_id = g.grade_id
                 WHERE pa.phase_id = ?
             `;
 
             const assigneeRows = await execute(assigneeQuery, [phase.phase_id]);
 
             const assigneeMap = {};
+            let numSeniors = 0;
+            let numJuniors = 0;
 
             assigneeRows.forEach((row) => {
                 if (!assigneeMap[row.phase_assignee_id]) {
@@ -337,6 +340,13 @@ export async function getProjectData(project_id) {
                         assignee: row.assignee,
                         projected_work_weeks: {}
                     };
+
+                    // Calculate juniors and seniors
+                    if (['G5', 'G4', 'G3', 'G2', 'G1', 'G0'].includes(row.grade_code)) {
+                        numSeniors++;
+                    } else {
+                        numJuniors++;
+                    }
                 }
                 if (row.week_start) {
                     assigneeMap[row.phase_assignee_id].projected_work_weeks[row.week_start] = row.hours_expected;
@@ -345,6 +355,8 @@ export async function getProjectData(project_id) {
 
             const assignees = Object.values(assigneeMap);
             phase.assignees = assignees;
+            phase.numSeniors = numSeniors;
+            phase.numJuniors = numJuniors;
         }
 
         let allDates = []
@@ -368,6 +380,16 @@ export async function getProjectData(project_id) {
             projectData.projectInfo.initialDeployment = true
         }
 
+        // Calculate total juniors and seniors for the project
+        const totalSeniors = phaseRows.reduce((acc, phase) => acc + phase.numSeniors, 0);
+        const totalJuniors = phaseRows.reduce((acc, phase) => acc + phase.numJuniors, 0);
+        const totalEmployees = totalSeniors + totalJuniors;
+        const percentJuniors = totalEmployees > 0 ? (totalJuniors / totalEmployees) * 100 : 0;
+
+        projectData.projectInfo.numSeniors = totalSeniors;
+        projectData.projectInfo.numJuniors = totalJuniors;
+        projectData.projectInfo.percentJuniors = Math.ceil(percentJuniors);
+
         // Fetching Selected Disciplines
         const selectedDisciplines = await execute(`
             SELECT pd.discipline_id as value , d.discipline_name as label
@@ -389,6 +411,7 @@ export async function getProjectData(project_id) {
         return res.failed();
     }
 }
+
 
 export async function saveDeployment(deployment_data, deletedAssignees) {
     const maxRetries = 5;
