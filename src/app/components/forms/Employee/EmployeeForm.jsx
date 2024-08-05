@@ -21,10 +21,15 @@ import { getDisciplines, getPositions, getPositionDetails } from '@/utilities/lo
 // Utilities
 import { showToast } from '@/utilities/toast-utils';
 import { formatDate } from '@/utilities/date/date-utils';
+import Button from '../../custom/Button';
+import Modal from '../../custom/Modals/Modal';
+import Image from 'next/image';
 
 function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
     const router = useRouter();
+
+    const [modalIsOpen, setModalIsOpen] = useState(false)
 
     // Setting Title and Submit Texts
     const submitText = isEdit ? "Update" : "Submit";
@@ -134,7 +139,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             handleDivisionChange(divisionId);
             setDefaultDiscipline();
         }
-    }, [defaultValues.division_id , handleDivisionChange , setDefaultDiscipline]
+    }, [defaultValues.division_id]
     );
 
     useEffect(() => {
@@ -144,7 +149,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
             handleDisciplineChange(disciplineId);
             setDefaultPosition();
         }
-    }, [defaultValues.discipline_id , setDefaultPosition]
+    }, [defaultValues.discipline_id]
     );
 
     useEffect(() => {
@@ -152,7 +157,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
         if (positionId) {
             handlePositionChange(positionId);
         }
-    }, [defaultValues.position_id , handlePositionChange]
+    }, [defaultValues.position_id]
     );
 
 
@@ -278,117 +283,149 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
         return { position_changed, status_changed, employee_id };
     }
 
+    const navigateToAllEmployees = () => {
+        router.replace("/planning/project/all");
+    }
+
     return (
-        <div className="shadow-2xl rounded-lg border bg-white">
-            <Form title={titleText}
-                handleSubmit={handleSubmit}
-                onSubmit={isEdit ? onUpdate : onCreate}
-                submitText={submitText} isSubmitting={isSubmitting}
-                submit
-                columns={{ default: 3, mob: 1, tablet: 2, lap: 3, desk: 3 }}
-            >
-                <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
-                <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
-                <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
-                <Input label="Work Email" type="text" {...register("work_email")} error={errors.work_email?.message} isDisabled={isEdit} />
-                <DropdownLookup
-                    className="select-input"
-                    label="Division"
-                    options={optionsData.divisions}
-                    handler={handleDivisionChange}
-                    input_name="division_id"
-                    control={control}
-                    error={errors.division_id?.message}
-                />
-                <DropdownLookup
-                    className="select-input"
-                    label="Department"
-                    options={filteredDisciplines}
-                    isLoading={loadingDisciplines}
-                    input_name="discipline_id"
-                    control={control}
-                    handler={handleDisciplineChange}
-                    error={errors.discipline_id?.message}
-                />
-                <DropdownLookup
-                    className="select-input"
-                    label="Position"
-                    options={optionsData.positions}
-                    input_name="position_id"
-                    control={control}
-                    handler={handlePositionChange}
-                    error={errors.position_id?.message}
-                />
-                <Input type="text" label="Level Of Management" {...register("level_of_management_name")} isDisabled />
-                <Input type="text" label="Grade" {...register("grade_name")} isDisabled />
-                <DropdownLookup
-                    className="select-input"
-                    label="Nationality"
-                    options={nationalities}
-                    input_name="nationality"
-                    control={control}
-                    error={errors.nationality?.message}
-                />
-                <DropdownLookup
-                    className="select-input"
-                    label="Deployment Country"
-                    options={countries}
-                    input_name="country"
-                    control={control}
-                    error={errors.country?.message}
-                />
-                <DropdownLookup
-                    className="select-input"
-                    label="Marital Status"
-                    options={marital_statuses}
-                    input_name="marital_status"
-                    control={control}
-                    error={errors.marital_status?.message}
-                />
-                <DropdownLookup
-                    className="select-input"
-                    label="Contract Type"
-                    options={optionsData.contractTypes}
-                    handler={clearContractValidity}
-                    input_name="contract_type_id"
-                    control={control}
-                    error={errors.contract_type_id?.message}
-                />
-                {
-                    selectedContractId == "2" && (
-                        <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
-                    )
-                }
-                <DropdownLookup
-                    className="select-input"
-                    label="Clearance Level"
-                    options={optionsData.roles}
-                    input_name="role_id"
-                    control={control}
-                    error={errors.role_id?.message}
-                />
-                <Input label="Hourly Cost" type="number" {...register("employee_hourly_cost")} error={errors.employee_hourly_cost?.message} />
-                <Input label="Major" type="text" {...register("major")} error={errors.major?.message} />
-                <Input label="Years of Experience" type="text" {...register("years_of_experience")} error={errors.years_of_experience?.message} />
-                {
-                    isEdit &&
+        <>
+            <Modal open={modalIsOpen} onClose={() => setModalIsOpen(false)} >
+                <div className="flex items-center gap-4">
+                    <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
+                    <div className="mob:text-xs">
+                        <p>Cancelling this operation will discard any changes made.</p>
+                        <p>Are you sure you wish to proceed?</p>
+                    </div>
+                </div>
+                <div className="flex justify-center gap-4 mb-4 mt-5">
+                    <Button variant="primary" small name="Proceed" onClick={navigateToAllEmployees}>
+                        Proceed
+                    </Button>
+                    <Button variant="secondary" small name="Close" onClick={() => setModalIsOpen(false)}>
+                        Close
+                    </Button>
+
+                </div>
+            </Modal>
+
+            <div className="shadow-2xl rounded-lg border bg-white">
+                <Form title={titleText}
+                    handleSubmit={handleSubmit}
+                    onSubmit={isEdit ? onUpdate : onCreate}
+                    submitText={submitText} isSubmitting={isSubmitting}
+                    submit
+                    columns={{ default: 3, mob: 1, tablet: 2, lap: 3, desk: 3 }}
+                    AdditionalButton={
+                        <>
+                            <Button variant="secondary" medium name="Cancel" onClick={() => setModalIsOpen(true)}>
+                                Cancel
+                            </Button>
+                        </>
+                    }
+                >
+                    <Input label="First Name" type="text" {...register("first_name")} error={errors.first_name?.message} />
+                    <Input label="Last Name" type="text" {...register("last_name")} error={errors.last_name?.message} />
+                    <Input label="Date of Birth" type="date" {...register("date_of_birth")} error={errors.date_of_birth?.message} />
+                    <Input label="Work Email" type="text" {...register("work_email")} error={errors.work_email?.message} isDisabled={isEdit} />
                     <DropdownLookup
                         className="select-input"
-                        label="Status"
-                        handler={clearWorkEndDate}
-                        options={optionsData.statuses}
-                        input_name="employee_status_id"
+                        label="Division"
+                        options={optionsData.divisions}
+                        handler={handleDivisionChange}
+                        input_name="division_id"
                         control={control}
-                        error={errors.status_id?.message}
+                        error={errors.division_id?.message}
                     />
-                }
-                <Input label="Work Start Date" type="date" {...register("created_on")} error={errors.created_on?.message} isDisabled={isEdit} />
-                {
-                    isEdit && selectedStatus == "2" &&
-                    <Input label="Work End Date" type="date" {...register("work_end_date")} error={errors.work_end_date?.message} />
-                }
-            </Form >
-        </div>
+                    <DropdownLookup
+                        className="select-input"
+                        label="Department"
+                        options={filteredDisciplines}
+                        isLoading={loadingDisciplines}
+                        input_name="discipline_id"
+                        control={control}
+                        handler={handleDisciplineChange}
+                        error={errors.discipline_id?.message}
+                    />
+                    <DropdownLookup
+                        className="select-input"
+                        label="Position"
+                        options={optionsData.positions}
+                        input_name="position_id"
+                        control={control}
+                        handler={handlePositionChange}
+                        error={errors.position_id?.message}
+                    />
+                    <Input type="text" label="Level Of Management" {...register("level_of_management_name")} isDisabled />
+                    <Input type="text" label="Grade" {...register("grade_name")} isDisabled />
+                    <DropdownLookup
+                        className="select-input"
+                        label="Nationality"
+                        options={nationalities}
+                        input_name="nationality"
+                        control={control}
+                        error={errors.nationality?.message}
+                    />
+                    <DropdownLookup
+                        className="select-input"
+                        label="Deployment Country"
+                        options={countries}
+                        input_name="country"
+                        control={control}
+                        error={errors.country?.message}
+                    />
+                    <DropdownLookup
+                        className="select-input"
+                        label="Marital Status"
+                        options={marital_statuses}
+                        input_name="marital_status"
+                        control={control}
+                        error={errors.marital_status?.message}
+                    />
+                    <DropdownLookup
+                        className="select-input"
+                        label="Contract Type"
+                        options={optionsData.contractTypes}
+                        handler={clearContractValidity}
+                        input_name="contract_type_id"
+                        control={control}
+                        error={errors.contract_type_id?.message}
+                    />
+                    {
+                        selectedContractId == "2" && (
+                            <Input label="Contract Valid Till" type="date" {...register("contract_valid_till")} error={errors.contract_valid_till?.message} />
+                        )
+                    }
+                    <DropdownLookup
+                        className="select-input"
+                        label="Clearance Level"
+                        options={optionsData.roles}
+                        input_name="role_id"
+                        control={control}
+                        error={errors.role_id?.message}
+                    />
+                    <Input label="Hourly Cost" type="number" {...register("employee_hourly_cost")} error={errors.employee_hourly_cost?.message} />
+                    <Input label="Major" type="text" {...register("major")} error={errors.major?.message} />
+                    <Input label="Years of Experience" type="text" {...register("years_of_experience")} error={errors.years_of_experience?.message} />
+                    {
+                        isEdit &&
+                        <DropdownLookup
+                            className="select-input"
+                            label="Status"
+                            handler={clearWorkEndDate}
+                            options={optionsData.statuses}
+                            input_name="employee_status_id"
+                            control={control}
+                            error={errors.status_id?.message}
+                        />
+                    }
+                    <Input label="Work Start Date" type="date" {...register("created_on")} error={errors.created_on?.message} isDisabled={isEdit} />
+                    {
+                        isEdit && selectedStatus == "2" &&
+                        <Input label="Work End Date" type="date" {...register("work_end_date")} error={errors.work_end_date?.message} />
+                    }
+                </Form >
+            </div>
+        </>
     );
 }
 

@@ -141,7 +141,8 @@ export async function updateProject(projectData) {
                 city = ?, 
                 geography = ?, 
                 code = ?, 
-                title = ?
+                title = ?,
+                project_status = ?
             WHERE project_id = ?`,
             [
                 projectInfo.employee_id,
@@ -160,6 +161,7 @@ export async function updateProject(projectData) {
                 projectInfo.geography,
                 projectInfo.code,
                 projectInfo.title,
+                projectInfo.project_status,
                 project_id
             ],
             transaction

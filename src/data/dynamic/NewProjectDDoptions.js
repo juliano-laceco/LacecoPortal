@@ -21,7 +21,9 @@ export default async function getDropdownData() {
     const phaseNamesRes = await getPhaseNames()
     const phaseNames = phaseNamesRes.data
 
+    
 
-    return { projectInfoDropdowns: { clients, interventions, project_statuses, sectors, typologies, disciplines, employees, countries, phaseNames }, phaseCreationDropdowns: phaseNames }
+
+    return { projectInfoDropdowns: { clients, interventions, project_statuses, sectors, typologies, disciplines, employees, countries, phaseNames , project_statuses }, phaseCreationDropdowns: phaseNames }
 }
 

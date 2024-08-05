@@ -337,16 +337,50 @@ export async function createStatusHistoryRecord(data) {
 
 export async function getEmployeeData(employee_id) {
     try {
-        const query = `SELECT employee_id, first_name, last_name, work_email, DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, nationality, marital_status, employee_hourly_cost, major, years_of_experience, contract_type_id, CASE WHEN contract_valid_till IS NULL THEN NULL ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') END AS contract_valid_till, CASE WHEN work_end_date IS NULL THEN NULL ELSE DATE_FORMAT(work_end_date, '%Y-%m-%d') END AS work_end_date , p.position_id, country, d.division_id , e.discipline_id ,  employee_status_id, role_id, DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
-                       FROM employee e
-                       JOIN position p on e.position_id = p.position_id
-                       JOIN discipline d on e.discipline_id = d.discipline_id
-                       JOIN division dv on d.division_id = d.division_id
-                       JOIN grade g on p.grade_id = g.grade_id
-                       JOIN level_of_management lom on p.level_of_management_id = lom.level_of_management_id
-                       WHERE employee_id = ?`;
+        const query = `SELECT 
+                       employee_id, 
+                       first_name, 
+                       last_name, 
+                       work_email, 
+                       DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, 
+                       nationality, 
+                       marital_status, 
+                       employee_hourly_cost, 
+                       major, 
+                       ROUND(years_of_experience) AS years_of_experience, 
+                       contract_type_id, 
+                       CASE 
+                           WHEN contract_valid_till IS NULL THEN NULL 
+                           ELSE DATE_FORMAT(contract_valid_till, '%Y-%m-%d') 
+                       END AS contract_valid_till, 
+                       CASE 
+                           WHEN work_end_date IS NULL THEN NULL 
+                           ELSE DATE_FORMAT(work_end_date, '%Y-%m-%d') 
+                       END AS work_end_date, 
+                       p.position_id, 
+                       country, 
+                       d.division_id, 
+                       e.discipline_id,  
+                       employee_status_id, 
+                       role_id, 
+                       DATE_FORMAT(created_on, '%Y-%m-%d') AS created_on 
+                   FROM 
+                       employee e
+                   JOIN 
+                       position p ON e.position_id = p.position_id
+                   JOIN 
+                       discipline d ON e.discipline_id = d.discipline_id
+                   JOIN 
+                       division dv ON d.division_id = dv.division_id
+                   JOIN 
+                       grade g ON p.grade_id = g.grade_id
+                   JOIN 
+                       level_of_management lom ON p.level_of_management_id = lom.level_of_management_id
+                   WHERE 
+                       employee_id = ?`;
 
         const results = await execute(query, [employee_id])
+
         return res.success_data(results);
     } catch (error) {
         console.error('Error fetching employee details:', error);

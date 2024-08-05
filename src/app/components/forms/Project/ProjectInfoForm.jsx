@@ -87,7 +87,8 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
                 const { planned_startdate } = this.parent; // Access parent field value
                 return new Date(value) > new Date(planned_startdate);
             }),
-        employee_id: yup.string().required('Project Manager is required')
+        employee_id: yup.string().required('Project Manager is required'),
+        project_status: yup.string()
 
     });
 
@@ -154,8 +155,6 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
         setValue("disciplines", disciplines)
         trigger("disciplines");
     };
-
-    console.log(data)
 
     return (
         <>
@@ -244,6 +243,14 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
                     label="Project Manager"
                     options={dropdowns.employees}
                     input_name="employee_id"
+                    control={control}
+                    error={errors.employee_id?.message}
+                />
+                <DropdownLookup
+                    className="select-input"
+                    label="Project Status"
+                    options={dropdowns.project_statuses}
+                    input_name="project_status"
                     control={control}
                     error={errors.employee_id?.message}
                 />

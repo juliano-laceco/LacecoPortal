@@ -1,6 +1,6 @@
 const project_statuses = [
     { "value": "Highly Probable", "label": "Highly Probable" },
-    { "value": "On Hold", "label": "On Hold" },
+    { "value": "Active", "label": "Active" },
     { "value": "Inactive", "label": "Inactive" },
 ];
 
