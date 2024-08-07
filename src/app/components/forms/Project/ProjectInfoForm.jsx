@@ -124,8 +124,8 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
             return;
         }
 
-
         const removedDisciplines = findRemovedItems(data.disciplines, watch("disciplines"))
+
         const phasesAssignments = await checkDisciplineIsPhaseAssigned(removedDisciplines, data.project_id)
 
         const unremovableDisciplines = phasesAssignments.filter((item) => {
@@ -140,6 +140,7 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
             goNext({ projectInfo: preprocessData(formData) });
         }
     };
+
     function findRemovedItems(array1, array2) {
         // Convert array2 to a Set for faster lookup, normalize to string for comparison
         const set2 = new Set(array2.map(item => String(item.value)));
@@ -166,13 +167,9 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
                 AdditionalButton={
                     <>
                         {!isFirstStep && (
-                            <Button variant="secondary" medium name="Back" onClick={goBack}>
-                                Back
-                            </Button>
+                            <Button variant="secondary" medium name="Back" onClick={goBack} />
                         )}
-                        <Button variant="secondary" medium name="Cancel" onClick={() => confirmModal(true)}>
-                            Cancel
-                        </Button>
+                        <Button variant="secondary" medium name="Cancel" onClick={() => confirmModal(true)} />
                     </>
                 }
                 submit
@@ -258,6 +255,14 @@ const ProjectInfoForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, is
             </Form >
             <Modal title="Cannot Remove Disciplines" open={modalIsOpen} type="client" onClose={() => setModalIsOpen(false)}>
                 <UnremovableDiscipline unremovableDisciplines={unremovableDisciplines} />
+                <div className="flex justify-center gap-4 mb-4 mt-5">
+                    <Button
+                        variant="secondary"
+                        small
+                        onClick={() => setModalIsOpen(false)}
+                        name="Close"
+                    />
+                </div>
             </Modal>
         </>
     );

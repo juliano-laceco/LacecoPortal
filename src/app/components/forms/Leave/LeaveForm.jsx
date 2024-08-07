@@ -10,6 +10,7 @@ import { createLeave } from '@/utilities/leave/leave-utils';
 import { showToast } from '@/utilities/toast-utils';
 import { useRouter } from 'next/navigation';
 import LeaveItem from './LeaveItem';
+import { logError } from '@/utilities/misc-utils';
 
 // Validation schema
 const schema = yup.object().shape({
@@ -65,7 +66,7 @@ const LeaveForm = ({ leaveTypesOptions, employee_id, newPath }) => {
             }
             router.replace(newPath); 
         } catch (error) {
-            console.error("Error submitting leave:", error);
+            await logError(error, "Error submitting leave")
             showToast("failed", "An unexpected error occurred. Please try again later.");
         }
     };

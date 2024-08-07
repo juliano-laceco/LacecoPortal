@@ -3,11 +3,9 @@
 
 import * as res from '../response-utils';
 import { getLoggedInId } from "../auth/auth-utils";
-import { nullifyEmpty } from '../misc-utils';
+import { logError, nullifyEmpty } from '../misc-utils';
 import { dynamicQuery, execute, getTableFields } from '../db/db-utils';
-
-
-
+import { formatDate } from '../date/date-utils';
 
 export async function handleEmployeeLogin(email, sub) {
 
@@ -35,8 +33,8 @@ export async function handleEmployeeLogin(email, sub) {
             return res.failed()
         }
 
-    } catch (error) {
-        console.error('Error executing query:', error);
+    } catch (error) { 
+        await logError(error, 'Error logging in employee')
         return res.failed()
     }
 }
@@ -58,7 +56,7 @@ export async function getLoggedInRole(google_sub) {
         return res.success_data({ role_id, role_name, employee_id });
 
     } catch (error) {
-        console.error('Error fetching employee role:', error);
+        await logError(error, 'Error fetching employee role')
         return res.failed();
     }
 }
@@ -78,7 +76,7 @@ export async function checkEmailExists(email) {
         return res.success()
 
     } catch (error) {
-        console.error('Error checking email availability:', error);
+        await logError(error, 'Error checking email availability')
         return res.success()
     }
 
@@ -156,19 +154,20 @@ export async function createEmployee(data) {
             const positionRecord = await createPositionHistoryRecord({ employee_hourly_cost: employee_hourly_cost ?? null, position_id, employee_id: insertId });
             const statusRecord = await createStatusHistoryRecord({ employee_id: insertId, status_id: 1 })
             return (positionRecord.res && statusRecord.res);
-
-
         }
 
         return res.failed();
     } catch (error) {
-        console.error('Error creating employee:', error);
+        await logError(error, 'Error creating employee')
         return res.failed();
     }
 }
 
 export async function updateEmployee(data) {
+
     try {
+
+        const initiatorId = await getLoggedInId()
 
         const sql = `
             UPDATE lacecodb.employee
@@ -188,7 +187,9 @@ export async function updateEmployee(data) {
                 country = ?, 
                 employee_status_id = ?,  
                 work_end_date = ? ,
-                role_id = ?
+                role_id = ?,
+                changed_on = ?,
+                changed_by = ?
             WHERE employee_id = ?`;
 
         const {
@@ -208,8 +209,6 @@ export async function updateEmployee(data) {
             country,
             employee_status_id,
             role_id,
-            status_changed,
-            position_changed,
             work_end_date
         } = nullifyEmpty(data);
 
@@ -230,6 +229,8 @@ export async function updateEmployee(data) {
             employee_status_id,
             work_end_date ?? null,
             role_id,
+            formatDate(new Date(), "sql-datetime"),
+            initiatorId,
             employee_id
         ]);
 
@@ -237,101 +238,10 @@ export async function updateEmployee(data) {
             return res.failed();
         }
 
-        if (position_changed) {
-            const positionRecord = await createPositionHistoryRecord({
-                employee_hourly_cost: employee_hourly_cost ?? null,
-                position_id,
-                employee_id
-            });
-
-            if (!positionRecord.res) {
-                return res.failed();
-            }
-        }
-
-        if (status_changed) {
-
-            const statusRecord = await createStatusHistoryRecord({ employee_id: employee_id, status_id: 1 })
-
-            if (!statusRecord.res) {
-                return res.failed();
-            }
-        }
-
         return res.success();
     } catch (error) {
-        console.error('Error updating employee:', error);
+        await logError(error, 'Error updating employee')
         return res.failed();
-    }
-}
-
-export async function createPositionHistoryRecord(data) {
-
-    try {
-
-        const initiatorId = await getLoggedInId()
-
-        const sql = `
-    INSERT INTO lacecodb.position_history (
-        employee_id,
-        new_position_id,
-        new_employee_hourly_cost,
-        changed_by
-    )
-    VALUES (?, ?, ?, ?)
-`;
-
-        const {
-            employee_hourly_cost,
-            position_id,
-            employee_id
-        } = data;
-
-        const result = await execute(sql, [employee_id, position_id, employee_hourly_cost ?? null, initiatorId])
-
-        if (result.affectedRows > 0) {
-            return res.success()
-        }
-
-        return res.failed()
-
-    } catch (error) {
-        console.error('Error creating position history record:', error);
-        return res.failed()
-    }
-}
-
-export async function createStatusHistoryRecord(data) {
-
-    try {
-
-        const initiatorId = await getLoggedInId()
-
-        const sql = `
-    INSERT INTO lacecodb.employee_status_history (
-        employee_id,
-        new_status_id,
-        changed_by
-    )
-    VALUES (?, ? , ?)
-`;
-
-        const {
-            status_id,
-            employee_id
-        } = data;
-
-        const result = await execute(sql, [employee_id, status_id, initiatorId])
-
-        if (result.affectedRows > 0) {
-            return res.success()
-        }
-
-        return res.failed()
-
-    } catch (error) {
-        console.error('Error creating employee status history record:', error);
-        return res.failed()
     }
 }
 
@@ -383,7 +293,7 @@ export async function getEmployeeData(employee_id) {
 
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching employee details:', error);
+        await logError(error, 'Error fetching employee details')
         return res.failed()
     }
 }
@@ -419,7 +329,33 @@ export async function getAllEmployees(qs = {}) {
         return result;
 
     } catch (error) {
-        console.error('Error fetching employee details:', error);
+        await logError(error, 'Error fetching employee details')
         return res.failed();
     }
+}
+
+
+export async function getEmployeeLinkOptions(role_id) {
+
+
+    try {
+        const commonLinksQuery = `SELECT *
+                              FROM sidebar_link
+                              WHERE isCommon = 'Yes'                   
+                              `
+        const commonLinks = await execute(commonLinksQuery)
+
+        const specificLinksQuery = `SELECT * 
+                     FROM sidebar_link sl 
+                     JOIN sidebar_link_role slr ON slr.sidebar_link_id = sl.sidebar_link_id 
+                     WHERE slr.role_id = ? `
+
+        const specificLinks = await execute(specificLinksQuery, [role_id])
+
+        return res.success_data([...commonLinks, ...specificLinks])
+    } catch (error) {
+        await logError(error, "Error fetching employee link options")
+        return res.failed()
+    }
+
 }

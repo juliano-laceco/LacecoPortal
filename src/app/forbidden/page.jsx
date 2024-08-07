@@ -14,7 +14,7 @@ function page() {
                     You tried to access a page you do not have authorization for.
                 </p>
                 <Link href="/">
-                    <Button name="Back to Home" className="mt-6" primary medium  ltr />
+                    <Button name="Back to Home" className="mt-6" primary medium ltr />
                 </Link>
             </div>
         </div>

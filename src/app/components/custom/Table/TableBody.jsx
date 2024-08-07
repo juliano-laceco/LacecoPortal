@@ -13,13 +13,15 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
                   {...column.getHeaderProps(column.getSortByToggleProps())}
                   className={`px-6 py-3 bg-gray-100 text-black text-center font-bold text-xs uppercase tracking-wider 
                     ${columnMeta && !columnMeta.mobile ? 'mob:hidden' : ''}
-                    ${columnMeta && !columnMeta.tablet ? 'tablet:hidden' : ''}`}
+                    ${columnMeta && !columnMeta.tablet ? 'tablet:hidden' : ''}`
+                  }
+
                   key={crypto.randomUUID()}
                 >
                   <div className="flex justify-center items-center gap-1">
                     {column.render('Header')}
                     <span className={column.isSortedDesc ? 'text-red-500' : ''}>
-                      {column.isSorted ? (column.isSortedDesc ? <Image src="/resources/icons/descending.svg" height="15" width="15" alt="descending" /> : <Image src="/resources/icons/ascending.svg" alt="ascending" height="15" width="15" />) : ''}
+                      {column.isSorted ? (column.isSortedDesc ? <Image src="/resources/icons/descending.svg" height="15" width="15" className="min-h-[15px] min-w-[15px]" alt="descending" /> : <Image src="/resources/icons/ascending.svg" alt="ascending" height="15" width="15" className="min-h-[15px] min-w-[15px]" />) : ''}
                     </span>
                   </div>
                 </th>

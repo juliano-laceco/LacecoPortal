@@ -5,9 +5,7 @@ import Sidebar from "./components/sidebar/Sidebar";
 import { getSession } from "../utilities/auth/auth-utils";
 import Image from "next/image";
 import { ToastContainer } from 'react-toastify';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import ReactQueryProvider from "@/providers/RQProvider";
-import { checkDisciplineIsPhaseAssigned, getProjectData } from "@/utilities/project/project-utils";
+import { getEmployeeLinkOptions } from "@/utilities/employee/employee-utils";
 
 export const metadata = {
   title: "Laceco Portal",
@@ -19,36 +17,20 @@ export default async function RootLayout({ children }) {
   const session = await getSession()
 
   let navItems = []
-  let userRole;
+  let userRoleId;
 
   if (!!session) {
-    userRole = (session?.user?.role_name).trim();
+    userRoleId = session?.user?.role_id
   }
 
+  const optionsRes = await getEmployeeLinkOptions(userRoleId)
 
-  const commonOptions = [{ id: crypto.randomUUID(), icon: <Image src="/resources/icons/home.svg" height="30" width="30" alt="nav-icon" />, label: "Home Page", redirectTo: "/" }]
-  const HROptions = [
-    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/add-employee.svg" height="30" width="30" alt="nav-icon" />, label: "Add Employee", redirectTo: "/hr/employee/add" },
-    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/employee-list.svg" height="30" width="30" alt="nav-icon" />, label: "Employee Management", redirectTo: "/hr/employee/all" },
-    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/calendar-off.svg" height="30" width="30" alt="nav-icon" />, label: "Employee Leaves", redirectTo: "/hr/employee/leaves" },
-  ];
+  if (optionsRes.res) {
+    const options = optionsRes.data
 
-
-  const PlanningAdminOptions = [
-    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/new-project.svg" height="30" width="30" alt="nav-icon" />, label: "New Project", redirectTo: "/planning/project/add" },
-    { id: crypto.randomUUID(), icon: <Image src="/resources/icons/project-list.svg" height="30" width="30" alt="nav-icon" />, label: "Project List", redirectTo: "/planning/project/all" },
-  ]
-
-  switch (userRole) {
-    case "HR":
-      navItems = [...commonOptions, ...HROptions]
-      break;
-    case "Planning Administrator":
-      navItems = [...commonOptions, ...PlanningAdminOptions]
-      break;
-    default:
-      navItems = [...commonOptions]
-
+    options.map((option) =>
+      navItems.push({ id: option.sidebar_link_id, icon: <Image src={`/resources/icons/${option.icon_name}.svg`} height="30" width="30" alt="nav-icon" />, label: option.label, redirectTo: option.redirects_to })
+    )
   }
 
   return (
@@ -58,16 +40,13 @@ export default async function RootLayout({ children }) {
       </head>
       <body className="flex flex-col gap-4 h-screen text-pri-txtc bg-gray-100">
         <AuthProvider>
-          <ReactQueryProvider>
-            <Header burgerNavItems={navItems} />
-            <div className="flex gap-5 h-full sticky left-0">
-              {!!session && <Sidebar sidebarItems={navItems} />}
-              <div className="w-full mr-4 mob:w-11/12 mob:mx-auto tablet:w-11/12 tablet:mx-auto panel lap:pl-24 desk:pl-24  mob:mt-24 tablet:mt-28 lap:mt-28 desk:mt-28">
-                {children}
-              </div>
+          <Header burgerNavItems={navItems} />
+          <div className="flex gap-5 h-full sticky left-0">
+            {!!session && <Sidebar sidebarItems={navItems} />}
+            <div className="w-full mr-4 mob:w-11/12 mob:mx-auto tablet:w-11/12 tablet:mx-auto panel lap:pl-24 desk:pl-24  mob:mt-24 tablet:mt-28 lap:mt-28 desk:mt-28">
+              {children}
             </div>
-            <ReactQueryDevtools initialIsOpen={false} />
-          </ReactQueryProvider>
+          </div>
         </AuthProvider>
         <ToastContainer />
       </body>

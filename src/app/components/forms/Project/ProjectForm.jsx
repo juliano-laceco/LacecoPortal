@@ -95,13 +95,8 @@ const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {
                     </div>
                 </div>
                 <div className="flex justify-center gap-4 mb-4 mt-5">
-                    <Button variant="primary" small name="Proceed" onClick={navigateToAllProjects}>
-                        Proceed
-                    </Button>
-                    <Button variant="secondary" small name="Close" onClick={() => setModalIsOpen(false)}>
-                        Close
-                    </Button>
-
+                    <Button variant="primary" small name="Proceed" onClick={navigateToAllProjects} />
+                    <Button variant="secondary" small name="Close" onClick={() => setModalIsOpen(false)} />
                 </div>
             </Modal>
             <Stepper steps={steps} currentStep={currentStepIndex} />

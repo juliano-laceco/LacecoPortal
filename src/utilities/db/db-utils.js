@@ -1,6 +1,7 @@
 "use server"
 
 import db from '../../config/db';
+import { logError } from '../misc-utils';
 import * as res from '../response-utils'
 
 export async function execute(query, values = []) {
@@ -8,7 +9,7 @@ export async function execute(query, values = []) {
         const [res] = await db.execute(query, [...values])
         return res;
     } catch (error) {
-        console.error("Error in executing SQL query:", error)
+        await logError(error , "Error in executing SQL query")
         throw error;
     }
 }
@@ -28,7 +29,7 @@ export async function getTableFields(tables) {
 
         return res.success_data(fieldNames);
     } catch (error) {
-        console.error('Error fetching field names:', error);
+        await logError(error , 'Error fetching field names' )
         return res.failed();
     }
 }
@@ -99,7 +100,7 @@ export async function dynamicQuery(qs, query, allowedKeys) {
         return res.success_data(results);
 
     } catch (error) {
-        console.error('Error fetching project details:', error);
+        await logError(error , 'Error fetching project details')
         return res.failed();
     }
 }
@@ -131,13 +132,11 @@ export async function renameAmbiguousColumns(columns) {
             }
         });
     } catch (error) {
-        console.error('Error renaming ambiguous columns :', error);
+        await logError(error , 'Error renaming ambiguous columns')
         return "*";
     }
 
     return selectClause;
-
-
 
 }
 

@@ -70,7 +70,7 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
 
   return (
     <div className="container mx-auto min-w-full z-100 border  rounded-lg shadow-xl panel">
-      <div className="table-wrapper bg-white p-5 mob:p-4 rounded-lg">
+      <div className="table-wrapper bg-white p-5 mob:p-4 rounded-lg  overflow-x-scroll">
         <h1 className="font-bold text-3xl">{title}</h1>
         <h3 className="py-2 mb-3">{subTitle}</h3>
         {isFilterable && <TableFilter filterItems={filterItems} filterFunction={pushQS} clearFunction={clearFunction} keywordRef={keywordRef} />}

@@ -129,9 +129,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
     const [loadingDisciplines, setLoadingDisciplines] = useState(false);
     const [filteredDisciplines, setFilteredDisciplines] = useState([]);
 
-    const [filteredPositions, setFilteredPositions] = useState([]);
-
-
     // DEFAULT VALUE TRIGGERS 
     useEffect(() => {
         const divisionId = defaultValues.division_id; // Assuming division_id is part of defaultValues
@@ -179,7 +176,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
         const positionsRes = await getPositions(discipline_id);
         const positions = positionsRes?.data ?? [];
 
-        setFilteredPositions(positions);
+
 
     }
 
@@ -198,7 +195,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
         }
     }
 
-
     /* VALUE CLEARER FUNCTIONS */
 
     function clearPositionDetails() {
@@ -208,7 +204,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
     function clearDiscipline() {
         setValue("discipline_id", "");
-        setFilteredPositions([])
     }
 
     function clearContractValidity() {
@@ -218,7 +213,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
     function clearWorkEndDate() {
         setValue("work_end_date", "");
     }
-
 
     /* DEFAULT VALUE SETTERS */
     function setDefaultDiscipline() {
@@ -249,8 +243,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
 
     const onUpdate = async (data) => {
         const preprocessedData = preprocessData(data);
-        const flags = getFlags(preprocessedData);
-        const result = await updateEmployee({ ...preprocessedData, ...flags });
+        const result = await updateEmployee({ ...preprocessedData, employee_id: defaultValues.employee_id });
 
         if (result) {
             showToast("success", "Successfully Updated Employee");
@@ -275,14 +268,6 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
         return data
     }
 
-    function getFlags(data) {
-        const position_changed = data.position_id != defaultValues.position_id;
-        const status_changed = data.employee_status_id != defaultValues.employee_status_id;
-        const employee_id = defaultValues.employee_id;
-
-        return { position_changed, status_changed, employee_id };
-    }
-
     const navigateToAllEmployees = () => {
         router.replace("/planning/project/all");
     }
@@ -298,16 +283,10 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                     </div>
                 </div>
                 <div className="flex justify-center gap-4 mb-4 mt-5">
-                    <Button variant="primary" small name="Proceed" onClick={navigateToAllEmployees}>
-                        Proceed
-                    </Button>
-                    <Button variant="secondary" small name="Close" onClick={() => setModalIsOpen(false)}>
-                        Close
-                    </Button>
-
+                    <Button variant="primary" small name="Proceed" onClick={navigateToAllEmployees} />
+                    <Button variant="secondary" small name="Close" onClick={() => setModalIsOpen(false)} />
                 </div>
             </Modal>
-
             <div className="shadow-2xl rounded-lg border bg-white">
                 <Form title={titleText}
                     handleSubmit={handleSubmit}
@@ -317,9 +296,7 @@ function EmployeeForm({ isEdit, defaultValues = {}, optionsData }) {
                     columns={{ default: 3, mob: 1, tablet: 2, lap: 3, desk: 3 }}
                     AdditionalButton={
                         <>
-                            <Button variant="secondary" medium name="Cancel" onClick={() => setModalIsOpen(true)}>
-                                Cancel
-                            </Button>
+                            <Button variant="secondary" medium name="Cancel" onClick={() => setModalIsOpen(true)} />
                         </>
                     }
                 >

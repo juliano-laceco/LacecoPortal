@@ -7,7 +7,7 @@ const dbConfig = {
     password: 'root',
     database: 'lacecodb',
     waitForConnections: true,
-    connectionLimit: 100, // Change this number to set the max number of connections
+    connectionLimit: 1000, // Change this number to set the max number of connections
 };
 
 const db = mysql.createPool(dbConfig);

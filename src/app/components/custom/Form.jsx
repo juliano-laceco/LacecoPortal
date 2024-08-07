@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Button from "./Button";
 import { theme } from "../../../../tailwind.config";
 
@@ -35,10 +35,10 @@ function Form({
 
     const [gridColumns, setGridColumns] = useState(() => getGridColumns(window.innerWidth));
 
-    const updateGridColumns = () => {
+    const updateGridColumns = useCallback(() => {
         const width = window.innerWidth;
         setGridColumns(getGridColumns(width));
-    };
+    })
 
     useEffect(() => {
         window.addEventListener("resize", updateGridColumns);

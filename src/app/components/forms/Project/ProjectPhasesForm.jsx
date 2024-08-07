@@ -75,13 +75,9 @@ const ProjectPhasesForm = memo(({ data, goNext, goBack, isFirstStep, dropdowns, 
                 AdditionalButton={
                     <>
                         {!isFirstStep && (
-                            <Button variant="secondary" medium name="Back" onClick={goBack}>
-                                Back
-                            </Button>
+                            <Button variant="secondary" medium name="Back" onClick={goBack} />
                         )}
-                        <Button variant="secondary" medium name="Cancel" onClick={() => confirmModal(true)} >
-                            Cancel
-                        </Button>
+                        <Button variant="secondary" medium name="Cancel" onClick={() => confirmModal(true)} />
                     </>
                 }
                 submit

@@ -99,13 +99,13 @@ export const generateMockData = (numPhases, assigneesPerPhase) => {
     return phases;
 };
 
-
 export const scrollToFirstWarning = () => {
     const firstWarningElement = document.querySelector('select.border-pric');
     if (firstWarningElement) {
         firstWarningElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
+
 export const initializeCellContents = (initialData, headerDates) => {
     const cellContents = {};
     let rowCounter = 0;
@@ -172,25 +172,28 @@ export const getColorForMonth = (date) => {
 
 export const savePhaseStateToLocalStorage = (phaseId, state) => {
 
-    // Initialize local storage if it doesn't exist
-    if (!localStorage.getItem("phaseStates")) {
-        localStorage.setItem("phaseStates", JSON.stringify([]));
+
+    if (localStorage) {
+        // Initialize local storage if it doesn't exist
+        if (!localStorage.getItem("phaseStates")) {
+            localStorage.setItem("phaseStates", JSON.stringify([]));
+        }
+
+        let phaseStates = JSON.parse(localStorage.getItem('phaseStates')) || [];
+
+        // Check if the phase already exists
+        const phaseIndex = phaseStates.findIndex(phase => phase.id == phaseId);
+
+        if (phaseIndex != -1) {
+            // Update the existing phase state
+            phaseStates[phaseIndex].state = state;
+        } else {
+            // Add the new phase state
+            phaseStates.push({ id: phaseId, state: state });
+        }
+
+        localStorage.setItem('phaseStates', JSON.stringify(phaseStates));
     }
-
-    let phaseStates = JSON.parse(localStorage.getItem('phaseStates')) || [];
-
-    // Check if the phase already exists
-    const phaseIndex = phaseStates.findIndex(phase => phase.id == phaseId);
-
-    if (phaseIndex != -1) {
-        // Update the existing phase state
-        phaseStates[phaseIndex].state = state;
-    } else {
-        // Add the new phase state
-        phaseStates.push({ id: phaseId, state: state });
-    }
-
-    localStorage.setItem('phaseStates', JSON.stringify(phaseStates));
 
 };
 

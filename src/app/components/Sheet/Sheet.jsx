@@ -179,6 +179,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         };
     }, [initial_assignee_count]);
 
+
+
     // Function that loops over the cells to update the current data so it persists across re-renders
     const getUpdatedData = () => {
         const updatedData = initialData.map((phase) => ({
@@ -402,7 +404,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         [headerDates, numCols, setCellContents, cellContents, setHistory, getUpdatedData, setInitialData]
     );
 
-
     // Handles assignee deletion
     const deleteAssignee = useCallback(
         (row) => {
@@ -416,12 +417,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             const newInitialData = [...getUpdatedData()];
 
-            // Check if there is more than one assignee in the phase before deleting
-            // if (newInitialData[phaseIndex].assignees.length > 1) {
-            //     openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
-            // } else {
-            //     openModal(null, "Cannot Delete Assignee")
-
             openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
             setEdited(true)
 
@@ -429,11 +424,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         [initialData]
     );
 
-
-
     // Handles saving to the DB
     const handleSave = async (refresh = true) => {
-
 
         const updatedData = getUpdatedData();
 
@@ -447,19 +439,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     isValid = false;
                     noticeMessage = "All assignees must have a discipline and a user.";
                 }
-
-                // let hasDateFilled = false;
-                // for (const date in assignee.projected_work_weeks) {
-                //     if (assignee.projected_work_weeks[date] !== "") {
-                //         hasDateFilled = true;
-                //         break;
-                //     }
-                // }
-
-                //  if (!hasDateFilled) {
-                //      isValid = false;
-                //      noticeMessage = "At least one date cell must be filled for each assignee.";
-                //  }
             });
         });
 
@@ -475,6 +454,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     await saveDeployment(updatedData, deletedPhaseAssignees)
                     showToast("success", "Successfully Saved Deployment")
                 } catch (error) {
+                    await logError(error, "Error In Saving Deployment")
                     showToast("failed", "Failed To Save Deployment")
                 }
 
@@ -482,7 +462,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             , refresh
         }, "Save")
     };
-
 
     const clearPath = () => {
 
@@ -549,13 +528,16 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     }
 
-    const renderModalContent = (message, buttons) => (
-        <Modal open={true} onClose={() => {
-            setModal(null);
-            if (isLoading) {
-                setIsLoading(false);
-            }
-        }}>
+    const renderModalContent = (message, buttons, title = "") => (
+        <Modal open={true}
+            onClose={() => {
+                setModal(null);
+                if (isLoading) {
+                    setIsLoading(false);
+                }
+            }}
+            title={title}
+        >
             <div className="flex items-center gap-4">
                 <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
                 <div className="mob:text-xs">
@@ -568,14 +550,11 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         key={index}
                         small
                         {...button}
-                    >
-                        {button.name}
-                    </Button>
+                    />
                 ))}
             </div>
         </Modal>
     );
-
 
     const openModal = (data = null, type) => {
 
@@ -601,7 +580,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             name: "Close",
                             onClick: () => setModal(null),
                         },
-                    ]
+                    ],
+                    "Confirmation"
                 );
                 break;
             case "Cannot Delete Assignee":
@@ -613,7 +593,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             name: "Close",
                             onClick: () => setModal(null),
                         },
-                    ]
+                    ],
+                    "Cannot Delete Assignee"
                 );
                 break;
             case "Cannot Delete Week":
@@ -633,7 +614,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             name: "Close",
                             onClick: () => setModal(null),
                         },
-                    ]
+                    ],
+                    "Cannot Delete Week"
                 );
                 break;
             case "Missing Data":
@@ -648,7 +630,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 scrollToFirstWarning()
                             },
                         },
-                    ]
+                    ],
+                    "Missing Selection(s)"
                 );
                 break;
             case "Date Clear":
@@ -669,7 +652,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             name: "Close",
                             onClick: () => setModal(null),
                         },
-                    ]
+                    ],
+                    "Warning"
                 )
                 break;
             case "Date Change":
@@ -690,7 +674,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             name: "Close",
                             onClick: () => setModal(null),
                         },
-                    ]
+                    ],
+                    "Warning"
                 )
                 break;
             case "Invalid Dates":
@@ -728,13 +713,13 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             name: "Close",
                             onClick: () => { setModal(null); setIsLoading(false); },
                         },
-                    ]
+                    ],
+                    "Confirmation"
                 )
                 break;
         }
         setModal(modalContent);
     };
-
 
     const renderGrid = useCallback(() => {
 
@@ -1024,9 +1009,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     name="Save"
                                     isDisabled={!edited || isLoading}
                                     loading={isLoading}
-                                >
-                                    Save
-                                </Button>
+                                />
                                 {project_data.isBaselined == 'No' &&
                                     <Button
                                         onClick={async (e) => {
@@ -1040,9 +1023,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                         name="Baseline Project"
                                         isDisabled={isLoading}
                                         loading={isLoading}
-                                    >
-                                        Baseline Project
-                                    </Button>
+                                    />
                                 }
 
                             </div>

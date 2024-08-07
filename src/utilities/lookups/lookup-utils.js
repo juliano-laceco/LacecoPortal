@@ -3,6 +3,7 @@
 
 import * as res from '../response-utils';
 import { execute } from '../db/db-utils';
+import { logError } from '../misc-utils';
 
 export async function getClients() {
 
@@ -11,7 +12,7 @@ export async function getClients() {
         const results = await execute(query)
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching clients:', error);
+        await logError(error, 'Error fetching clients')
         return res.failed()
     }
 
@@ -24,7 +25,7 @@ export async function getDisciplines(division_id = null) {
         const results = !!division_id ? await execute(query, [division_id]) : await execute(query)
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching disciplines:', error);
+        await logError(error, 'Error fetching disciplines')
         return res.failed()
     }
 }
@@ -36,7 +37,7 @@ export async function getDivisions() {
         const results = await execute(query)
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching divisions:', error);
+        await logError(error, 'Error fetching divisions')
         return res.failed()
     }
 }
@@ -49,7 +50,7 @@ export async function getContractTypes() {
 
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching contract types:', error);
+        await logError(error, 'Error fetching contract types')
         return res.failed()
     }
 }
@@ -61,7 +62,7 @@ export async function getPositions() {
         const results = await execute(query)
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching positions:', error);
+        await logError(error, 'Error fetching positions')
         return res.failed()
     }
 
@@ -73,7 +74,7 @@ export async function getPositionDetails(position_id) {
         const results = await execute(query, [position_id])
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching position details:', error);
+        await logError(error, 'Error fetching position details')
         return res.failed()
     }
 }
@@ -85,7 +86,7 @@ export async function getGrades() {
         const results = await execute(query)
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching grades:', error);
+        await logError(error, 'Error fetching grades')
         return res.failed()
     }
 
@@ -98,7 +99,7 @@ export async function getLeaveTypes() {
         const results = await execute(query)
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching leave types:', error);
+        await logError(error, 'Error fetching leave types')
         return res.failed()
     }
 
@@ -111,7 +112,7 @@ export async function getRoles() {
         const results = await execute(query)
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching roles:', error);
+        await logError(error, 'Error fetching roles')
         return res.failed()
     }
 
@@ -125,7 +126,7 @@ export async function getEmployeeStatuses() {
 
         return res.success_data(results);
     } catch (error) {
-        console.error('Error fetching employee statuses:', error);
+        await logError(error, 'Error fetching employee statuses')
         return res.failed()
     }
 }
@@ -136,7 +137,7 @@ export async function getEmployees() {
         const result = await execute(query);
         return res.success_data(result);
     } catch (error) {
-        console.error('Error fetching employees:', error);
+        await logError(error, 'Error fetching employees')
         return res.failed();
     }
 }
@@ -147,7 +148,7 @@ export async function getPhaseNames() {
         const result = await execute(query);
         return res.success_data(result);
     } catch (error) {
-        console.error('Error fetching employees:', error);
+        await logError(error, 'Error fetching phase names')
         return res.failed();
     }
 }

@@ -1,10 +1,10 @@
 "use server"
 
-import db from "@/config/db";
 import { commitTransaction, dynamicQuery, execute, executeTrans, getTableFields, renameAmbiguousColumns, rollbackTransaction, startTransaction } from "../db/db-utils";
 import * as res from "../response-utils"
 import { getLoggedInId } from "../auth/auth-utils";
 import { formatDate } from "../date/date-utils";
+import { logError } from "../misc-utils";
 
 export async function checkProjectCodeExists(code) {
 
@@ -20,7 +20,7 @@ export async function checkProjectCodeExists(code) {
         return res.success()
 
     } catch (error) {
-        console.error('Error checking project code availability:', error);
+        await logError(error, 'Error checking project code availability')
         return res.success()
     }
 
@@ -28,13 +28,11 @@ export async function checkProjectCodeExists(code) {
 
 export async function createProject(projectData) {
 
-    let connection;
+    let transaction;
 
     try {
-        // Get a connection from the pool
-        connection = await db.getConnection();
         // Start the transaction
-        await connection.beginTransaction();
+        transaction = await startTransaction()
 
         const projectInfo = projectData.projectInfo;
         const phases = projectData.phases;
@@ -42,7 +40,7 @@ export async function createProject(projectData) {
         const initiatorId = await getLoggedInId();
 
         // Insert project information into the project table
-        const projectInsertResult = await connection.query(`
+        const projectInsertResult = await executeTrans(`
             INSERT INTO project 
             (employee_id, planned_enddate, planned_startdate, DesignArea, ParkingArea, Landscape, BUA, baseline_budget, intervention, sector, typology, client_id, city, geography, code, title, created_by) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -64,7 +62,8 @@ export async function createProject(projectData) {
                 projectInfo.code,
                 projectInfo.title,
                 initiatorId
-            ]
+            ],
+            transaction
         );
 
         const projectId = projectInsertResult[0].insertId;
@@ -72,40 +71,42 @@ export async function createProject(projectData) {
 
         // Insert phases into the phases table
         for (const phase of phases) {
-            await connection.query(`
+            await executeTrans(`
                 INSERT INTO phase
                 (phase_name, planned_startdate, planned_enddate, project_id , actioned_by) 
                 VALUES (?, ?, ?, ? , ?)`,
-                [phase.phase_name, phase.planned_startdate, phase.planned_enddate, projectId, initiatorId]
+                [phase.phase_name, phase.planned_startdate, phase.planned_enddate, projectId, initiatorId],
+                transaction
             );
         }
 
         // Insert project disciplines into the project_disciplines table
         for (const discipline of disciplines) {
-            await connection.query(`
+            await executeTrans(`
                     INSERT INTO project_disciplines
                     (project_id, discipline_id) 
                     VALUES (?, ?)`,
-                [projectId, discipline]
+                [projectId, discipline],
+                transaction
             );
         }
 
         // Commit the transaction if all queries are successful
-        await connection.commit();
-
-        // Release the connection
-        connection.release();
+        await commitTransaction(transaction)
 
         return res.success();
 
     } catch (error) {
-        // Rollback the transaction if any query fails
-        if (connection) {
-            await connection.rollback();
-            connection.release();
+
+        if (transaction) {
+            await rollbackTransaction(transaction)
         }
         console.error('Transaction failed:', error);
+        await logError(error)
         return res.failed();
+    } finally {
+        // Release the connection
+        if (transaction) transaction.release();
     }
 }
 
@@ -235,14 +236,13 @@ export async function updateProject(projectData) {
             await rollbackTransaction(transaction);
         }
         console.error('Transaction failed:', error);
+        await logError(error, "Error creating project")
         return res.failed();
     } finally {
         // Release the connection
         if (transaction) transaction.release();
     }
 }
-
-
 
 export async function getProjectData(project_id) {
     try {
@@ -409,11 +409,10 @@ export async function getProjectData(project_id) {
         return res.success_data(projectData);
 
     } catch (error) {
-        console.error('Error fetching project data:', error);
+        await logError(error, 'Error fetching project data:')
         return res.failed();
     }
 }
-
 
 export async function saveDeployment(deployment_data, deletedAssignees) {
     const maxRetries = 5;
@@ -424,6 +423,7 @@ export async function saveDeployment(deployment_data, deletedAssignees) {
         const transaction = await startTransaction();
 
         try {
+
             for (const phase of deployment_data) {
                 const { phase_id, assignees } = phase;
 
@@ -502,13 +502,15 @@ export async function saveDeployment(deployment_data, deletedAssignees) {
                 await new Promise(res => setTimeout(res, 1000)); // Wait 1 second before retrying
             } else {
                 console.error("Transaction failed and rolled back:", error);
+                await logError(error, 'Error saving deployment')
                 throw error;
             }
+        } finally {
+            // Release the connection
+            if (transaction) transaction.release();
         }
     }
 }
-
-
 
 function getMinMaxDate(dateSet) {
 
@@ -525,7 +527,6 @@ function getMinMaxDate(dateSet) {
 
     return { minDate: minDateString, maxDate: maxDateString, initialDeployment: false };
 }
-
 
 export async function baselineProject(project_id) {
 
@@ -545,6 +546,7 @@ export async function baselineProject(project_id) {
             await rollbackTransaction(transaction);
         }
         console.error('Transaction failed:', error);
+        await logError(error, `Error baselining project of ID: ${project_id}`)
         return res.failed();
     } finally {
         // Release the connection
@@ -563,16 +565,15 @@ export async function checkDisciplineIsPhaseAssigned(disciplines, project_id) {
                     JOIN phase p ON pr.project_id = p.project_id
                     JOIN phase_assignee pa ON pa.phase_id = p.phase_id
                     JOIN employee e ON pa.assignee_id = e.employee_id
-                    JOIN position pos ON e.position_id = pos.position_id
-                    JOIN discipline d ON pos.discipline_id = d.discipline_id
-                    WHERE pr.project_id = ? AND d.discipline_id = ?`,
+                    JOIN discipline d ON e.discipline_id = d.discipline_id
+                    WHERE pr.project_id = ? AND d.discipline_id = ? `,
                 [project_id, discipline_id]
             );
             const count = rows[0]['COUNT(*)'];
             results.push({ discipline: label, isPhaseAssigned: count > 0 });
         }
     } catch (error) {
-        console.error('Error checking disciplines:', error);
+        await logError(error, 'Error checking discipline assignees')
     }
     return results;
 }
@@ -604,7 +605,7 @@ export async function getAllProjects(qs = {}) {
         return result;
 
     } catch (error) {
-        console.error('Error fetching project details:', error);
+        await logError(error, 'Error fetching project details')
         return res.failed();
     }
 }

@@ -1,4 +1,5 @@
 import { getLoggedInRole, handleEmployeeLogin } from "@/utilities/employee/employee-utils";
+import { logError } from "@/utilities/misc-utils";
 import GoogleProvider from "next-auth/providers/google"
 
 export const authOptions = {
@@ -22,14 +23,15 @@ export const authOptions = {
                         }
                     }
                 } catch (error) {
-                    console.error("Error during JWT callback:", error);
+                    await logError(error, "Error during JWT callback")
                 }
                 console.log(user)
             }
-           
+
             return token
         },
         async session({ session, token }) {
+
             if (session?.user) {
                 session.user.role_name = token.role_name
                 session.user.role_id = token.role_id
