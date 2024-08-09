@@ -5,7 +5,7 @@ import Sidebar from "./components/sidebar/Sidebar";
 import { getSession } from "../utilities/auth/auth-utils";
 import Image from "next/image";
 import { ToastContainer } from 'react-toastify';
-import { getEmployeeLinkOptions } from "@/utilities/employee/employee-utils";
+import { getEmployeeAssignments, getEmployeeLinkOptions } from "@/utilities/employee/employee-utils";
 
 export const metadata = {
   title: "Laceco Portal",
@@ -22,6 +22,8 @@ export default async function RootLayout({ children }) {
   if (!!session) {
     userRoleId = session?.user?.role_id
   }
+
+  const data = await getEmployeeAssignments()
 
   const optionsRes = await getEmployeeLinkOptions(userRoleId)
 

@@ -4,7 +4,7 @@
 import * as res from '../response-utils';
 import { getLoggedInId } from "../auth/auth-utils";
 import { logError, nullifyEmpty } from '../misc-utils';
-import { dynamicQuery, execute, getTableFields } from '../db/db-utils';
+import { commitTransaction, dynamicQuery, execute, executeTrans, getTableFields, rollbackTransaction, startTransaction } from '../db/db-utils';
 import { formatDate } from '../date/date-utils';
 
 export async function handleEmployeeLogin(email, sub) {
@@ -33,7 +33,7 @@ export async function handleEmployeeLogin(email, sub) {
             return res.failed()
         }
 
-    } catch (error) { 
+    } catch (error) {
         await logError(error, 'Error logging in employee')
         return res.failed()
     }
@@ -358,4 +358,99 @@ export async function getEmployeeLinkOptions(role_id) {
         return res.failed()
     }
 
+}
+
+export async function getEmployeeAssignments(employee_id = 1) {
+    let transaction;
+
+    try {
+        transaction = await startTransaction();
+
+        const query = `
+    SELECT DISTINCT proj.project_id, 
+           proj.code, 
+           proj.title, 
+           e.first_name, 
+           e.last_name, 
+           pos.position_name
+    FROM project proj
+    JOIN phase ph ON ph.project_id = proj.project_id
+    JOIN phase_assignee pa ON pa.phase_id = ph.phase_id
+    JOIN employee e ON pa.assignee_id = e.employee_id
+    JOIN position pos ON e.position_id = pos.position_id
+    WHERE pa.assignee_id = ?
+      AND proj.project_status = 'Active'
+      AND EXISTS (
+          SELECT 1 
+          FROM projected_work_week pww 
+          WHERE pww.phase_assignee_id = pa.phase_assignee_id 
+      )
+`;
+
+        const projects = await executeTrans(query, [employee_id], transaction);
+
+        for (const project of projects) {
+            const { project_id } = project;
+
+            const phasesQuery = `
+                SELECT p.phase_id, p.phase_name
+                FROM phase p
+                JOIN phase_assignee pa ON pa.phase_id = p.phase_id
+                WHERE project_id = ? AND pa.assignee_id = ?
+                AND EXISTS(
+                SELECT 1
+                FROM projected_work_week pww
+                WHERE pww.phase_assignee_id = pa.phase_assignee_id
+                )
+            `;
+            const phases = await executeTrans(phasesQuery, [project_id, employee_id], transaction);
+
+            for (var phase of phases) {
+                const { phase_id } = phase;
+                const phaseAssigneesQuery = `
+                    SELECT pa.phase_assignee_id , pa.work_done_hrs , pa.expected_work_hrs
+                    FROM phase_assignee pa
+                    JOIN phase p ON pa.phase_id = p.phase_id
+                    WHERE pa.assignee_id = ? AND pa.phase_id = ?
+                `;
+                const phase_assignees = await executeTrans(phaseAssigneesQuery, [employee_id, phase_id], transaction);
+                const assignee = phase_assignees[0];
+
+                // if (assignee.work_done_hrs == 0) {
+                //     assignee.assignments = []
+                // } else {
+
+                // }
+
+                if (phase_assignees.length > 0) {
+
+                    const { phase_assignee_id } = assignee
+
+                    const filledWeeksQuery = `
+                    SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked 
+                    FROM employee_work_day   
+                    WHERE phase_assignee_id = ? AND (status = 'Pending' OR status = 'Approved')
+                    `
+                    const filledWeeks = await executeTrans(filledWeeksQuery, [phase_assignee_id], transaction)
+                    assignee.assignments = filledWeeks
+
+                    Object.assign(phase, assignee);
+                }
+
+            }
+
+            project.phases = phases;
+        }
+
+        await commitTransaction(transaction);
+        console.log(JSON.stringify(projects));
+    } catch (error) {
+        console.error("Transaction failed:", error);
+        await logError(error, "Error fetching employee timesheet assignments");
+        await rollbackTransaction(transaction);
+    } finally {
+        if (transaction) {
+            transaction.release();
+        }
+    }
 }

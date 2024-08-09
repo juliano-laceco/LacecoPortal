@@ -33,7 +33,7 @@ div:has(.react-select__control):not(.panel) {
 }
 
 [class*=react-select__menu-list] {
-    z-index: 200;
+    z-index: 300 !important;
 }
 
 .modal-container {
