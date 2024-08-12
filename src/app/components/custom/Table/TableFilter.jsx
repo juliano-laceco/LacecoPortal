@@ -3,7 +3,7 @@ import DropdownFilter from "../Dropdowns/DropdownFilter";
 import Input from "../Input";
 import Button from "../Button";
 
-function TableFilter({ filterItems, filterFunction, keywordRef , clearFunction }) {
+function TableFilter({ filterItems, filterFunction, keywordRef, clearFunction }) {
     return (
         <div className="flex justify-between mb-4 border mob:border-none rounded-md p-3">
             <div className="flex gap-4 mob:flex-col mob:justify-center tablet:flex-col tablet:justify-center mob:gap-1">
@@ -12,7 +12,7 @@ function TableFilter({ filterItems, filterFunction, keywordRef , clearFunction }
                         <Input
                             type="text"
                             ref={keywordRef}
-                            Icon={<Image src="/resources/icons/search.svg" height="25" width="25" alt="search-icon"/>}
+                            Icon={<Image src="/resources/icons/search.svg" height="25" width="25" alt="search-icon" />}
                             label={item.filterLabel}
                             onKeyDown={(e) => (e.key === "Enter") && filterFunction(item.filterKey, keywordRef.current.value)}
                             onClickIcon={() => {
@@ -33,7 +33,8 @@ function TableFilter({ filterItems, filterFunction, keywordRef , clearFunction }
                         />
                     )
                 ))}
-                <Image title="Clear All Filters" src="/resources/icons/clear-filter.svg" height="40" width="50" className="cursor-pointer hover:bg-[#E9EBEF] mob:hidden tablet:hidden transition-all duration-200 px-2 rounded-lg" onClick={clearFunction} alt="clear-filter" />
+
+                <Image title="Clear All Filters" src="/resources/icons/clear-filter.svg" height="40" width="50" className="cursor-pointer hover:bg-[#E9EBEF] max-h-[45px] max-w-[55px] mt-6 mob:hidden tablet:hidden transition-all duration-200 p-2 rounded-lg" onClick={clearFunction} alt="clear-filter" />
                 <Button primary small name="Clear Filters" className="w-fit mt-2 lap:hidden desk:hidden" onClick={clearFunction} />
             </div>
         </div>

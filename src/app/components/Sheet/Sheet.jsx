@@ -432,15 +432,32 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         // Validation logic
         let isValid = true;
         let noticeMessage = "";
+        let assigneeTracker;
+        let hasDuplicateAssignees = false
 
         updatedData.forEach((phase) => {
+            assigneeTracker = []
             phase?.assignees?.forEach((assignee) => {
                 if (assignee.discipline == "Select..." || assignee.assignee == "Select...") {
                     isValid = false;
                     noticeMessage = "All assignees must have a discipline and a user.";
                 }
+                assigneeTracker.push(assignee.assignee)
             });
+
+            const setSize = (new Set(assigneeTracker)).size
+            if (setSize < assigneeTracker.length) {
+                !hasDuplicateAssignees && (hasDuplicateAssignees = true)
+                noticeMessage = "Cannot have duplicate employees within the same phase."
+            }
         });
+
+        if (hasDuplicateAssignees) {
+            openModal(noticeMessage, "Duplicate Employees");
+            setIsLoading(false);
+            return;
+        }
+
 
         if (!isValid) {
             openModal(noticeMessage, "Missing Data");
@@ -634,6 +651,22 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     "Missing Selection(s)"
                 );
                 break;
+            case "Duplicate Employees":
+                modalContent = renderModalContent(
+                    data,
+                    [
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => {
+                                setModal(null)
+                                scrollToFirstWarning()
+                            },
+                        },
+                    ],
+                    "Duplicate Employees"
+                );
+                break;
             case "Date Clear":
                 modalContent = renderModalContent(
                     "Clearing date filters will discard all your updated data. Are you sure you wish to proceed?",
@@ -763,7 +796,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             }),
         ];
         rows.push(
-            <div key="header" className="flex rounded-lg sticky top-0 z-30 w-fit">
+            <div key="header" className="flex rounded-lg sticky top-0 z-30 w-fit bg-gray-300">
                 {headerCols}
             </div>
         );
@@ -776,17 +809,18 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             const phase_display = getPhaseStateFromLocalStorage(phase.phase_id)
 
             rows.push(
-                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex border-b border-gray-300 items-center sticky left-0 flex-1 font-bold bg-gray-100 text-left text-xl px-2 py-3  ${phase_display}`}>
-                    {phase.phase_name} - {" "}
-                    <span className="text-red-400 text-lg mr-4">
-                        {" "}
-                        &nbsp; Current : {getPhaseBudgetHours[phaseIndex]} hrs / Initial : {phase.expected_work_hours} hrs
-                    </span>
-                    <p className="collapsePhase cursor-pointer" onClick={(e) => handleCollapseClick(e, phase.phase_id)}>
-                        <Image src="/resources/icons/arrow-up.png" height="20" width="20" alt="collapse" />
+                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex justify-between border-b border-white items-center sticky left-0 flex-1 font-bold bg-pric text-left text-xl px-2 py-5 ${phase_display}`}>
+                    <div>
+                        <span className="text-white">{phase.phase_name} / </span> {" "} &nbsp;
+                        <span className="text-lg mr-4 font-semibold text-white">
+                            {phase.expected_work_hours} hrs
+                        </span>
+                    </div>
+                    <p className="collapsePhase cursor-pointer bg-red-400 px-3 py-2 rounded-lg border border-red-300" onClick={(e) => handleCollapseClick(e, phase.phase_id)}>
+                        <Image src="/resources/icons/arrow-up.svg" height="12" width="12" alt="collapse" />
                     </p>
-                    <p className="expandPhase cursor-pointer" onClick={(e) => handleExpandClick(e, phase.phase_id)}>
-                        <Image src="/resources/icons/arrow-down.png" height="20" width="20" alt="expand" />
+                    <p className="expandPhase cursor-pointer bg-red-400 px-3 py-2 rounded-lg border border-red-300" onClick={(e) => handleExpandClick(e, phase.phase_id)}>
+                        <Image src="/resources/icons/arrow-down.svg" height="12" width="12" alt="expand" />
                     </p>
                 </div>
             );

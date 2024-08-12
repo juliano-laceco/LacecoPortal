@@ -57,6 +57,7 @@ async function TablePage({ searchParams }) {
                             height="25"
                             width="25"
                             alt="edit"
+                            className="mob:h-[18px] mob:w-[18px]"
                         />
                     </Link>
                     <Link title="Deployment" href={`/planning/project/deployment/${row.project_id}`}>
@@ -65,6 +66,7 @@ async function TablePage({ searchParams }) {
                             height="28"
                             width="28"
                             alt="deployment"
+                            className="mob:h-[18px] mob:w-[18px]"
                         />
                     </Link>
                 </div>
@@ -94,7 +96,7 @@ async function TablePage({ searchParams }) {
     }
 
     const tableHeaders = [
-        { Header: 'Name', accessor: 'title', mobile: true, tablet: true },
+        { Header: 'Name', accessor: 'title', tablet: true },
         { Header: 'Code', accessor: 'code', mobile: true, tablet: true },
         { Header: 'Client', accessor: 'client_name', tablet: true },
         { Header: 'PM', accessor: 'project_manager' },

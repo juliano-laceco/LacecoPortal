@@ -1,29 +1,26 @@
 import Image from "next/image"
 
-function StatTile({ type = "single", data, image_url }) {
+function StatTile({ type = "single", data, image_url, shadow = false }) {
     return (
-
-
         type == "single" ?
             (
-                <div className="py-4 px-6 w-fit bg-white rounded-xl shadow-2xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
+                <div className={`py-2 px-5 w-fit h-fit flex-nowrap bg-white rounded-xl space-y-2 mob:flex mob:items-center mob:space-y-0 mob:space-x-6 mob:py-2 mob:px-3 ${shadow ? "shadow-2xl" : ""}`}>
                     {image_url && <Image src={image_url} height="40" width="40" alt="icon" />}
-                    < div className="text-center space-y-2 sm:text-left" >
-                        <div className="">
-                            <p className="text-3xl text-black font-semibold">{data.val}</p>
-                            <p className="text-slate-500 font-medium">{data.label}</p>
+                    <div className="text-center mt-[8px]" >
+                        <div className="flex flex-col justify-between">
+                            <p className="text-2xl text-black font-semibold mob:text-xl">{data.val}</p>
+                            <p className="text-slate-500  mob:text-sm">{data.label}</p>
                         </div>
                     </div>
                 </div >
             ) : (
-                <div className="py-4 px-6 w-fit bg-white rounded-xl shadow-2xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
+                <div className={`py-2 px-5 w-fit h-fit bg-white  flex-nowrap rounded-xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6 ${shadow ? "shadow-2xl" : ""}`}>
                     <div className="text-center flex gap-4 justify-center items-center sm:text-left">
-
                         {data.map((item, index) => {
                             return <>
-                                <div className="space-y-0.5">
-                                    <p className="text-2xl text-center font-semibold mx-auto"> {item.val} </p>
-                                    <p className="text-slate-500 font-medium">{item.label}</p>
+                                <div className="text-center">
+                                    <p className="text-2xl text-center font-semibold mx-auto  mob:text-xl"> {item.val} </p>
+                                    <p className="text-slate-500 font-medium mob:text-sm">{item.label}</p>
                                 </div>
                                 {index != data.length - 1 && < div className="h-12 w-[2px] rounded-lg bg-gray-400"></div >}
                             </>
