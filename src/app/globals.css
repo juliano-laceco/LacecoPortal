@@ -8,7 +8,7 @@
 
 
 
-
+/* Styles For Date Picker NEXT UI */
 
 .data-\[selected\=true\]\:data-\[range-selection\=true\]\:before\:bg-primary-50[data-range-selection=true][data-selected=true]::before {
   content: var(--tw-content);
@@ -19,13 +19,13 @@
 .data-\[selected\=true\]\:data-\[selection-start\=true\]\:data-\[range-selection\=true\]\:bg-primary[data-range-selection=true][data-selection-start=true][data-selected=true] {
   --tw-bg-opacity: 1;
   background-color: hsl(4, 79%, 58%) !important;
-  color: white !important ;
+  color: white !important;
 }
 
 .data-\[selected\=true\]\:data-\[selection-end\=true\]\:data-\[range-selection\=true\]\:bg-primary[data-range-selection=true][data-selection-end=true][data-selected=true] {
   --tw-bg-opacity: 1;
   background-color: hsl(4, 79%, 58%) !important;
-  color: white !important ;
+  color: white !important;
 }
 
 .data-\[selected\=true\]\:data-\[range-selection\=true\]\:text-primary[data-range-selection=true][data-selected=true] {
@@ -33,6 +33,8 @@
   color: hsl(4, 79%, 58%) !important;
 }
 
+
+/* Styles for React Select */
 
 .react-select-dd__input:focus {
   box-shadow: none;
@@ -102,7 +104,21 @@ body:has(.modal-container.isVisible) .sheet-container * {
   display: none;
 }
 
+
+
+
+@layer base {
+
+  .arrowless-input::-webkit-outer-spin-button,
+  .arrowless-input::-webkit-inner-spin-button,
+  .arrowless-input {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
 /* For WebKit browsers (Chrome, Safari) */
+
 ::-webkit-scrollbar {
   width: 15px;
   height: 15px;

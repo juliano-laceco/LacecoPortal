@@ -14,6 +14,7 @@ async function Header({ burgerNavItems }) {
             <div className="flex flex-wrap items-center justify-between mx-auto p-5 mob:p-2">
                 <Link href="/" className="flex items-center space-x-3">
                     <Image src="/resources/logos/laceco-gray.png" width="160" height="20" className="mob:hidden tablet:hidden" alt="laceco-logo" />
+                    {!session && <Image src="/resources/logos/laceco-white.png" width="120" height="20" className="desk:hidden lap:hidden p-3" alt="laceco-logo" />}
                 </Link>
                 {session &&
                     <>
@@ -30,9 +31,7 @@ async function Header({ burgerNavItems }) {
                     </>
                 }
             </div>
-
         </nav>
-
     )
 }
 

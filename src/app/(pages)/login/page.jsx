@@ -13,7 +13,7 @@ function LoginPage() {
 
     // Check if session is loading
     if (status === "loading") {
-        return <div>Loading...</div>;
+        return <div className='w-full text-center'>Loading...</div>;
     }
 
     // Redirect if user is already logged in
@@ -29,16 +29,16 @@ function LoginPage() {
 
     return (
         <div className="relative py-16 bg-gradient-to-br mt-12 w-full">
-            <div className="relative container mx-auto px-6 text-darkgrey md:px-12 xl:px-40">
-                <div className="mx-auto md:w-8/12 lg:w-6/12 xl:w-6/12">
+            <div className="relative container mx-auto px-6 text-darkgrey mob:px-0">
+                <div className="mx-auto md:w-10/12 lg:w-6/12 xl:w-6/12">
                     <div className="rounded-xl bg-white shadow-2xl">
-                        <div className="p-6 sm:p-16">
+                        <div className="p-6 lap:p-16 desk:p-16">
                             <Image src="/resources/logos/laceco-gray.png" className="mb-10" alt="laceco-logo" height="30" width="120" />
                             <h2 className="mb-8 text-xl text-darkgrey font-semibold">Sign in with Google to proceed<br /> to your profile.</h2>
                             <div className="mt-10 grid gap-4">
-                                <button className="group h-12 px-6 border-2 border-gray-300 rounded-full transition duration-300 hover:border-primary" onClick={handleSignIn}>
-                                    <div className="relative flex items-center justify-center">
-                                        <Image src="/resources/icons/google-icon.png" className="absolute left-0" alt="google-logo" height="30" width="30" />
+                                <button className="group h-12 px-6 border-2 border-gray-300 rounded-full transition duration-300 hover:border-pric" onClick={handleSignIn}>
+                                    <div className="relative flex gap-2 mob:w-fit items-center justify-center">
+                                        <Image src="/resources/icons/google-icon.png" alt="google-logo" height="30" width="30" />
                                         <span className="block w-max font-semibold tracking-wide text-gray-700 text-sm transition duration-300 group-hover:text-gray-800 sm:text-base">Continue with Google</span>
                                     </div>
                                 </button>

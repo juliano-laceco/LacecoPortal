@@ -443,7 +443,7 @@ export async function getEmployeeAssignments(employee_id = 1) {
         }
 
         await commitTransaction(transaction);
-        console.log(JSON.stringify(projects));
+        return projects;
     } catch (error) {
         console.error("Transaction failed:", error);
         await logError(error, "Error fetching employee timesheet assignments");
