@@ -58,7 +58,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange }) 
 
     return (
         <div key={`${project.project_id}`} className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
-            <div className="project-title-cell flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-44 desk:max-w-44 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
+            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-44 desk:max-w-44 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
                 {title}
             </div>
             <div className="phase-stacker flex flex-col flex-grow">
