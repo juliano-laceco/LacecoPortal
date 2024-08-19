@@ -565,7 +565,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 {buttons.map((button, index) => (
                     <Button
                         key={index}
-                        small
                         {...button}
                     />
                 ))}

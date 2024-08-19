@@ -434,7 +434,7 @@ export async function getEmployeeAssignments(employee_id = 1) {
 
                     
                     const filledWeeksQuery = `
-                    SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked , status
+                    SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked , status , rejection_reason
                     FROM employee_work_day   
                     WHERE phase_assignee_id = ?
                     `

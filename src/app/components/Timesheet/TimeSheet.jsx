@@ -64,7 +64,7 @@ function TimeSheet({ timesheet_data }) {
     };
 
     return (
-        <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-x-hidden">
+        <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden border rounded-lg">
             <TimeSheetHeader weekDays={weekDays} />
             {timesheetData.map((project, projectIndex) => (
                 <ProjectSection

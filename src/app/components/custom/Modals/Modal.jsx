@@ -22,7 +22,7 @@ const Modal = ({ open = false, type, title, newPath, onClose, children, classNam
                             className={`fixed bg-white border shadow-2xl rounded-lg opacity-100 overflow-y-auto transition-all duration-500 z-30 max-w-[70ex] max-h-screen min-h-fit ${className}`}
                         >
                             <div onClick={type == "server" ? closeServerSide : onClose} className="w-full bg-white flex items-center justify-between p-4">
-                                <p className="font-bold text-2xl px-2">{title}</p>
+                                <p className="font-bold text-2xl px-2 mob:text-lg tablet:text-xl">{title}</p>
                                 <Image height="40" width="40" src="/resources/icons/close.svg" className="cursor-pointer" alt="close-icon" />
                             </div>
                             {

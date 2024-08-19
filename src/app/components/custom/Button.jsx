@@ -20,7 +20,7 @@ function Button({
     const baseClasses = `rounded-[4px] ${(loading || isDisabled) && "opacity-60 cursor-not-allowed"} transition-all h-fit duration-200 flex justify-center items-center`
     const sizeClasses = {
         small: `
-            min-w-[10ex] p-2 text-xs 
+            min-w-[9ex] p-1 text-xs 
             mob:min-w-[9ex] mob:p-1
             tablet:min-w-[10ex] ${!!Icon && "tablet:p-1"}
             lap:min-w-[10ex] lap:p-1 

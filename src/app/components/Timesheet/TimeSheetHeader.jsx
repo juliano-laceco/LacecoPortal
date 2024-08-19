@@ -8,7 +8,7 @@ function TimeSheetHeader({ weekDays }) {
                     {day.dayOfWeek}
                 </div>
             ))}
-            <div className="text-center p-2 border-b desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28">Total (hrs)</div>
+            <div className="text-center p-2 border-b flex justify-center items-center desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28">Total (hrs)</div>
         </div>
     );
 }
