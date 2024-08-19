@@ -426,11 +426,19 @@ export async function getEmployeeAssignments(employee_id = 1) {
 
                     const { phase_assignee_id } = assignee
 
+                    // const filledWeeksQuery = `
+                    // SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked , status
+                    // FROM employee_work_day   
+                    // WHERE phase_assignee_id = ? AND (status = 'Pending' OR status = 'Approved')
+                    // `
+
+                    
                     const filledWeeksQuery = `
-                    SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked 
+                    SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked , status
                     FROM employee_work_day   
-                    WHERE phase_assignee_id = ? AND (status = 'Pending' OR status = 'Approved')
+                    WHERE phase_assignee_id = ?
                     `
+
                     const filledWeeks = await executeTrans(filledWeeksQuery, [phase_assignee_id], transaction)
                     assignee.assignments = filledWeeks
 

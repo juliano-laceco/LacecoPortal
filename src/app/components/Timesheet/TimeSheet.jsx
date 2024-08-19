@@ -1,12 +1,13 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { startOfWeek, addDays, format } from "date-fns"
-import { formatDate } from "@/utilities/date/date-utils"
 import ProjectSection from "./ProjectSection"
-import DevelopmentSection from "./DevelopmentSection"
+import TimeSheetHeader from "./TimeSheetHeader"
+import TimeSheetFooter from "./TimeSheetFooter"
 
 function TimeSheet({ timesheet_data }) {
+    
     const [timesheetData, setTimesheetData] = useState(timesheet_data);
 
     const today = new Date();
@@ -16,15 +17,17 @@ function TimeSheet({ timesheet_data }) {
         const day = addDays(startDate, i);
         return {
             day: format(day, 'd'),
-            dayOfWeek: format(day, 'E'),
-            fullDate: formatDate(day),
+            dayOfWeek:
+                (
+                    <div className='flex flex-col justify-center items-center'>
+                        <span>{format(day, 'EEE')}</span>
+                        <span>{format(day, 'd')}</span>
+                    </div>
+                ),
+            fullDate: format(day, 'yyyy-MM-dd'),
         };
     });
 
-
-    useEffect(() => {
-        console.log(timesheetData)
-    }, [timesheetData])
     const handleInputChange = (e, projectIndex, phaseIndex, date) => {
         const { value } = e.target;
         const newTimesheetData = [...timesheetData];
@@ -45,9 +48,24 @@ function TimeSheet({ timesheet_data }) {
         setTimesheetData(newTimesheetData);
     };
 
+    const calculateTotalHours = (date) => {
+        return timesheetData.reduce((total, project) => {
+            return total + project.phases.reduce((phaseTotal, phase) => {
+                const assignment = phase.assignments.find(assignment => assignment.work_day === date);
+                return phaseTotal + (assignment ? parseFloat(assignment.hours_worked || 0) : 0);
+            }, 0);
+        }, 0);
+    };
+
+    const calculateTotalWeekHours = () => {
+        return weekDays.reduce((total, day) => {
+            return total + calculateTotalHours(day.fullDate);
+        }, 0);
+    };
+
     return (
-        <div className="w-full">
-            
+        <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-x-hidden">
+            <TimeSheetHeader weekDays={weekDays} />
             {timesheetData.map((project, projectIndex) => (
                 <ProjectSection
                     key={project.project_id}
@@ -57,7 +75,11 @@ function TimeSheet({ timesheet_data }) {
                     handleInputChange={handleInputChange}
                 />
             ))}
-            <DevelopmentSection weekDays={weekDays} />
+            <TimeSheetFooter
+                weekDays={weekDays}
+                calculateTotalHours={calculateTotalHours}
+                calculateTotalWeekHours={calculateTotalWeekHours}
+            />
         </div>
     );
 }

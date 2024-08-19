@@ -105,7 +105,21 @@ body:has(.modal-container.isVisible) .sheet-container * {
 }
 
 
+.phase-name-cell.collapsed ~ .weekdays-outer-wrapper {
+  display: none !important;
+}
 
+.phase-name-cell.collapsed ~ .weekdays-outer-wrapper ~ .phase-hours-cell {
+  display: none !important;
+}
+
+.phase-name-cell.collapsed .collapsePhase {
+  display: none !important
+}
+
+.phase-name-cell.expanded .expandPhase {
+  display: none !important
+}
 
 @layer base {
 
