@@ -45,6 +45,7 @@ export async function getErrorLog(qs = {}) {
         let query = `SELECT ${selectClause.slice(2)} 
                      FROM error_log err
                      JOIN employee e ON err.created_by = e.employee_id
+                     ORDER BY error_log_id DESC
                     `;
 
         const result = await dynamicQuery(qs, query, allowedKeys);
