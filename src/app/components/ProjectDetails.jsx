@@ -36,7 +36,7 @@ const ProjectDetails = ({
                 <StatTile
                     data={{
                         val:
-                            <p className="text-2xl text-red-500 font-semibold mob:text-xl"> {0} </p>
+                            <div className="text-2xl text-red-500 font-semibold mob:text-xl"> {0} </div>
                         ,
                         label: "Variance"
                     }} />

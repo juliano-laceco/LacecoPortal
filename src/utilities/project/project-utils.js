@@ -340,7 +340,9 @@ export async function getProjectData(project_id) {
                         phase_assignee_id: row.phase_assignee_id,
                         discipline: row.discipline,
                         assignee: row.assignee,
-                        projected_work_weeks: {}
+                        initial_projected_work_weeks: {},
+                        projected_work_weeks: {},
+                        hasInitialData: false // Initialize the property as false
                     };
 
                     // Calculate juniors and seniors
@@ -350,8 +352,11 @@ export async function getProjectData(project_id) {
                         numJuniors++;
                     }
                 }
+
+                // If there are projected work weeks, update the object and set hasInitialData to true
                 if (row.week_start) {
                     assigneeMap[row.phase_assignee_id].projected_work_weeks[row.week_start] = row.hours_expected;
+                    assigneeMap[row.phase_assignee_id].initial_projected_work_weeks[row.week_start] = row.hours_expected;
                 }
             });
 

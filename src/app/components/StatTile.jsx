@@ -8,8 +8,8 @@ function StatTile({ type = "single", data, image_url, shadow = false }) {
                     {image_url && <Image src={image_url} height="40" width="40" alt="icon" />}
                     <div className="text-center mt-[8px]" >
                         <div className="flex flex-col justify-between">
-                            <p className="text-2xl text-black font-semibold mob:text-xl">{data.val}</p>
-                            <p className="text-slate-500  mob:text-sm">{data.label}</p>
+                            <div className="text-2xl text-black font-semibold mob:text-xl">{data.val}</div>
+                            <div className="text-slate-500  mob:text-sm">{data.label}</div>
                         </div>
                     </div>
                 </div >
@@ -19,10 +19,10 @@ function StatTile({ type = "single", data, image_url, shadow = false }) {
                         {data.map((item, index) => {
                             return <>
                                 <div className="text-center">
-                                    <p className="text-2xl text-center font-semibold mx-auto  mob:text-xl"> {item.val} </p>
-                                    <p className="text-slate-500 font-medium mob:text-sm">{item.label}</p>
+                                    <div className="text-2xl text-center font-semibold mx-auto  mob:text-xl"> {item.val} </div>
+                                    <div className="text-slate-500 font-medium mob:text-sm">{item.label}</div>
                                 </div>
-                                {index != data.length - 1 && < div className="h-12 w-[2px] rounded-lg bg-gray-400"></div >}
+                                {index != data.length - 1 && <div className="h-12 w-[2px] rounded-lg bg-gray-400"></div>}
                             </>
                         })
                         }

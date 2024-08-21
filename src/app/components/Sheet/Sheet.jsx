@@ -1,3 +1,6 @@
+
+
+
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -55,7 +58,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
     // Initial Data
     const numCols = headerDates.length + 5;
-    // const [initialData, setInitialData] = useState(() => generateMockData(3, 5))
     const [initialData, setInitialData] = useState(() => deployment_data)
     const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData), [initialData])
     const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates])
@@ -67,6 +69,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     // Flag inbdicates whether the page has been edited 
     const [edited, setEdited] = useState(false)
     const uneditableCellCount = 0;
+
 
     // Setting up using useSheet
     const {
@@ -191,8 +194,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 phase_assignee_id: assignee.phase_assignee_id,
                 discipline: assignee.discipline,
                 assignee: assignee.assignee,
+                initial_projected_work_weeks: assignee.initial_projected_work_weeks,
                 projected_work_weeks: {},
                 updated_projected_work_weeks: {},
+
             })),
         }));
 
@@ -223,11 +228,16 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         const dataChanged = cell.getAttribute("data-initial") != cell.textContent;
 
                         if (colIndex === 1) {
+
                             updatedData[phaseIndex].assignees[assigneeIndex].discipline = newValue;
                         } else if (colIndex === 2) {
                             updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
+
                         } else if (colIndex > 4) {
-                            updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
+
+                            if (newValue != "") {
+                                updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
+                            }
                             if (dataChanged) {
                                 updatedData[phaseIndex].assignees[assigneeIndex].updated_projected_work_weeks[date] = newValue;
                             }
@@ -351,7 +361,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 phase_assignee_id: crypto.randomUUID(),
                 discipline: "",
                 assignee: "",
+                initial_projected_work_weeks: null,
                 projected_work_weeks: {},
+
             };
 
             headerDates.forEach((date) => {
@@ -429,56 +441,141 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
         const updatedData = getUpdatedData();
 
-        // Validation logic
         let isValid = true;
-        let noticeMessage = "";
-        let assigneeTracker;
-        let hasDuplicateAssignees = false
+        let hasDuplicateAssignees = false;
+        let empty_rows = false;
 
+        const invalidAssignees = [];
+
+        // Check each phase in the updated data
         updatedData.forEach((phase) => {
-            assigneeTracker = []
-            phase?.assignees?.forEach((assignee) => {
-                if (assignee.discipline == "Select..." || assignee.assignee == "Select...") {
-                    isValid = false;
-                    noticeMessage = "All assignees must have a discipline and a user.";
-                }
-                assigneeTracker.push(assignee.assignee)
-            });
+            const assigneeNames = new Set();
+            const flaggedAssignees = new Set(); // To track flagged assignees for duplicates
+            const flaggedEmptyAssignees = new Set(); // To track flagged assignees for empty assignments
 
-            const setSize = (new Set(assigneeTracker)).size
-            if (setSize < assigneeTracker.length) {
-                !hasDuplicateAssignees && (hasDuplicateAssignees = true)
-                noticeMessage = "Cannot have duplicate employees within the same phase."
-            }
+            phase?.assignees?.forEach((assignee) => {
+                let issues = [];
+
+                // Validate discipline and assignee selection
+                if (assignee.discipline == "Select...") {
+                    isValid = false;
+                    issues.push("Discipline not selected");
+                }
+
+                if (assignee.assignee == "Select...") {
+                    isValid = false;
+                    issues.push("Assignee not selected");
+                }
+
+                const assigneeName = getEmployeeName(assignee.assignee, employee_data);
+
+                let is_empty = true;
+
+                for (const date in assignee.projected_work_weeks) {
+                    if (assignee.projected_work_weeks[date] != "") {
+                        is_empty = false;
+                        break;
+                    }
+                }
+
+                if (is_empty) {
+                    // Filter out the keys from initial_projected_work_weeks that are not in headerDates
+                    const relevantKeys = Object.keys(assignee.initial_projected_work_weeks ?? {}).filter(date => !headerDates.includes(date));
+
+                    if (relevantKeys.length === 0) {
+                        empty_rows = true;
+
+                        // Only add the empty assignment issue once per assignee
+                        if (!flaggedEmptyAssignees.has(assigneeName)) {
+                            flaggedEmptyAssignees.add(assigneeName); // Mark this assignee as flagged for empty assignment
+                            issues.push("No hours filled");
+                        }
+                    }
+                }
+
+                if (issues.length > 0) {
+                    invalidAssignees.push({
+                        phaseName: phase.phase_name,
+                        assigneeName,
+                        issues,
+                    });
+                }
+
+                if (assigneeNames.has(assigneeName)) {
+                    hasDuplicateAssignees = true;
+                    isValid = false;
+
+                    // Only add the duplicate issue once per assignee
+                    if (!flaggedAssignees.has(assigneeName)) {
+                        flaggedAssignees.add(assigneeName); // Mark this assignee as flagged for duplicate
+                        invalidAssignees.push({
+                            phaseName: phase.phase_name,
+                            assigneeName,
+                            issues: ["Duplicate employee"]
+                        });
+                    }
+                } else {
+                    assigneeNames.add(assigneeName);
+                }
+            });
         });
 
+        // Build the JSX noticeMessage with the invalid assignees details
+        const noticeMessage = (
+            <ul>
+                {invalidAssignees.map(({ phaseName, assigneeName, issues }, index) => (
+                    <li key={index} className={`w-full p-2 ${invalidAssignees.length !== 1 ? "border-b border-gray-300" : ""}`}>
+                        <p><strong>Phase:</strong> {phaseName}</p>
+                        <p><strong>Assignee:</strong> {assigneeName}</p>
+                        <ul className="mt-2">
+                            {issues.map((issue, i) => (
+                                <li key={i} className="text-pric">{issue}</li>
+                            ))}
+                        </ul>
+                    </li>
+                ))}
+            </ul>
+        );
+
+        if (empty_rows) {
+            openModal(noticeMessage, "Blank Employee Assignment");
+            setIsLoading(false);
+            return;
+        }
+
+        // If there are duplicate assignees
         if (hasDuplicateAssignees) {
             openModal(noticeMessage, "Duplicate Employees");
             setIsLoading(false);
             return;
         }
 
-
+        // If the validation failed
         if (!isValid) {
             openModal(noticeMessage, "Missing Data");
             setIsLoading(false);
             return;
         }
 
+        // Proceed with saving if validation passed
         openModal({
             handlerFunction: async () => {
                 try {
-                    await saveDeployment(updatedData, deletedPhaseAssignees)
-                    showToast("success", "Successfully Saved Deployment")
+                    await saveDeployment(updatedData, deletedPhaseAssignees);
+                    showToast("success", "Successfully Saved Deployment");
                 } catch (error) {
-                    await logError(error, "Error In Saving Deployment")
-                    showToast("failed", "Failed To Save Deployment")
+                    await logError(error, "Error In Saving Deployment");
+                    showToast("failed", "Failed To Save Deployment");
                 }
-
-            }
-            , refresh
-        }, "Save")
+            },
+            refresh
+        }, "Save");
     };
+
+
+
+
+
 
     const clearPath = () => {
 
@@ -558,13 +655,13 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             <div className="flex items-center gap-4">
                 <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
                 <div className="mob:text-xs">
-                    <p>{message}</p>
+                    <div>{message}</div>
                 </div>
             </div>
             <div className="flex justify-center gap-4 mb-4 mt-5">
                 {buttons.map((button, index) => (
                     <Button
-                        key={index}
+                        key={crypto.randomUUID()}
                         {...button}
                     />
                 ))}
@@ -663,7 +760,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             },
                         },
                     ],
-                    "Duplicate Employees"
+                    "Assignment Error"
                 );
                 break;
             case "Date Clear":
@@ -749,6 +846,19 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     "Confirmation"
                 )
                 break;
+            case "Blank Employee Assignment":
+                modalContent = renderModalContent(
+                    data,
+                    [
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Assignment Error"
+                )
+                break;
         }
         setModal(modalContent);
     };
@@ -781,13 +891,13 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             ...headerDates.map((date, index) => {
                 const color = getColorForMonth(date)
                 return <div
-                    key={`header-${index}-${crypto.randomUUID()}`}
+                    key={`header-${index}-${date}`}  // Ensure a unique key using index and date
                     className={"border border-gray-300 min-w-12 max-w-12 flex justify-center items-center px-1 py-4 text-gray-600 font-semibold"}
                     style={{
                         writingMode: "vertical-rl",
                         transform: "rotate(180deg)",
                         background: color,
-                        "--tw-bg-opacity": 1
+                        "--tw-bg-opacity": 1,
                     }}
                 >
                     {date}
@@ -859,7 +969,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     >
                                         <option key={crypto.randomUUID()} value="Select...">Select...</option>
                                         {memoizedDisciplineData.map((option) => (
-                                            <option key={option.value} value={option.value}>
+                                            <option key={crypto.randomUUID()} value={option.value}>
                                                 {option.label}
                                             </option>
                                         ))}
@@ -869,6 +979,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         } else if (col === 2) {
 
                             const isEmpty = assignee.assignee == "Select..."
+
                             content = (
                                 <>
                                     <select
@@ -881,7 +992,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                         {memoizedEmployeeData
                                             .filter(option => option.discipline_id === parseInt(assignee.discipline))
                                             .map(option => (
-                                                <option key={option.value} value={option.value}>
+                                                <option key={crypto.randomUUID()} value={option.value}>
                                                     {option.label}
                                                 </option>
                                             ))
@@ -964,7 +1075,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
                 if (phase?.assignees?.length == 0) {
                     assigneeRows.push(
-                        <div className="text-center max-w-[100vw] p-3 text-pric sticky left-0"> No assignees found </div>
+                        <div key={crypto.randomUUID()} className="text-center max-w-[100vw] p-3 text-pric sticky left-0"> No assignees found </div>
                     )
                 }
                 assigneeRows.push(
@@ -1045,7 +1156,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 />
                                 {project_data.isBaselined == 'No' &&
                                     <Button
-                                        onClick={async (e) => {
+                                        onClick={async () => {
                                             setIsLoading(true);
                                             await baselineProject(project_data.project_id);
                                             router.refresh();
@@ -1090,3 +1201,4 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 };
 
 export default React.memo(Sheet);
+

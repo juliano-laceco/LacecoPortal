@@ -61,7 +61,7 @@ async function ProjectDeployment({ params, searchParams }) {
   return (
     <>
       <title>{pageTitle}</title>
-      <div className="space-y-12">
+      <div className="space-y-12 mob:hidden tablet:hidden">
         <ProjectDetails
           project_data={project_data}
           phase_data={phase_data}
@@ -71,6 +71,7 @@ async function ProjectDeployment({ params, searchParams }) {
           <Sheet employee_data={filtered_employee_data} discipline_data={disciplines_data} project_start_date={project_start_date} project_end_date={project_end_date} deployment_data={project_response.data.phases} start_date={start ?? null} end_date={end ?? null} project_data={project_data} />
         </div>
       </div>
+      <div className="lap:hidden desk:hidden">Unable to view this content on your current device. Kindly switch to a larger display to edit the deployment sheet</div>
     </>
   );
 }

@@ -62,14 +62,34 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
     setEditableCell(cell);
   }, []);
 
+  // Updated to handle history correctly
   const saveHistory = useCallback((newCellContents) => {
-    setHistory((prevHistory) => {
-      const newHistory = prevHistory.slice(0, historyIndex + 1);
-      newHistory.push({ ...newCellContents });
-      return newHistory;
-    });
-    setHistoryIndex((prevIndex) => prevIndex + 1);
-  }, [historyIndex]);
+    const newHistory = history.slice(0, historyIndex + 1);
+    setHistory([...newHistory, newCellContents]);
+    setHistoryIndex(newHistory.length); // Set index to the end of the new history
+  }, [history, historyIndex]);
+
+
+
+  // Handling Undo (Ctrl+Z)
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      if (history[historyIndex - 1] != undefined) {
+        setHistoryIndex(historyIndex - 1);
+        setCellContents(history[historyIndex - 1]);
+      }
+    }
+  }, [historyIndex, history, setCellContents]);
+
+  // Handling Redo (Ctrl+Shift+Z)
+  const handleRedo = useCallback(() => {
+    if (historyIndex > 0) {
+      if (history[historyIndex + 1] != undefined) {
+        setHistoryIndex(historyIndex + 1);
+        setCellContents(history[historyIndex + 1]);
+      }
+    }
+  }, [historyIndex, history, setCellContents]);
 
 
   const handleKeyDown = useCallback((e) => {
@@ -90,7 +110,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       navigator.clipboard.writeText(content.join('\t'));
 
       if (e.key === 'x') {
-        !edited && selectedCells.length > 0 && setEdited(true)
+        !edited && selectedCells.length > 0 && setEdited(true);
         saveHistory(cellContents);
         const newCellContents = { ...cellContents };
         selectedCells.forEach((cell) => {
@@ -100,7 +120,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       }
     } else if (e.key === 'v' && e.ctrlKey) {
       e.preventDefault();
-      !edited && selectedCells.length > 0 && setEdited(true)
+      !edited && selectedCells.length > 0 && setEdited(true);
       navigator.clipboard.readText().then((clipboardContent) => {
         const lines = clipboardContent.split('\n');
         const newCellContents = { ...cellContents };
@@ -121,19 +141,10 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       });
     } else if (e.key === 'z' && e.ctrlKey) {
       e.preventDefault();
-      if (historyIndex > 0) {
-        if (history[historyIndex - 1] != undefined) {
-          setHistoryIndex((prevIndex) => prevIndex - 1);
-          setCellContents(history[historyIndex - 1]);
-        }
-
-      }
+      handleUndo()
     } else if (e.shiftKey && e.key === 'z' && e.ctrlKey) {
       e.preventDefault();
-      if (historyIndex < history.length - 1) {
-        setHistoryIndex((prevIndex) => prevIndex + 1);
-        setCellContents(history[historyIndex + 1]);
-      }
+      handleRedo()
     } else if (e.key === 'Tab') {
       e.preventDefault();
       let newSelectedCell = { ...selectedCells[0] };
@@ -169,24 +180,15 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
       const newSelectedCells = getCellsInSelection(startCell, newEndCell);
       setSelectedCells(newSelectedCells);
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
-      if (editableCell) {
-        e.preventDefault();
-        !edited && selectedCells.length > 0 && setEdited(true)
-        saveHistory(cellContents);
-        const cellKey = `${editableCell.row}-${editableCell.col}`;
-        const newCellContents = { ...cellContents, [cellKey]: '' };
-        setCellContents(newCellContents);
-      } else {
-        e.preventDefault();
-        !edited && selectedCells.length > 0 && setEdited(true)
-        saveHistory(cellContents);
+      e.preventDefault();
+      !edited && selectedCells.length > 0 && setEdited(true);
+      saveHistory(cellContents);
 
-        const newCellContents = { ...cellContents };
-        selectedCells.forEach((cell) => {
-          newCellContents[`${cell.row}-${cell.col}`] = '';
-        });
-        setCellContents(newCellContents);
-      }
+      const newCellContents = { ...cellContents };
+      selectedCells.forEach((cell) => {
+        newCellContents[`${cell.row}-${cell.col}`] = '';
+      });
+      setCellContents(newCellContents);
     } else if (!e.ctrlKey) {
       let newSelectedCell = { ...selectedCells[0] };
       if (e.key.length === 1) {
@@ -274,6 +276,7 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
     setEdited
   ]);
 
+
   const handleCellBlur = useCallback((row, col, e) => {
     const value = e.target.textContent;
     const newCellContents = {
@@ -311,18 +314,22 @@ const useSheet = (numRows, numCols, initialCellContents, numberOfUneditableCells
   useEffect(() => {
     if (editableCell) {
       const { row, col } = editableCell;
-      const cell = cellRefs.current[row][col];
-      if (cell) {
-        cell.setAttribute('contentEditable', 'true');
-        cell.focus();
 
-        const range = document.createRange();
-        range.selectNodeContents(cell);
-        range.collapse(false);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
+      if (row != undefined && col != undefined) {
+        const cell = cellRefs.current[row][col];
+        if (cell) {
+          cell.setAttribute('contentEditable', 'true');
+          cell.focus();
+
+          const range = document.createRange();
+          range.selectNodeContents(cell);
+          range.collapse(false);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
       }
+
     }
   }, [editableCell]);
 
