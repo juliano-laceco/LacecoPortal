@@ -1,9 +1,9 @@
+import React, { useEffect } from "react";
 import Image from "next/image";
-import { useEffect } from "react";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
 
-function ProjectSection({ project, projectIndex, weekDays, handleInputChange }) {
+function ProjectSection({ project, projectIndex, weekDays, handleInputChange, getStatusForDay }) {
     const { title, phases } = project;
 
     const screenSize = useScreenSize()
@@ -40,7 +40,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange }) 
     }, []);
 
     useEffect(() => {
-        if (screenSize === "lap" || screenSize === "desk") { 
+        if (screenSize === "lap" || screenSize === "desk") {
             const phaseNameCells = document.querySelectorAll('.phase-name-cell');
 
             phaseNameCells.forEach((phaseNameCell) => {
@@ -92,6 +92,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange }) 
                                     <div className="flex h-full">
                                         {weekDays.map((day, i) => {
                                             const assignment = assignments.find(assignment => assignment.work_day === day.fullDate);
+                                            const {status} = getStatusForDay(day.fullDate);
 
                                             return (
                                                 <InputContainer
@@ -101,6 +102,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange }) 
                                                     handleInputChange={handleInputChange}
                                                     projectIndex={projectIndex}
                                                     phaseIndex={phaseIndex}
+                                                    dayStatus={status}
                                                 />
                                             );
                                         })}

@@ -1,15 +1,20 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { startOfWeek, addDays, format } from "date-fns"
 import ProjectSection from "./ProjectSection"
 import TimeSheetHeader from "./TimeSheetHeader"
 import TimeSheetFooter from "./TimeSheetFooter"
+import DayStatus from "./DayStatus"
 
 function TimeSheet({ timesheet_data }) {
-    
+
     const [timesheetData, setTimesheetData] = useState(timesheet_data);
 
+
+    useEffect(() => {
+        console.log(timesheetData)
+    }, [timesheetData])
     const today = new Date();
     const startDate = startOfWeek(today, { weekStartsOn: 1 });
 
@@ -63,8 +68,32 @@ function TimeSheet({ timesheet_data }) {
         }, 0);
     };
 
+    const getStatusForDay = (date) => {
+        let status = null; // Default to no status
+        let rejectionReason = null;
+
+        timesheet_data.forEach((project) => {
+            project.phases.forEach((phase) => {
+                phase.assignments.forEach((assignment) => {
+                    if (assignment.work_day === date) {
+                        if (assignment.status === "Rejected") {
+                            status = "Rejected"; // Highest priority
+                            rejectionReason = assignment.rejection_reason
+                        } else if (assignment.status === "Pending" && status !== "Rejected") {
+                            status = "Pending"; // Medium priority
+                        } else {
+                            status = assignment.status; // Low priority
+                        }
+                    }
+                });
+            });
+        });
+
+        return { status, rejectionReason };
+    };
+
     return (
-        <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden border rounded-lg">
+        <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
             <TimeSheetHeader weekDays={weekDays} />
             {timesheetData.map((project, projectIndex) => (
                 <ProjectSection
@@ -73,8 +102,13 @@ function TimeSheet({ timesheet_data }) {
                     projectIndex={projectIndex}
                     weekDays={weekDays}
                     handleInputChange={handleInputChange}
+                    getStatusForDay={getStatusForDay}
                 />
             ))}
+            <DayStatus
+                weekDays={weekDays}
+                getStatusForDay={getStatusForDay}
+            />
             <TimeSheetFooter
                 weekDays={weekDays}
                 calculateTotalHours={calculateTotalHours}

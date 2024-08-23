@@ -28,10 +28,10 @@ function Button({
         `,
         medium: `
             min-w-[12ex] ${loading ? "p-3" : "p-2"} text-base 
-            mob:min-w-[9ex] ${loading && "mob:p-[7px]"} mob:text-sm 
+            mob:min-w-[8ex] ${loading && "mob:p-[7px]"} mob:text-sm 
             tablet:min-w-[11ex] tablet:text-base 
             lap:min-w-[11ex] 
-            desk:min-w-[13.5ex] desk:text-lg
+            desk:min-w-[12ex] desk:text-base
         `,
         large: `
             min-w-[17ex] ${loading ? "p-4" : "p-3"} text-lg 
