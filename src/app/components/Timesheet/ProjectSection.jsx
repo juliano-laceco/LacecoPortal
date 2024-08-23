@@ -58,7 +58,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
 
     return (
         <div key={`${project.project_id}`} className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
-            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-44 desk:max-w-44 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
+            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
                 {title}
             </div>
             <div className="phase-stacker flex flex-col flex-grow">
@@ -67,7 +67,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
 
                     return (
                         <div key={phase.phase_id} className="outer-phase-wrapper flex w-full mob:flex-col tablet:flex-col">
-                            <div className="phase-name-cell text-sm expanded p-2 border flex font-semibold justify-center mob:justify-between tablet:justify-between items-center text-center desk:min-w-44 desk:max-w-44 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
+                            <div className="phase-name-cell text-sm expanded p-2 border flex font-semibold justify-center mob:justify-between tablet:justify-between items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
                                 {phase_name}
                                 <div className="flex justify-center items-center lap:hidden desk:hidden">
                                     <p className="collapsePhase cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">
@@ -92,7 +92,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                                     <div className="flex h-full">
                                         {weekDays.map((day, i) => {
                                             const assignment = assignments.find(assignment => assignment.work_day === day.fullDate);
-                                            const {status} = getStatusForDay(day.fullDate);
+                                            const { status } = getStatusForDay(day.fullDate);
 
                                             return (
                                                 <InputContainer

@@ -446,6 +446,7 @@ export async function getEmployeeAssignments(employee_id = 1) {
                    hours_worked, 
                    hours_worked AS initial_hours_worked, 
                    status, 
+                   type,
                    rejection_reason
             FROM development_hour
             WHERE employee_id = ?

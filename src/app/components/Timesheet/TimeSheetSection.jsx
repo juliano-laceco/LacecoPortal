@@ -1,9 +1,18 @@
 import React, { useEffect } from "react";
+import Image from "next/image";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
-import { development_options } from "@/data/static/development-options"; // Assuming you have options imported
 
-function DevelopmentSection({ developmentTimesheet, weekDays, handleInputChange, getStatusForDay, handleTypeChange }) {
+function TimesheetSection({
+    sectionType, // "project" or "development"
+    title,
+    data,
+    weekDays,
+    handleInputChange,
+    getStatusForDay,
+    options = [], // Options for the select dropdown in development mode
+    calculateTotalHours
+}) {
     const screenSize = useScreenSize();
 
     useEffect(() => {
@@ -48,36 +57,23 @@ function DevelopmentSection({ developmentTimesheet, weekDays, handleInputChange,
         }
     }, [screenSize]);
 
-    const calculateTotalHours = (assignments) => {
-        return assignments.reduce((total, assignment) => {
-            return total + (parseInt(assignment.hours_worked || 0));
-        }, 0);
-    };
-
-    const handleSelectChange = (e) => {
-        const newValue = e.target.value;
-        handleTypeChange(newValue, developmentTimesheet[0]?.development_hour_day_id);
-    };
-
     return (
         <div className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
-            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
-                Other
+            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-44 desk:max-w-44 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
+                {title}
             </div>
-            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
-                <select
-                    value={developmentTimesheet[0]?.type || ""}
-                    onChange={handleSelectChange}
-                    className="border border-gray-300 rounded max-w-full text-sm text-black"
-                >
-                    <option value="" disabled>Select Type</option>
-                    {development_options.map((option, index) => (
-                        <option key={index} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
+
+            {/* Conditionally render the select dropdown if in development mode */}
+            {sectionType === "development" && (
+                <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-44 desk:max-w-44 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
+                    <select>
+                        {options.map((option, index) => (
+                            <option key={index} value={option}>{option}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
             <div className="weekdays-outer-wrapper flex justify-evenly w-full mob:flex-col tablet:flex-col">
                 <div className="weekdays-inner-wrapper flex flex-col justify-evenly w-full">
                     <div className="flex lap:hidden desk:hidden bg-gray-200">
@@ -89,7 +85,7 @@ function DevelopmentSection({ developmentTimesheet, weekDays, handleInputChange,
                     </div>
                     <div className="flex h-full">
                         {weekDays.map((day, i) => {
-                            const assignment = developmentTimesheet.find(item => item.work_day === day.fullDate);
+                            const assignment = data.find(item => item.work_day === day.fullDate);
                             const { status } = getStatusForDay(day.fullDate);
 
                             return (
@@ -98,23 +94,22 @@ function DevelopmentSection({ developmentTimesheet, weekDays, handleInputChange,
                                     day={day}
                                     assignment={assignment}
                                     handleInputChange={handleInputChange}
-                                    projectIndex={null} // Not needed for development timesheet
-                                    phaseIndex={null} // Not needed for development timesheet
+                                    projectIndex={sectionType === "project" ? projectIndex : null}
+                                    phaseIndex={sectionType === "project" ? phaseIndex : null}
                                     dayStatus={status}
-                                    isDevelopment={true}
-                                    developmentId={assignment ? assignment.development_hour_day_id : null} // Pass the ID here
+                                    isDevelopment={sectionType === "development"}
                                 />
                             );
                         })}
-
                     </div>
                 </div>
             </div>
+
             <div className="phase-hours-cell flex justify-center items-center p-4 border-b border-l border-gray-200 bg-gray-100 font-bold desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28">
-                <span className="lap:hidden desk:hidden">Total: &nbsp;</span>{calculateTotalHours(developmentTimesheet)} <span className="lap:hidden desk:hidden ml-1">hrs</span>
+                <span className="lap:hidden desk:hidden">Total: &nbsp;</span>{calculateTotalHours(data)} <span className="lap:hidden desk:hidden ml-1">hrs</span>
             </div>
         </div>
     );
 }
 
-export default DevelopmentSection;
+export default TimesheetSection;

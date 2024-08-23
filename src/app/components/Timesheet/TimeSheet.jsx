@@ -133,21 +133,34 @@ function TimeSheet({ timesheet_data }) {
         }, 0);
     };
 
+    const handleTypeChange = (newType, developmentHourDayId) => {
+        const newDevelopmentTimesheet = developmentTimeSheet.map(item => {
+            if (item.development_hour_day_id === developmentHourDayId) {
+                return { ...item, type: newType };
+            }
+            return item;
+        });
+
+        setDevelopmentTimeSheet(newDevelopmentTimesheet);
+    };
+
+
 
     const getStatusForDay = (date) => {
         let status = null; // Default to no status
         let rejectionReason = null;
 
+        // Check project_timesheet
         timesheet_data.project_timesheet.forEach((project) => {
             project.phases.forEach((phase) => {
                 phase.assignments.forEach((assignment) => {
                     if (assignment.work_day === date) {
                         if (assignment.status === "Rejected") {
                             status = "Rejected"; // Highest priority
-                            rejectionReason = assignment.rejection_reason
+                            rejectionReason = assignment.rejection_reason;
                         } else if (assignment.status === "Pending" && status !== "Rejected") {
                             status = "Pending"; // Medium priority
-                        } else {
+                        } else if (!status || status === "Approved") {
                             status = assignment.status; // Low priority
                         }
                     }
@@ -155,8 +168,23 @@ function TimeSheet({ timesheet_data }) {
             });
         });
 
+        // Check development_timesheet
+        timesheet_data.development_timesheet.forEach((assignment) => {
+            if (assignment.work_day === date) {
+                if (assignment.status === "Rejected") {
+                    status = "Rejected"; // Highest priority
+                    rejectionReason = assignment.rejection_reason;
+                } else if (assignment.status === "Pending" && status !== "Rejected") {
+                    status = "Pending"; // Medium priority
+                } else if (!status || status === "Approved") {
+                    status = assignment.status; // Low priority
+                }
+            }
+        });
+
         return { status, rejectionReason };
     };
+
 
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
@@ -176,6 +204,7 @@ function TimeSheet({ timesheet_data }) {
                 weekDays={weekDays}
                 handleInputChange={handleInputChange}
                 getStatusForDay={getStatusForDay}
+                handleTypeChange={handleTypeChange}
             />
             <DayStatus
                 weekDays={weekDays}

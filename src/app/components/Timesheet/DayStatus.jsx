@@ -14,7 +14,7 @@ function DayStatus({ weekDays, getStatusForDay }) {
 
     return (
         <div className="flex font-bold mob:flex-col tablet:flex-col w-full">
-            <div className="p-4 border-t flex justify-center items-center desk:min-w-[22rem] desk:max-w-[22rem] lap:min-w-[18rem] lap:max-w-[18rem] mob:bg-pric tablet:bg-pric mob:justify-start tablet:justify-start mob:text-white tablet:text-white">
+            <div className="p-4 border-t flex justify-center items-center desk:min-w-[26rem] desk:max-w-[26rem] lap:min-w-[18rem] lap:max-w-[18rem] mob:bg-pric tablet:bg-pric mob:justify-start tablet:justify-start mob:text-white tablet:text-white">
                 Day Approval Status
             </div>
             <div className="flex lap:hidden desk:hidden bg-gray-200">
