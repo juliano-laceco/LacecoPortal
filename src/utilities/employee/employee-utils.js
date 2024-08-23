@@ -366,26 +366,27 @@ export async function getEmployeeAssignments(employee_id = 1) {
     try {
         transaction = await startTransaction();
 
+        // Fetch Project Timesheet Data
         const query = `
-    SELECT DISTINCT proj.project_id, 
-           proj.code, 
-           proj.title, 
-           e.first_name, 
-           e.last_name, 
-           pos.position_name
-    FROM project proj
-    JOIN phase ph ON ph.project_id = proj.project_id
-    JOIN phase_assignee pa ON pa.phase_id = ph.phase_id
-    JOIN employee e ON pa.assignee_id = e.employee_id
-    JOIN position pos ON e.position_id = pos.position_id
-    WHERE pa.assignee_id = ?
-      AND proj.project_status = 'Active'
-      AND EXISTS (
-          SELECT 1 
-          FROM projected_work_week pww 
-          WHERE pww.phase_assignee_id = pa.phase_assignee_id 
-      )
-`;
+            SELECT DISTINCT proj.project_id, 
+                   proj.code, 
+                   proj.title, 
+                   e.first_name, 
+                   e.last_name, 
+                   pos.position_name
+            FROM project proj
+            JOIN phase ph ON ph.project_id = proj.project_id
+            JOIN phase_assignee pa ON pa.phase_id = ph.phase_id
+            JOIN employee e ON pa.assignee_id = e.employee_id
+            JOIN position pos ON e.position_id = pos.position_id
+            WHERE pa.assignee_id = ?
+              AND proj.project_status = 'Active'
+              AND EXISTS (
+                  SELECT 1 
+                  FROM projected_work_week pww 
+                  WHERE pww.phase_assignee_id = pa.phase_assignee_id 
+              )
+        `;
 
         const projects = await executeTrans(query, [employee_id], transaction);
 
@@ -416,30 +417,18 @@ export async function getEmployeeAssignments(employee_id = 1) {
                 const phase_assignees = await executeTrans(phaseAssigneesQuery, [employee_id, phase_id], transaction);
                 const assignee = phase_assignees[0];
 
-                // if (assignee.work_done_hrs == 0) {
-                //     assignee.assignments = []
-                // } else {
-
-                // }
-
                 if (phase_assignees.length > 0) {
 
-                    const { phase_assignee_id } = assignee
-
-                    // const filledWeeksQuery = `
-                    // SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked , status
-                    // FROM employee_work_day   
-                    // WHERE phase_assignee_id = ? AND (status = 'Pending' OR status = 'Approved')
-                    // `
+                    const { phase_assignee_id } = assignee;
 
                     const filledWeeksQuery = `
-                    SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked , hours_worked AS initial_hours_worked , status , rejection_reason
-                    FROM employee_work_day   
-                    WHERE phase_assignee_id = ?
-                    `
+                        SELECT employee_work_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked , hours_worked AS initial_hours_worked , status , rejection_reason
+                        FROM employee_work_day   
+                        WHERE phase_assignee_id = ?
+                    `;
 
-                    const filledWeeks = await executeTrans(filledWeeksQuery, [phase_assignee_id], transaction)
-                    assignee.assignments = filledWeeks
+                    const filledWeeks = await executeTrans(filledWeeksQuery, [phase_assignee_id], transaction);
+                    assignee.assignments = filledWeeks;
 
                     Object.assign(phase, assignee);
                 }
@@ -449,8 +438,27 @@ export async function getEmployeeAssignments(employee_id = 1) {
             project.phases = phases;
         }
 
+        // Fetch Development Timesheet Data
+        const developmentQuery = `
+            SELECT development_hour_day_id,
+                   DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  
+                   DATE_FORMAT(work_day, '%d %M %Y') AS display_date, 
+                   hours_worked, 
+                   hours_worked AS initial_hours_worked, 
+                   status, 
+                   rejection_reason
+            FROM development_hour
+            WHERE employee_id = ?
+        `;
+
+        const developmentTimesheet = await executeTrans(developmentQuery, [employee_id], transaction);
+
+        // Commit transaction and return both project and development timesheet data
         await commitTransaction(transaction);
-        return projects;
+        return {
+            project_timesheet: projects,
+            development_timesheet: developmentTimesheet
+        };
     } catch (error) {
         console.error("Transaction failed:", error);
         await logError(error, "Error fetching employee timesheet assignments");
@@ -461,3 +469,4 @@ export async function getEmployeeAssignments(employee_id = 1) {
         }
     }
 }
+

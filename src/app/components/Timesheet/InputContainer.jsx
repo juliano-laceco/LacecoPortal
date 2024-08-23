@@ -1,11 +1,7 @@
-function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus }) {
+function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus, isDevelopment }) {
 
     const hoursWorked = assignment ? assignment.hours_worked : '';
-
-
     const isDisabled = dayStatus === "Approved" || dayStatus === "Pending";
-
-
 
     return (
         <div
@@ -24,19 +20,16 @@ function InputContainer({ day, assignment, handleInputChange, projectIndex, phas
 
                     // Allow empty value
                     if (value === "") {
-                        handleInputChange(e, projectIndex, phaseIndex, day.fullDate);
+                        handleInputChange(e, projectIndex, phaseIndex, day.fullDate, isDevelopment);
                     }
 
                     // Ensure the value is a number and does not start with 0
                     if (/^[1-9]\d*$/.test(value) && parseInt(value, 10) <= 12) {
-                        handleInputChange(e, projectIndex, phaseIndex, day.fullDate);
+                        handleInputChange(e, projectIndex, phaseIndex, day.fullDate, isDevelopment);
                     }
                 }}
                 data-date={day.fullDate}
             />
-
-
-
         </div>
     );
 }
