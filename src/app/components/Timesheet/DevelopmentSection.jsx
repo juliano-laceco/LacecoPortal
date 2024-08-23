@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
-import { development_options } from "@/data/static/development-options"; // Assuming you have options imported
+import { development_options } from "@/data/static/development-options";
 
-function DevelopmentSection({ developmentTimesheet, weekDays, handleInputChange, getStatusForDay, handleTypeChange }) {
+function DevelopmentSection({ development_item, weekDays, handleInputChange, getStatusForDay, handleTypeChange }) {
     const screenSize = useScreenSize();
 
     useEffect(() => {
@@ -48,15 +48,9 @@ function DevelopmentSection({ developmentTimesheet, weekDays, handleInputChange,
         }
     }, [screenSize]);
 
-    const calculateTotalHours = (assignments) => {
-        return assignments.reduce((total, assignment) => {
-            return total + (parseInt(assignment.hours_worked || 0));
-        }, 0);
-    };
-
     const handleSelectChange = (e) => {
         const newValue = e.target.value;
-        handleTypeChange(newValue, developmentTimesheet[0]?.development_hour_day_id);
+        handleTypeChange(newValue, development_item.development_hour_day_id);
     };
 
     return (
@@ -66,7 +60,7 @@ function DevelopmentSection({ developmentTimesheet, weekDays, handleInputChange,
             </div>
             <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
                 <select
-                    value={developmentTimesheet[0]?.type || ""}
+                    value={development_item?.type || ""}
                     onChange={handleSelectChange}
                     className="border border-gray-300 rounded max-w-full text-sm text-black"
                 >
@@ -89,29 +83,29 @@ function DevelopmentSection({ developmentTimesheet, weekDays, handleInputChange,
                     </div>
                     <div className="flex h-full">
                         {weekDays.map((day, i) => {
-                            const assignment = developmentTimesheet.find(item => item.work_day === day.fullDate);
+                            const assignment = development_item.work_day === day.fullDate ? development_item : null;
                             const { status } = getStatusForDay(day.fullDate);
 
                             return (
                                 <InputContainer
-                                    key={i}
+                                    key={`${development_item.development_hour_day_id}-${i}`}
                                     day={day}
                                     assignment={assignment}
                                     handleInputChange={handleInputChange}
-                                    projectIndex={null} // Not needed for development timesheet
-                                    phaseIndex={null} // Not needed for development timesheet
+                                    projectIndex={null}
+                                    phaseIndex={null}
                                     dayStatus={status}
                                     isDevelopment={true}
-                                    developmentId={assignment ? assignment.development_hour_day_id : null} // Pass the ID here
+                                    developmentId={assignment ? development_item.development_hour_day_id : null}
                                 />
+
                             );
                         })}
-
                     </div>
                 </div>
             </div>
             <div className="phase-hours-cell flex justify-center items-center p-4 border-b border-l border-gray-200 bg-gray-100 font-bold desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28">
-                <span className="lap:hidden desk:hidden">Total: &nbsp;</span>{calculateTotalHours(developmentTimesheet)} <span className="lap:hidden desk:hidden ml-1">hrs</span>
+                <span className="lap:hidden desk:hidden">Total: &nbsp;</span>{development_item.hours_worked} <span className="lap:hidden desk:hidden ml-1">hrs</span>
             </div>
         </div>
     );

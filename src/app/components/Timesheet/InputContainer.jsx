@@ -1,6 +1,16 @@
 function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId }) {
+
     const hoursWorked = assignment ? assignment.hours_worked : '';
     const isDisabled = dayStatus === "Approved" || dayStatus === "Pending";
+
+    const handleChange = (e) => {
+        const { value } = e.target;
+
+        // Allow empty value and reset the input
+        if (value === "" || (/^[1-9]\d*$/.test(value) && parseInt(value, 10) <= 12)) {
+            handleInputChange(e, projectIndex, phaseIndex, day.fullDate, isDevelopment, developmentId);
+        }
+    };
 
     return (
         <div
@@ -14,22 +24,11 @@ function InputContainer({ day, assignment, handleInputChange, projectIndex, phas
                 min="0"
                 max="24"
                 value={hoursWorked}
-                onChange={(e) => {
-                    // Allow empty value
-                    if (value === "") {
-                        handleInputChange(e, projectIndex, phaseIndex, day.fullDate, isDevelopment, developmentId);
-                    }
-
-                    // Ensure the value is a number and does not start with 0
-                    if (/^[1-9]\d*$/.test(value) && parseInt(value, 10) <= 12) {
-                        handleInputChange(e, projectIndex, phaseIndex, day.fullDate, isDevelopment, developmentId);
-                    }
-                }}
+                onChange={handleChange}
                 data-date={day.fullDate}
             />
         </div>
     );
 }
 
-
-export default InputContainer
+export default InputContainer;

@@ -6,7 +6,6 @@ import ProjectSection from "./ProjectSection"
 import TimeSheetHeader from "./TimeSheetHeader"
 import TimeSheetFooter from "./TimeSheetFooter"
 import DayStatus from "./DayStatus"
-import { isUUID } from "../Sheet/SheetUtils"
 import DevelopmentSection from "./DevelopmentSection"
 
 function TimeSheet({ timesheet_data }) {
@@ -40,77 +39,62 @@ function TimeSheet({ timesheet_data }) {
         };
     });
 
-    const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false) => {
+    const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null) => {
         const { value } = e.target;
+        const updatedValue = value ? parseFloat(value) : '';
 
         if (isDevelopment) {
-            // Handle changes for development_timesheet
-            const newDevelopmentTimesheet = [...developmentTimeSheet];
-
-            const assignmentIndex = newDevelopmentTimesheet.findIndex(
-                assignment => assignment.work_day === date
-            );
-
-            if (assignmentIndex !== -1) {
-                // If the assignment exists
-                if (value) {
-                    // Update the hours worked if the value is not empty
-                    newDevelopmentTimesheet[assignmentIndex].hours_worked = value;
-                } else {
-                    // Remove the assignment if the value is empty
-                    newDevelopmentTimesheet.splice(assignmentIndex, 1);
+            const newDevelopmentTimesheet = developmentTimeSheet.map(item => {
+                if (item.development_hour_day_id === developmentId && item.work_day === date) {
+                    return {
+                        ...item,
+                        hours_worked: updatedValue,
+                    };
                 }
-            } else {
-                // If the assignment does not exist and value is not empty, add a new assignment
-                if (value) {
-                    newDevelopmentTimesheet.push({
-                        development_hour_day_id: crypto.randomUUID(),
-                        work_day: date,
-                        display_date: date,
-                        hours_worked: value,
-                        status: "Submitted", // Add status for new entries
-                        rejection_reason: null
-                    });
-                }
+                return item;
+            });
+
+            // If no existing record matches, create a new one
+            if (developmentId === null) {
+                newDevelopmentTimesheet.push({
+                    development_hour_day_id: crypto.randomUUID(),
+                    work_day: date,
+                    display_date: date,
+                    hours_worked: updatedValue,
+                    status: "Submitted", // Default status for new entries
+                    rejection_reason: null,
+                    type: "Proposals" // Set any default or null type
+                });
             }
 
             setDevelopmentTimeSheet(newDevelopmentTimesheet);
         } else {
-            // Handle changes for project_timesheet
-            const newprojectTimeSheet = [...projectTimeSheet];
-
-            const assignmentIndex = newprojectTimeSheet[projectIndex].phases[phaseIndex].assignments.findIndex(
+            const newProjectTimeSheet = [...projectTimeSheet];
+            const assignmentIndex = newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.findIndex(
                 assignment => assignment.work_day === date
             );
 
             if (assignmentIndex !== -1) {
-                // If the assignment exists
-                if (value) {
-                    // Update the hours worked if the value is not empty
-                    newprojectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].hours_worked = value;
+                if (updatedValue) {
+                    newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].hours_worked = updatedValue;
                 } else {
-                    // Remove the assignment if the value is empty
-                    newprojectTimeSheet[projectIndex].phases[phaseIndex].assignments.splice(assignmentIndex, 1);
+                    newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.splice(assignmentIndex, 1);
                 }
-            } else {
-                // If the assignment does not exist and value is not empty, add a new assignment
-                if (value) {
-                    newprojectTimeSheet[projectIndex].phases[phaseIndex].assignments.push({
-                        employee_work_day_id: crypto.randomUUID(),
-                        work_day: date,
-                        display_date: date,
-                        hours_worked: value
-                    });
-                }
+            } else if (updatedValue) {
+                newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.push({
+                    employee_work_day_id: crypto.randomUUID(),
+                    work_day: date,
+                    display_date: format(new Date(date), 'dd MMMM yyyy'),
+                    hours_worked: updatedValue
+                });
             }
 
-            setProjectTimeSheet(newprojectTimeSheet);
+            setProjectTimeSheet(newProjectTimeSheet);
         }
     };
 
 
     const calculateTotalHours = (date) => {
-        // Calculate total hours from projectTimeSheet
         const projectHours = projectTimeSheet.reduce((total, project) => {
             return total + project.phases.reduce((phaseTotal, phase) => {
                 const assignment = phase.assignments.find(assignment => assignment.work_day === date);
@@ -118,12 +102,10 @@ function TimeSheet({ timesheet_data }) {
             }, 0);
         }, 0);
 
-        // Calculate total hours from developmentTimesheet
         const developmentHours = developmentTimeSheet.reduce((total, assignment) => {
             return total + (assignment.work_day === date ? parseFloat(assignment.hours_worked || 0) : 0);
         }, 0);
 
-        // Return the sum of both
         return projectHours + developmentHours;
     };
 
@@ -135,7 +117,7 @@ function TimeSheet({ timesheet_data }) {
 
     const handleTypeChange = (newType, developmentHourDayId) => {
         const newDevelopmentTimesheet = developmentTimeSheet.map(item => {
-            if (item.development_hour_day_id === developmentHourDayId) {
+            if (item.development_hour_day_id == developmentHourDayId) {
                 return { ...item, type: newType };
             }
             return item;
@@ -144,47 +126,42 @@ function TimeSheet({ timesheet_data }) {
         setDevelopmentTimeSheet(newDevelopmentTimesheet);
     };
 
-
-
     const getStatusForDay = (date) => {
-        let status = null; // Default to no status
+        let status = null;
         let rejectionReason = null;
 
-        // Check project_timesheet
-        timesheet_data.project_timesheet.forEach((project) => {
+        projectTimeSheet.forEach((project) => {
             project.phases.forEach((phase) => {
                 phase.assignments.forEach((assignment) => {
                     if (assignment.work_day === date) {
                         if (assignment.status === "Rejected") {
-                            status = "Rejected"; // Highest priority
+                            status = "Rejected";
                             rejectionReason = assignment.rejection_reason;
                         } else if (assignment.status === "Pending" && status !== "Rejected") {
-                            status = "Pending"; // Medium priority
-                        } else if (!status || status === "Approved") {
-                            status = assignment.status; // Low priority
+                            status = "Pending";
+                        } else if (!status) {
+                            status = assignment.status;
                         }
                     }
                 });
             });
         });
 
-        // Check development_timesheet
-        timesheet_data.development_timesheet.forEach((assignment) => {
-            if (assignment.work_day === date) {
-                if (assignment.status === "Rejected") {
-                    status = "Rejected"; // Highest priority
-                    rejectionReason = assignment.rejection_reason;
-                } else if (assignment.status === "Pending" && status !== "Rejected") {
-                    status = "Pending"; // Medium priority
-                } else if (!status || status === "Approved") {
-                    status = assignment.status; // Low priority
+        developmentTimeSheet.forEach((development) => {
+            if (development.work_day === date) {
+                if (development.status === "Rejected") {
+                    status = "Rejected";
+                    rejectionReason = development.rejection_reason;
+                } else if (development.status === "Pending" && status !== "Rejected") {
+                    status = "Pending";
+                } else if (!status) {
+                    status = development.status;
                 }
             }
         });
 
         return { status, rejectionReason };
     };
-
 
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
@@ -199,13 +176,18 @@ function TimeSheet({ timesheet_data }) {
                     getStatusForDay={getStatusForDay}
                 />
             ))}
-            <DevelopmentSection
-                developmentTimesheet={developmentTimeSheet}
-                weekDays={weekDays}
-                handleInputChange={handleInputChange}
-                getStatusForDay={getStatusForDay}
-                handleTypeChange={handleTypeChange}
-            />
+
+            {developmentTimeSheet.map((development_item, index) => (
+                <DevelopmentSection
+                    key={development_item.development_hour_day_id}
+                    development_item={development_item}
+                    weekDays={weekDays}
+                    handleInputChange={handleInputChange}
+                    getStatusForDay={getStatusForDay}
+                    handleTypeChange={handleTypeChange}
+                />
+            ))}
+
             <DayStatus
                 weekDays={weekDays}
                 getStatusForDay={getStatusForDay}
