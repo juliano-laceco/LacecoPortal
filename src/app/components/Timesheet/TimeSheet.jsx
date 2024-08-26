@@ -13,6 +13,7 @@ function TimeSheet({ timesheet_data }) {
 
     const [projectTimeSheet, setProjectTimeSheet] = useState(timesheet_data.project_timesheet);
     const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data.development_timesheet);
+    const [selectedType, setSelectedType] = useState(""); // State to store selected type for new rows
 
     useEffect(() => {
         console.log("PROJECT SHEET", projectTimeSheet)
@@ -94,7 +95,6 @@ function TimeSheet({ timesheet_data }) {
             setProjectTimeSheet(newProjectTimeSheet);
         }
     };
-
 
     const calculateTotalHours = (date) => {
         const projectHours = projectTimeSheet.reduce((total, project) => {
@@ -181,19 +181,27 @@ function TimeSheet({ timesheet_data }) {
 
     const organizedTimesheet = organizeTimesheetByType(developmentTimeSheet, development_options);
 
-    const addNewDevelopmentRow = (type) => {
-        setDevelopmentTimeSheet(prevState => [
-            ...prevState,
-            {
-                development_hour_day_id: crypto.randomUUID(),
-                work_day: "", // This will be filled later by the user
-                display_date: "",
-                hours_worked: 0,
-                status: "Submitted",
-                rejection_reason: null,
-                type
-            }
-        ]);
+    // Filter out already used types for the new row dropdown
+    const availableTypesForNewRow = development_options.filter(option => {
+        return !Object.keys(organizedTimesheet).includes(option.value);
+    });
+
+    const addNewDevelopmentRow = () => {
+        if (selectedType) {
+            setDevelopmentTimeSheet(prevState => [
+                ...prevState,
+                {
+                    development_hour_day_id: crypto.randomUUID(),
+                    work_day: "", // This will be filled later by the user
+                    display_date: "",
+                    hours_worked: 0,
+                    status: "Submitted",
+                    rejection_reason: null,
+                    type: selectedType
+                }
+            ]);
+            setSelectedType(""); // Reset the selected type after adding
+        }
     };
 
     return (
@@ -210,7 +218,6 @@ function TimeSheet({ timesheet_data }) {
                 />
             ))}
             <div className="flex">
-
                 <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
                     Non Billable Hours
                 </div>
@@ -228,12 +235,26 @@ function TimeSheet({ timesheet_data }) {
                         />
                     ))}
                     {/* Add Button */}
-                    <button
-                        onClick={() => addNewDevelopmentRow("Research")}
-                        className="p-2 mt-2 bg-blue-500 text-white rounded"
-                    >
-                        Add Proposals Row
-                    </button>
+                    <div className="mt-2">
+                        <select
+                            value={selectedType}
+                            onChange={(e) => setSelectedType(e.target.value)}
+                            className="p-2 border rounded"
+                        >
+                            <option value="" disabled>Select Type</option>
+                            {availableTypesForNewRow.map((option, index) => (
+                                <option key={index} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={() => addNewDevelopmentRow("Research")}
+                            className="p-2 mt-2 bg-blue-500 text-white rounded"
+                        >
+                            Add Proposals Row
+                        </button>
+                    </div>
                 </div>
             </div>
             <DayStatus
