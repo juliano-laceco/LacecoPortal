@@ -105,11 +105,11 @@ body:has(.modal-container.isVisible) .sheet-container * {
 }
 
 
-.phase-name-cell.collapsed ~ .weekdays-outer-wrapper {
+.phase-name-cell.collapsed~.weekdays-outer-wrapper {
   display: none !important;
 }
 
-.phase-name-cell.collapsed ~ .weekdays-outer-wrapper ~ .phase-hours-cell {
+.phase-name-cell.collapsed~.weekdays-outer-wrapper~.phase-hours-cell {
   display: none !important;
 }
 
@@ -119,6 +119,10 @@ body:has(.modal-container.isVisible) .sheet-container * {
 
 .phase-name-cell.expanded .expandPhase {
   display: none !important
+}
+
+select {
+  appearance: none !important;
 }
 
 @layer base {

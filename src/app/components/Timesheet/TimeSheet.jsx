@@ -7,6 +7,7 @@ import TimeSheetHeader from "./TimeSheetHeader"
 import TimeSheetFooter from "./TimeSheetFooter"
 import DayStatus from "./DayStatus"
 import DevelopmentSection from "./DevelopmentSection"
+import { development_options } from "@/data/static/development-options"
 
 function TimeSheet({ timesheet_data }) {
 
@@ -41,6 +42,8 @@ function TimeSheet({ timesheet_data }) {
 
     const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null) => {
         const { value } = e.target;
+
+        console.log("Development ID", developmentId)
         const updatedValue = value ? parseFloat(value) : '';
 
         if (isDevelopment) {
@@ -163,6 +166,25 @@ function TimeSheet({ timesheet_data }) {
         return { status, rejectionReason };
     };
 
+    // Function to organize timesheet data by type
+    const organizeTimesheetByType = (timesheet, options) => {
+        return timesheet.reduce((acc, current) => {
+            const { type } = current;
+            if (type) {
+                if (!acc[type]) {
+                    acc[type] = [];
+                }
+                acc[type].push(current);
+            }
+            return acc;
+        }, {});
+    };
+
+    const organizedTimesheet = organizeTimesheetByType(developmentTimeSheet, development_options);
+
+
+    console.log(organizedTimesheet);
+
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
             <TimeSheetHeader weekDays={weekDays} />
@@ -176,18 +198,24 @@ function TimeSheet({ timesheet_data }) {
                     getStatusForDay={getStatusForDay}
                 />
             ))}
+            <div className="flex">
 
-            {developmentTimeSheet.map((development_item, index) => (
-                <DevelopmentSection
-                    key={development_item.development_hour_day_id}
-                    development_item={development_item}
-                    weekDays={weekDays}
-                    handleInputChange={handleInputChange}
-                    getStatusForDay={getStatusForDay}
-                    handleTypeChange={handleTypeChange}
-                />
-            ))}
-
+                <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
+                    Other
+                </div>
+                <div className="flex flex-col">
+                    {developmentTimeSheet.map((development_item, index) => (
+                        <DevelopmentSection
+                            key={development_item.development_hour_day_id}
+                            development_item={development_item}
+                            weekDays={weekDays}
+                            handleInputChange={handleInputChange}
+                            getStatusForDay={getStatusForDay}
+                            handleTypeChange={handleTypeChange}
+                        />
+                    ))}
+                </div>
+            </div>
             <DayStatus
                 weekDays={weekDays}
                 getStatusForDay={getStatusForDay}

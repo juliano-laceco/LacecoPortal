@@ -6,6 +6,7 @@ import { development_options } from "@/data/static/development-options";
 function DevelopmentSection({ development_item, weekDays, handleInputChange, getStatusForDay, handleTypeChange }) {
     const screenSize = useScreenSize();
 
+
     useEffect(() => {
         const collapseButtons = document.querySelectorAll('.collapsePhase');
         const expandButtons = document.querySelectorAll('.expandPhase');
@@ -56,9 +57,6 @@ function DevelopmentSection({ development_item, weekDays, handleInputChange, get
     return (
         <div className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
             <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
-                Other
-            </div>
-            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
                 <select
                     value={development_item?.type || ""}
                     onChange={handleSelectChange}
@@ -84,6 +82,7 @@ function DevelopmentSection({ development_item, weekDays, handleInputChange, get
                     <div className="flex h-full">
                         {weekDays.map((day, i) => {
                             const assignment = development_item.work_day === day.fullDate ? development_item : null;
+                            
                             const { status } = getStatusForDay(day.fullDate);
 
                             return (
@@ -96,7 +95,7 @@ function DevelopmentSection({ development_item, weekDays, handleInputChange, get
                                     phaseIndex={null}
                                     dayStatus={status}
                                     isDevelopment={true}
-                                    developmentId={assignment ? development_item.development_hour_day_id : null}
+                                    developmentId={!!assignment ? development_item.development_hour_day_id : null}
                                 />
 
                             );
