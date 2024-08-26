@@ -40,10 +40,8 @@ function TimeSheet({ timesheet_data }) {
         };
     });
 
-    const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null, type) => {
+    const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null, type = null) => {
         const { value } = e.target;
-
-        console.log("Development ID", developmentId)
 
         const updatedValue = value ? parseFloat(value) : '';
 
@@ -183,8 +181,20 @@ function TimeSheet({ timesheet_data }) {
 
     const organizedTimesheet = organizeTimesheetByType(developmentTimeSheet, development_options);
 
-
-    console.log(organizedTimesheet);
+    const addNewDevelopmentRow = (type) => {
+        setDevelopmentTimeSheet(prevState => [
+            ...prevState,
+            {
+                development_hour_day_id: crypto.randomUUID(),
+                work_day: "", // This will be filled later by the user
+                display_date: "",
+                hours_worked: 0,
+                status: "Submitted",
+                rejection_reason: null,
+                type
+            }
+        ]);
+    };
 
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
@@ -217,17 +227,13 @@ function TimeSheet({ timesheet_data }) {
                             handleTypeChange={handleTypeChange}
                         />
                     ))}
-This section here will contain an add button to add new development rows 
-                    <DevelopmentSection
-                        key={"Proposals"}
-                        development_items={[]}
-                        type={"Proposals"}
-                        isNewRow={true}
-                        weekDays={weekDays}
-                        handleInputChange={handleInputChange}
-                        getStatusForDay={getStatusForDay}
-                        handleTypeChange={handleTypeChange}
-                    />
+                    {/* Add Button */}
+                    <button
+                        onClick={() => addNewDevelopmentRow("Research")}
+                        className="p-2 mt-2 bg-blue-500 text-white rounded"
+                    >
+                        Add Proposals Row
+                    </button>
                 </div>
             </div>
             <DayStatus
