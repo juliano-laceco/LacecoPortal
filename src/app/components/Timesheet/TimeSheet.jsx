@@ -15,11 +15,11 @@ function TimeSheet({ timesheet_data }) {
     const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data.development_timesheet);
 
     useEffect(() => {
-        console.log(projectTimeSheet)
+        console.log("PROJECT SHEET", projectTimeSheet)
     }, [projectTimeSheet])
 
     useEffect(() => {
-        console.log(developmentTimeSheet)
+        console.log("DEVELOPMENT SHEET", developmentTimeSheet)
     }, [developmentTimeSheet])
 
     const today = new Date();
@@ -40,10 +40,11 @@ function TimeSheet({ timesheet_data }) {
         };
     });
 
-    const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null) => {
+    const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null, type) => {
         const { value } = e.target;
 
         console.log("Development ID", developmentId)
+
         const updatedValue = value ? parseFloat(value) : '';
 
         if (isDevelopment) {
@@ -66,7 +67,7 @@ function TimeSheet({ timesheet_data }) {
                     hours_worked: updatedValue,
                     status: "Submitted", // Default status for new entries
                     rejection_reason: null,
-                    type: "Proposals" // Set any default or null type
+                    type // Set any default or null type
                 });
             }
 
@@ -201,19 +202,32 @@ function TimeSheet({ timesheet_data }) {
             <div className="flex">
 
                 <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
-                    Other
+                    Non Billable Hours
                 </div>
                 <div className="flex flex-col">
-                    {developmentTimeSheet.map((development_item, index) => (
+                    {Object.keys(organizedTimesheet).map((key_name) => (
                         <DevelopmentSection
-                            key={development_item.development_hour_day_id}
-                            development_item={development_item}
+                            key={key_name}
+                            development_items={organizedTimesheet[key_name]}
+                            type={key_name}
+                            isNewRow={false}
                             weekDays={weekDays}
                             handleInputChange={handleInputChange}
                             getStatusForDay={getStatusForDay}
                             handleTypeChange={handleTypeChange}
                         />
                     ))}
+This section here will contain an add button to add new development rows 
+                    <DevelopmentSection
+                        key={"Proposals"}
+                        development_items={[]}
+                        type={"Proposals"}
+                        isNewRow={true}
+                        weekDays={weekDays}
+                        handleInputChange={handleInputChange}
+                        getStatusForDay={getStatusForDay}
+                        handleTypeChange={handleTypeChange}
+                    />
                 </div>
             </div>
             <DayStatus

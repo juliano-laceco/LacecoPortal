@@ -1,4 +1,4 @@
-function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId }) {
+function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId , type }) {
 
     const hoursWorked = assignment ? assignment.hours_worked : '';
     const isDisabled = dayStatus === "Approved" || dayStatus === "Pending";
@@ -8,7 +8,7 @@ function InputContainer({ day, assignment, handleInputChange, projectIndex, phas
 
         // Allow empty value and reset the input
         if (value === "" || (/^[1-9]\d*$/.test(value) && parseInt(value, 10) <= 12)) {
-            handleInputChange(e, projectIndex, phaseIndex, day.fullDate, isDevelopment, developmentId);
+            handleInputChange(e, projectIndex, phaseIndex, day.fullDate, isDevelopment, developmentId , type);
         }
     };
 
