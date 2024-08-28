@@ -1,5 +1,3 @@
-"use client"
-
 import { formatDate } from "@/utilities/date/date-utils";
 
 export const getThisMondayDate = () => {

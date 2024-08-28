@@ -67,7 +67,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
 
                     return (
                         <div key={phase.phase_id} className="outer-phase-wrapper flex w-full mob:flex-col tablet:flex-col">
-                            <div className="phase-name-cell text-sm expanded p-2 border flex font-semibold justify-center mob:justify-between tablet:justify-between items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
+                            <div className="phase-name-cell text-sm expanded p-2 border flex font-semibold justify-between mob:justify-between tablet:justify-between items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
                                 {phase_name}
                                 <div className="flex justify-center items-center lap:hidden desk:hidden">
                                     <p className="collapsePhase cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">

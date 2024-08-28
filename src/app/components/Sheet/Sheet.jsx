@@ -572,11 +572,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         }, "Save");
     };
 
-
-
-
-
-
     const clearPath = () => {
 
         if (initialHeaderDates.length != headerDates.length) {
@@ -702,7 +697,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     "Unable to delete. Phase must contain at least one assignee.",
                     [
                         {
-                            variant: "secondary",
+                            variant: "primary",
                             name: "Close",
                             onClick: () => setModal(null),
                         },
@@ -736,7 +731,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     data,
                     [
                         {
-                            variant: "secondary",
+                            variant: "primary",
                             name: "Close",
                             onClick: () => {
                                 setModal(null)
@@ -752,7 +747,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     data,
                     [
                         {
-                            variant: "secondary",
+                            variant: "primary",
                             name: "Close",
                             onClick: () => {
                                 setModal(null)
@@ -812,7 +807,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     "Start date must be less than or equal to the end date.",
                     [
                         {
-                            variant: "secondary",
+                            variant: "primary",
                             name: "Close",
                             onClick: () => setModal(null),
                         },
@@ -851,7 +846,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     data,
                     [
                         {
-                            variant: "secondary",
+                            variant: "primary",
                             name: "Close",
                             onClick: () => setModal(null),
                         },

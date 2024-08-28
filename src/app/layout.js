@@ -41,7 +41,7 @@ export default async function RootLayout({ children }) {
       <head>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
       </head>
-      <body className="flex flex-col gap-4 h-screen text-pri-txtc bg-gray-100">
+      <body className="flex flex-col gap-4 min-h-screen text-pri-txtc bg-gray-100">
         <NextUIProvider>
           <AuthProvider>
             <Header burgerNavItems={navItems} />

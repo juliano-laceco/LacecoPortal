@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
-import { development_options } from "@/data/static/development-options";
+import Image from "next/image";
 
-function DevelopmentSection({ development_items, weekDays, handleInputChange, getStatusForDay, handleTypeChange, type, isNewRow }) {
+function DevelopmentSection({ development_items, weekDays, handleInputChange, getStatusForDay, type, openModal, initialDevelopmentTypes, setIsEdited }) {
     const screenSize = useScreenSize();
 
     useEffect(() => {
@@ -48,29 +48,20 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
         }
     }, [screenSize]);
 
-    const handleSelectChange = (e) => {
-        const newValue = e.target.value;
-        handleTypeChange(newValue, development_items[0]?.development_hour_day_id);
-    };
 
     return (
-        <div className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
-            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
+        <div className="development-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
+            <div className="development-type-cell phase-name-cell text-sm expanded p-2 border flex font-semibold justify-between mob:justify-between tablet:justify-between items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
+                <p>
+                    {type}
+                </p>
                 {
-                    !!isNewRow ? (<select
-                        value={type}
-                        onChange={handleSelectChange}
-                        className="border border-gray-300 rounded max-w-full text-sm text-black"
-                    >
-                        <option value="" disabled>Select Type</option>
-                        {development_options.map((option, index) => (
-                            <option key={index} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>) :
-                        type
+                    !initialDevelopmentTypes.some((item) => item === type) &&
+                    <div className="cursor-pointer" onClick={() => openModal(type, "Confirm Deletion")}>
+                        <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" className="mx-1" />
+                    </div>
                 }
+
             </div>
             <div className="weekdays-outer-wrapper flex justify-evenly w-full mob:flex-col tablet:flex-col">
                 <div className="weekdays-inner-wrapper flex flex-col justify-evenly w-full">

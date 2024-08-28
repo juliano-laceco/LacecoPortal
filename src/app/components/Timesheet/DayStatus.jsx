@@ -3,7 +3,7 @@ import Modal from "../custom/Modals/Modal";
 import Image from "next/image";
 import Button from "../custom/Button";
 
-function DayStatus({ weekDays, getStatusForDay }) {
+function DayStatus({ weekDays, getStatusForDay , openModal }) {
     const [showReasonModal, setShowReasonModal] = useState(false);
     const [currentReason, setCurrentReason] = useState("");
 
@@ -56,15 +56,15 @@ function DayStatus({ weekDays, getStatusForDay }) {
                                 <div className={`rounded-md font-normal px-2 py-1 w-[90%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
                                     {statusText}
                                 </div>
-                                {rejectionReason && (
+                                {!!rejectionReason && rejectionReason != "" && (
                                     <div
                                         className="absolute bottom-0 h-0 flex justify-center items-center w-full transform bg-red-200 border border-gray-200 p-1 text-[12px] font-normal shadow-lg opacity-0 transition-all duration-200 ease-in-out cursor-pointer text-red-500 lap:group-hover:opacity-100 lap:group-hover:h-full lap:group-hover:translate-y-0 desk:group-hover:opacity-100 desk:group-hover:h-full desk:group-hover:translate-y-0 mob:hidden tablet:hidden"
-                                        onClick={() => toggleReasonModal(rejectionReason)}
+                                        onClick={() => openModal(rejectionReason , "Rejection Reason")}
                                     >
                                         Show Reason
                                     </div>
                                 )}
-                                <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%]  text-center text-xs ${statusClass} desk:hidden lap:hidden`} onClick={() => toggleReasonModal(rejectionReason)}>
+                                <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%]  text-center text-xs ${statusClass} desk:hidden lap:hidden`} onClick={() => (!!rejectionReason && rejectionReason != "") ? toggleReasonModal(rejectionReason) : null}>
                                     {!!statusImg && <Image height="20" width="20" src={`/resources/icons/${statusImg}`} alt="status-icon" />}
                                 </div>
                             </>
@@ -77,22 +77,6 @@ function DayStatus({ weekDays, getStatusForDay }) {
             <div className="text-center p-4 border-t flex-1 desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28">
                 {/* You can put something here if needed */}
             </div>
-
-            {showReasonModal && (
-                <Modal open={showReasonModal}
-                    onClose={() => setShowReasonModal(false)}
-                    title="Submission Rejected"
-                >
-                    <div className="flex flex-col items-center pb-2">
-                        <p className="p-2 mb-2">{currentReason}</p>
-                        <Button
-                            onClick={() => setShowReasonModal(false)}
-                            variant="primary"
-                            name="Close"
-                        />
-                    </div>
-                </Modal>
-            )}
         </div>
     );
 }

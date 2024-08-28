@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useContext } from "react"
 import { startOfWeek, addDays, format } from "date-fns"
 import ProjectSection from "./ProjectSection"
 import TimeSheetHeader from "./TimeSheetHeader"
@@ -11,6 +11,11 @@ import { development_options } from "@/data/static/development-options"
 import Button from "../custom/Button"
 import DropdownRegular from "../custom/Dropdowns/DropdownRegular"
 import Image from "next/image"
+import { isUUID } from "../Sheet/SheetUtils"
+import { saveTimeSheet } from "@/utilities/timesheet-utils"
+import Modal from "../custom/Modals/Modal"
+import { useRouter } from "next/navigation"
+import { showToast } from "@/utilities/toast-utils"
 
 function TimeSheet({ timesheet_data }) {
 
@@ -18,14 +23,32 @@ function TimeSheet({ timesheet_data }) {
     const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data.development_timesheet);
     const [selectedType, setSelectedType] = useState(""); // State to store selected type for new rows
     const [isDevelopmentSectionCollapsed, setIsDevelopmentSectionCollapsed] = useState(false); // State to manage collapse/expand of the section
+    const [initialDevelopmentTypes, setInitialDevelopmentTypes] = useState([])
+    const [edited, setEdited] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+
+    const router = useRouter()
+
+    // Combined state for modal visibility and content
+    const [modal, setModal] = useState(null);
 
     useEffect(() => {
         console.log("PROJECT SHEET", projectTimeSheet)
     }, [projectTimeSheet])
 
+
     useEffect(() => {
-        console.log("DEVELOPMENT SHEET", developmentTimeSheet)
+        //     console.log("DEVELOPMENT SHEET", developmentTimeSheet)
     }, [developmentTimeSheet])
+
+    useEffect(() => {
+        const types = Object.keys(organizeTimesheetByType(developmentTimeSheet, development_options))
+        setInitialDevelopmentTypes(types)
+    }, [])
+
+    useEffect(() => {
+        !edited && setEdited(true)
+    }, [projectTimeSheet, developmentTimeSheet])
 
     const today = new Date();
     const startDate = startOfWeek(today, { weekStartsOn: 1 });
@@ -47,22 +70,25 @@ function TimeSheet({ timesheet_data }) {
 
     const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null, type = null) => {
         const { value } = e.target;
-
-        const updatedValue = value ? parseFloat(value) : '';
+        const updatedValue = value ? parseFloat(value) : ""; // Set to "" if value is empty
 
         if (isDevelopment) {
-            const newDevelopmentTimesheet = developmentTimeSheet.map(item => {
+            let newDevelopmentTimesheet = developmentTimeSheet.map(item => {
                 if (item.development_hour_day_id === developmentId && item.work_day === date) {
+                    // If the input is empty and it's a UUID, remove the record
+                    if (!updatedValue && developmentId && isUUID(developmentId)) {
+                        return null;
+                    }
                     return {
                         ...item,
                         hours_worked: updatedValue,
                     };
                 }
                 return item;
-            });
+            }).filter(item => item !== null); // Filter out the null values (deleted items)
 
             // If no existing record matches, create a new one
-            if (developmentId === null) {
+            if (developmentId === null && updatedValue !== "") {
                 newDevelopmentTimesheet.push({
                     development_hour_day_id: crypto.randomUUID(),
                     work_day: date,
@@ -82,12 +108,15 @@ function TimeSheet({ timesheet_data }) {
             );
 
             if (assignmentIndex !== -1) {
-                if (updatedValue) {
-                    newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].hours_worked = updatedValue;
-                } else {
+                // If the input is empty and it's a UUID, remove the record
+                if (!updatedValue && isUUID(newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].employee_work_day_id)) {
                     newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.splice(assignmentIndex, 1);
+                } else {
+                    // If assignment exists, update the hours worked
+                    newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].hours_worked = updatedValue;
                 }
-            } else if (updatedValue) {
+            } else if (updatedValue !== "") {
+                // Add new assignment if value is not empty
                 newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.push({
                     employee_work_day_id: crypto.randomUUID(),
                     work_day: date,
@@ -121,15 +150,11 @@ function TimeSheet({ timesheet_data }) {
         }, 0);
     };
 
-    const handleTypeChange = (newType, developmentHourDayId) => {
-        const newDevelopmentTimesheet = developmentTimeSheet.map(item => {
-            if (item.development_hour_day_id == developmentHourDayId) {
-                return { ...item, type: newType };
-            }
-            return item;
-        });
-
-        setDevelopmentTimeSheet(newDevelopmentTimesheet);
+    // Function to delete a development row
+    const deleteDevelopmentRow = (type) => {
+        setDevelopmentTimeSheet(prevState =>
+            prevState.filter(item => item.type !== type)
+        );
     };
 
     const getStatusForDay = (date) => {
@@ -183,21 +208,14 @@ function TimeSheet({ timesheet_data }) {
         }, {});
     };
 
-    const organizedTimesheet = organizeTimesheetByType(developmentTimeSheet, development_options);
-
-    // Filter out already used types for the new row dropdown
-    const availableTypesForNewRow = development_options.filter(option => {
-        return !Object.keys(organizedTimesheet).includes(option.value);
-    });
-
     const addNewDevelopmentRow = () => {
         if (selectedType) {
             setDevelopmentTimeSheet(prevState => [
                 ...prevState,
                 {
                     development_hour_day_id: crypto.randomUUID(),
-                    work_day: "", // This will be filled later by the user
-                    display_date: "",
+                    work_day: null, // This will be filled later by the user
+                    display_date: null,
                     hours_worked: 0,
                     status: "Submitted",
                     rejection_reason: null,
@@ -213,8 +231,195 @@ function TimeSheet({ timesheet_data }) {
         setIsDevelopmentSectionCollapsed(prevState => !prevState);
     };
 
+    const organizedTimesheet = organizeTimesheetByType(developmentTimeSheet, development_options);
+
+    // Filter out already used types for the new row dropdown
+    const availableTypesForNewRow = development_options.filter(option => {
+        return !Object.keys(organizedTimesheet).includes(option.value);
+    });
+
+
+    // Function to sanitize development data
+    const sanitizeDevelopmentData = () => {
+        return developmentTimeSheet.filter((developmentItem) => {
+            if (!isUUID(developmentItem.development_hour_day_id)) {
+                // Include if hours_worked is different from initial_hours_worked
+                return developmentItem.hours_worked !== developmentItem.initial_hours_worked;
+            }
+            // Keep if display_date is not null
+            return developmentItem.display_date != null;
+        });
+    };
+
+    // Function to sanitize assignments
+    const sanitizeAssignments = (assignments) => {
+        return assignments.filter((assignment) => {
+            if (!isUUID(assignment.employee_work_day_id)) {
+                // Include if hours_worked is different from initial_hours_worked
+                return assignment.hours_worked !== assignment.initial_hours_worked;
+            }
+            return true; // Exclude if not a UUID
+        });
+    };
+
+    // Function to sanitize phases
+    const sanitizePhases = (phases) => {
+        return phases
+            .map((phase) => {
+                const sanitizedAssignments = sanitizeAssignments(phase.assignments);
+
+                // Only include phases with updated assignments
+                if (sanitizedAssignments.length > 0) {
+                    return {
+                        ...phase,
+                        assignments: sanitizedAssignments,
+                    };
+                }
+                return null; // Exclude phases without updated assignments
+            })
+            .filter((phase) => phase !== null); // Remove null phases
+    };
+
+    // Function to sanitize projects
+    const sanitizeProjects = () => {
+        return projectTimeSheet.map((project) => {
+            const sanitizedPhases = sanitizePhases(project.phases);
+
+            // Only include projects with updated phases
+            if (sanitizedPhases.length > 0) {
+                return {
+                    ...project,
+                    phases: sanitizedPhases,
+                };
+            }
+            return null; // Exclude projects without updated phases
+        }).filter((project) => project !== null); // Remove null projects
+
+    };
+
+    const renderModalContent = (message, buttons, title = "") => (
+        <Modal open={true}
+            onClose={() => {
+                setModal(null)
+            }}
+            title={title}
+        >
+            <div className="flex items-center gap-4">
+                <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
+                <div className="mob:text-xs">
+                    <div>{message}</div>
+                </div>
+            </div>
+            <div className="flex justify-center gap-4 mb-4 mt-5">
+                {buttons.map((button, index) => (
+                    <Button
+                        key={crypto.randomUUID()}
+                        {...button}
+                    />
+                ))}
+            </div>
+        </Modal>
+    );
+
+    const openModal = (data = null, type) => {
+
+        let modalContent;
+
+        switch (type) {
+            case "Confirm Deletion":
+                modalContent = renderModalContent(
+                    "Are you sure you would like to delete this record and all filled information ?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Proceed",
+                            onClick: () => {
+                                deleteDevelopmentRow(data)
+                                setModal(null);
+                                router
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Confirmation"
+                );
+                break;
+            case "Confirm Save":
+                modalContent = renderModalContent(
+                    "Are you sure you would like to submit the currently submitted information? This is operation is not reversible.",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Proceed",
+                            onClick: async () => {
+                                setIsSaving(true)
+                                await submitTimeSheet()
+                                setIsSaving(false)
+                                router.refresh()
+                                setModal(null)
+
+                            },
+                            isDisabled: isSaving,
+                            loading: isSaving
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Confirmation"
+                );
+                break;
+            case "Rejection Reason":
+                modalContent = renderModalContent(
+                    data,
+                    [
+                        {
+                            variant: "primary",
+                            name: "Close",
+                            onClick: () => {
+                                setModal(null)
+                            },
+                        }
+                    ],
+                    "Confirmation"
+                );
+                break;
+        }
+        setModal(modalContent);
+    };
+
+    // Main function to sanitize all data
+    const submitTimeSheet = async () => {
+
+        const sanitizedDevelopmentData = sanitizeDevelopmentData();
+        const sanitizedProjectData = sanitizeProjects();
+
+        try {
+
+            await saveTimeSheet({
+                project_timesheet: sanitizedProjectData,
+                development_timesheet: sanitizedDevelopmentData
+            })
+
+            showToast("success", "Successfully updated timesheet")
+        } catch (error) {
+            showToast("failed", "Error occured while saving timesheet")
+        }
+    };
+
+    const toggleIsEdited = () => {
+        !edited && setEdited(true)
+    }
+
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
+            <h1 className="font-bold text-2xl mt-5 desk:hidden lap:hidden">Projects</h1>
             <TimeSheetHeader weekDays={weekDays} />
             {projectTimeSheet.map((project, projectIndex) => (
                 <ProjectSection
@@ -226,9 +431,9 @@ function TimeSheet({ timesheet_data }) {
                     getStatusForDay={getStatusForDay}
                 />
             ))}
-
+            <h1 className="font-bold text-2xl mt-6 desk:hidden lap:hidden ">Non Billable Hours</h1>
             <div className="bg-pric text-white p-4 flex items-center justify-between">
-                <span>Non Billable Hours</span>
+                <span className="font-semibold">Non Billable Hours</span>
                 <div className="mobile-version-collapse flex justify-center items-center">
                     <p
                         className="expand-collapse-dev-section cursor-pointer bg-red-400 px-3 py-2 rounded-lg border border-red-300"
@@ -244,53 +449,65 @@ function TimeSheet({ timesheet_data }) {
                 </div>
             </div>
             {!isDevelopmentSectionCollapsed && (
-                <div className="development-section flex mob:flex-col tablet:flex-col">
-                    <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200 ">
-                        Non Billable Hours
-                    </div>
-                    <div className="flex flex-col">
-                        {Object.keys(organizedTimesheet).map((key_name) => (
-                            <DevelopmentSection
-                                key={key_name}
-                                development_items={organizedTimesheet[key_name]}
-                                type={key_name}
-                                isNewRow={false}
-                                weekDays={weekDays}
-                                handleInputChange={handleInputChange}
-                                getStatusForDay={getStatusForDay}
-                                handleTypeChange={handleTypeChange}
-                            />
-                        ))}
-                        {availableTypesForNewRow.length > 0 && (
-                            <div className="flex items-center gap-3 p-2 w-fit">
-                                <DropdownRegular
-                                    options={availableTypesForNewRow}
-                                    isSearchable={true}
-                                    isDisabled={false}
-                                    isLoading={false}
-                                    onChange={(selectedOption) => setSelectedType(selectedOption.value)}
-                                    value={selectedType}
+                <>
+                    <div className="development-section bg-gray-50 flex mob:flex-col tablet:flex-col">
+                        <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200 mob:hidden tablet:hidden ">
+                            Non Billable Hours
+                        </div>
+                        <div className="flex flex-col">
+                            {Object.keys(organizedTimesheet).map((key_name) => (
+                                <DevelopmentSection
+                                    key={key_name}
+                                    development_items={organizedTimesheet[key_name]}
+                                    type={key_name}
+                                    weekDays={weekDays}
+                                    handleInputChange={handleInputChange}
+                                    getStatusForDay={getStatusForDay}
+                                    handleDelete={deleteDevelopmentRow}
+                                    initialDevelopmentTypes={initialDevelopmentTypes}
+                                    openModal={openModal}
+                                    setEdited={setEdited}
                                 />
+                            ))}
+                            {availableTypesForNewRow.length > 0 && (
+                                <div className="flex items-center gap-3 p-2 w-fit">
+                                    <DropdownRegular
+                                        options={availableTypesForNewRow}
+                                        isSearchable={true}
+                                        isDisabled={false}
+                                        isLoading={false}
+                                        onChange={(selectedOption) => setSelectedType(selectedOption.value)}
+                                        value={selectedType}
+                                    />
 
-                                <Button
-                                    onClick={addNewDevelopmentRow}
-                                    variant="primary"
-                                    name="Add"
-                                />
-                            </div>
-                        )}
+                                    <Button
+                                        onClick={addNewDevelopmentRow}
+                                        isDisabled={isSaving}
+                                        variant="primary"
+                                        name="Add"
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </>
             )}
             <DayStatus
                 weekDays={weekDays}
                 getStatusForDay={getStatusForDay}
+                openModal={openModal}
             />
             <TimeSheetFooter
                 weekDays={weekDays}
                 calculateTotalHours={calculateTotalHours}
                 calculateTotalWeekHours={calculateTotalWeekHours}
             />
+            <Button
+                variant="primary"
+                name="Save"
+                onClick={() => openModal(null, "Confirm Save")}
+            />
+            {modal}
         </div>
     );
 }
