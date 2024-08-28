@@ -8,12 +8,16 @@ import TimeSheetFooter from "./TimeSheetFooter"
 import DayStatus from "./DayStatus"
 import DevelopmentSection from "./DevelopmentSection"
 import { development_options } from "@/data/static/development-options"
+import Button from "../custom/Button"
+import DropdownRegular from "../custom/Dropdowns/DropdownRegular"
+import Image from "next/image"
 
 function TimeSheet({ timesheet_data }) {
 
     const [projectTimeSheet, setProjectTimeSheet] = useState(timesheet_data.project_timesheet);
     const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data.development_timesheet);
     const [selectedType, setSelectedType] = useState(""); // State to store selected type for new rows
+    const [isDevelopmentSectionCollapsed, setIsDevelopmentSectionCollapsed] = useState(false); // State to manage collapse/expand of the section
 
     useEffect(() => {
         console.log("PROJECT SHEET", projectTimeSheet)
@@ -204,6 +208,11 @@ function TimeSheet({ timesheet_data }) {
         }
     };
 
+    // Handle collapse and expand actions for the whole section
+    const toggleDevelopmentSection = () => {
+        setIsDevelopmentSectionCollapsed(prevState => !prevState);
+    };
+
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
             <TimeSheetHeader weekDays={weekDays} />
@@ -217,46 +226,62 @@ function TimeSheet({ timesheet_data }) {
                     getStatusForDay={getStatusForDay}
                 />
             ))}
-            <div className="flex">
-                <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
-                    Non Billable Hours
-                </div>
-                <div className="flex flex-col">
-                    {Object.keys(organizedTimesheet).map((key_name) => (
-                        <DevelopmentSection
-                            key={key_name}
-                            development_items={organizedTimesheet[key_name]}
-                            type={key_name}
-                            isNewRow={false}
-                            weekDays={weekDays}
-                            handleInputChange={handleInputChange}
-                            getStatusForDay={getStatusForDay}
-                            handleTypeChange={handleTypeChange}
+
+            <div className="bg-pric text-white p-4 flex items-center justify-between">
+                <span>Non Billable Hours</span>
+                <div className="mobile-version-collapse flex justify-center items-center">
+                    <p
+                        className="expand-collapse-dev-section cursor-pointer bg-red-400 px-3 py-2 rounded-lg border border-red-300"
+                        onClick={toggleDevelopmentSection}
+                    >
+                        <Image
+                            src={isDevelopmentSectionCollapsed ? "/resources/icons/arrow-down.svg" : "/resources/icons/arrow-up.svg"}
+                            height="12"
+                            width="12"
+                            alt={isDevelopmentSectionCollapsed ? "expand" : "collapse"}
                         />
-                    ))}
-                    {/* Add Button */}
-                    <div className="mt-2">
-                        <select
-                            value={selectedType}
-                            onChange={(e) => setSelectedType(e.target.value)}
-                            className="p-2 border rounded"
-                        >
-                            <option value="" disabled>Select Type</option>
-                            {availableTypesForNewRow.map((option, index) => (
-                                <option key={index} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                        <button
-                            onClick={() => addNewDevelopmentRow("Research")}
-                            className="p-2 mt-2 bg-blue-500 text-white rounded"
-                        >
-                            Add Proposals Row
-                        </button>
-                    </div>
+                    </p>
                 </div>
             </div>
+            {!isDevelopmentSectionCollapsed && (
+                <div className="development-section flex mob:flex-col tablet:flex-col">
+                    <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200 ">
+                        Non Billable Hours
+                    </div>
+                    <div className="flex flex-col">
+                        {Object.keys(organizedTimesheet).map((key_name) => (
+                            <DevelopmentSection
+                                key={key_name}
+                                development_items={organizedTimesheet[key_name]}
+                                type={key_name}
+                                isNewRow={false}
+                                weekDays={weekDays}
+                                handleInputChange={handleInputChange}
+                                getStatusForDay={getStatusForDay}
+                                handleTypeChange={handleTypeChange}
+                            />
+                        ))}
+                        {availableTypesForNewRow.length > 0 && (
+                            <div className="flex items-center gap-3 p-2 w-fit">
+                                <DropdownRegular
+                                    options={availableTypesForNewRow}
+                                    isSearchable={true}
+                                    isDisabled={false}
+                                    isLoading={false}
+                                    onChange={(selectedOption) => setSelectedType(selectedOption.value)}
+                                    value={selectedType}
+                                />
+
+                                <Button
+                                    onClick={addNewDevelopmentRow}
+                                    variant="primary"
+                                    name="Add"
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             <DayStatus
                 weekDays={weekDays}
                 getStatusForDay={getStatusForDay}
