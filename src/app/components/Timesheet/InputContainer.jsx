@@ -7,7 +7,7 @@ function InputContainer({ day, assignment, handleInputChange, projectIndex, phas
         const { value } = e.target;
 
         // Allow empty value and reset the input
-        if (value === "" || (/^[1-9]\d*$/.test(value) && parseInt(value, 10) <= 12)) {
+        if (value === "" || (/^[1-9]\d*$/.test(value) && parseInt(value, 10) <= 16)) {
             handleInputChange(e, projectIndex, phaseIndex, day.fullDate, isDevelopment, developmentId , type);
         }
     };

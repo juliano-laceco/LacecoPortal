@@ -389,7 +389,7 @@ function TimeSheet({ timesheet_data }) {
                             },
                         }
                     ],
-                    "Confirmation"
+                    "Submission Rejected"
                 );
                 break;
         }

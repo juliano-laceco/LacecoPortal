@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import { RangeCalendar, Button, ButtonGroup } from "@nextui-org/react";
@@ -6,7 +6,7 @@ import { today, getLocalTimeZone, startOfWeek, endOfWeek } from "@internationali
 import { useLocale } from "@react-aria/i18n";
 import { formatDate } from "@/utilities/date/date-utils";
 
-export default function App() {
+export default function RangePickerCalendar() {
     const { locale } = useLocale();
     const now = today(getLocalTimeZone());
 
@@ -29,24 +29,32 @@ export default function App() {
     };
 
     const handleRangeChange = (newValue) => {
-        setValue(newValue);
-        if (newValue?.start && newValue?.end) {
-            setDateRangeText(`${formatDate(newValue.start, "d-m-y")} - ${formatDate(newValue.end, "d-m-y")}`);
+        let adjustedEnd = newValue?.end;
+        if (adjustedEnd && adjustedEnd.compare(thisWeek.end) > 0) {
+            adjustedEnd = thisWeek.end;
+        }
+        
+        const adjustedValue = {
+            start: newValue?.start || value.start,
+            end: adjustedEnd || value.end,
+        };
+
+        setValue(adjustedValue);
+
+        if (adjustedValue.start && adjustedValue.end) {
+            setDateRangeText(`${formatDate(adjustedValue.start, "d-m-y")} - ${formatDate(adjustedValue.end, "d-m-y")}`);
         }
     };
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="text-sm border border-gray-300  text-center bg-white shadow-xl p-2 rounded-md text-sec-textc font-semibold">
+            <div className="text-sm border border-gray-300 text-center bg-white shadow-xl p-2 rounded-md text-sec-textc font-semibold">
                 {dateRangeText}
             </div>
             <RangeCalendar
                 classNames={{
                     content: "w-full",
-                
-
                 }}
-
                 focusedValue={focusedValue}
                 nextButtonProps={{
                     variant: "bordered",
@@ -94,6 +102,7 @@ export default function App() {
                 value={value}
                 onChange={handleRangeChange}
                 onFocusChange={setFocusedValue}
+                maxValue={thisWeek.end} // Prevent selecting dates beyond the end of the current week
             />
         </div>
     );

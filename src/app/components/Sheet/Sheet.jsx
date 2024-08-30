@@ -913,17 +913,17 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             const phase_display = getPhaseStateFromLocalStorage(phase.phase_id)
 
             rows.push(
-                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex justify-between border-b border-white items-center sticky left-0 flex-1 font-bold bg-pric text-left text-xl px-2 py-5 ${phase_display}`}>
+                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex justify-between border-b border-white items-center sticky left-0 flex-1 font-bold bg-gray-500 text-left text-xl px-2 py-5 ${phase_display}`}>
                     <div>
-                        <span className="text-white">{phase.phase_name} / </span> {" "} &nbsp;
+                        <span className="text-white">{phase.phase_name} - </span> {" "} &nbsp;
                         <span className="text-lg mr-4 font-semibold text-white">
                             {phase.expected_work_hours} hrs
                         </span>
                     </div>
-                    <p className="collapsePhase cursor-pointer bg-red-400 px-3 py-2 rounded-lg border border-red-300" onClick={(e) => handleCollapseClick(e, phase.phase_id)}>
+                    <p className="collapsePhase cursor-pointer bg-pric px-3 py-2 rounded-lg border border-red-300" onClick={(e) => handleCollapseClick(e, phase.phase_id)}>
                         <Image src="/resources/icons/arrow-up.svg" height="12" width="12" alt="collapse" />
                     </p>
-                    <p className="expandPhase cursor-pointer bg-red-400 px-3 py-2 rounded-lg border border-red-300" onClick={(e) => handleExpandClick(e, phase.phase_id)}>
+                    <p className="expandPhase cursor-pointer bg-pric px-3 py-2 rounded-lg border border-red-300" onClick={(e) => handleExpandClick(e, phase.phase_id)}>
                         <Image src="/resources/icons/arrow-down.svg" height="12" width="12" alt="expand" />
                     </p>
                 </div>
@@ -1076,7 +1076,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 assigneeRows.push(
                     <div
                         key={`add-assignee-${crypto.randomUUID()}`}
-                        className={`p-2 text-white flex-1 text-lg text-center max-w-[100vw] cursor-pointer  bg-gray-400 hover:bg-gray-500 transition duration-200 ease sticky left-0`}
+                        className={`p-2 text-white flex-1 text-lg text-center max-w-[100vw] cursor-pointer  bg-pric hover:bg-pri-hovc transition duration-200 ease sticky left-0`}
                         onClick={() => handleAddAssignee(phaseIndex)}
                     >
                         + Add New

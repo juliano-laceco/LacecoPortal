@@ -4,7 +4,7 @@ const mysql = require('mysql2/promise');
 const dbConfig = {
     host: 'localhost',
     user: 'root',
-    password: 'admin',
+    password: 'root',
     database: 'lacecodb',
     waitForConnections: true,
     connectionLimit: 10000, // Change this number to set the max number of connections

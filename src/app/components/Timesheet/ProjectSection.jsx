@@ -81,8 +81,8 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
 
                     return (
                         <div key={phase.phase_id} className="outer-phase-wrapper flex w-full mob:flex-col tablet:flex-col">
-                            <div className="phase-name-cell text-sm expanded p-2 border flex flex-col font-semibold justify-between mob:justify-between tablet:justify-between items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
-                                <div className="flex justify-between w-full">
+                            <div className="phase-name-cell text-sm expanded border flex flex-col font-semibold justify-between mob:justify-between tablet:justify-between items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
+                                <div className="flex justify-between w-full p-3 desk:p-2 lap:p-2">
                                     <span>{phase_name}</span>
                                     <div className="flex justify-center items-center lap:hidden desk:hidden">
                                         <p className="collapsePhase cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">
@@ -93,7 +93,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex w-full gap-2 mt-2">
+                                <div className="flex w-full gap-2 mob:bg-white tablet:bg-white p-3 desk:p-2 lap:p-2">
                                     <p className="text-xs">{progressPercentage}%</p>
                                     <div className="w-full flex items-center bg-gray-300 rounded-full overflow-hidden h-2.5 mt-[3px]">
                                         <div
@@ -103,9 +103,6 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                                         </div>
                                     </div>
                                 </div>
-
-
-
                             </div>
                             <div className="weekdays-outer-wrapper flex justify-evenly w-full mob:flex-col tablet:flex-col">
                                 <div className="weekdays-inner-wrapper flex flex-col justify-evenly w-full">
