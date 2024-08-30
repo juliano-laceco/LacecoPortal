@@ -7,22 +7,23 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
     const screenSize = useScreenSize();
 
     useEffect(() => {
-        const collapseButtons = document.querySelectorAll('.collapsePhase');
-        const expandButtons = document.querySelectorAll('.expandPhase');
+        // Handle collapse and expand functionality for development cells
+        const collapseButtons = document.querySelectorAll('.collapseDev');
+        const expandButtons = document.querySelectorAll('.expandDev');
 
         collapseButtons.forEach((button) => {
             button.addEventListener('click', () => {
-                const phaseWrapper = button.closest('.phase-name-cell');
-                phaseWrapper.classList.add("collapsed");
-                phaseWrapper.classList.remove("expanded");
+                const developmentWrapper = button.closest('.development-type-cell');
+                developmentWrapper.classList.add("collapsed");
+                developmentWrapper.classList.remove("expanded");
             });
         });
 
         expandButtons.forEach((button) => {
             button.addEventListener('click', () => {
-                const phaseWrapper = button.closest('.phase-name-cell');
-                phaseWrapper.classList.add("expanded");
-                phaseWrapper.classList.remove("collapsed");
+                const developmentWrapper = button.closest('.development-type-cell');
+                developmentWrapper.classList.add("expanded");
+                developmentWrapper.classList.remove("collapsed");
             });
         });
 
@@ -39,15 +40,14 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
 
     useEffect(() => {
         if (screenSize === "lap" || screenSize === "desk") {
-            const phaseNameCells = document.querySelectorAll('.phase-name-cell');
+            const developmentTypeCells = document.querySelectorAll('.development-type-cell');
 
-            phaseNameCells.forEach((phaseNameCell) => {
-                phaseNameCell.classList.remove("collapsed");
-                phaseNameCell.classList.add("expanded");
+            developmentTypeCells.forEach((developmentTypeCell) => {
+                developmentTypeCell.classList.remove("collapsed");
+                developmentTypeCell.classList.add("expanded");
             });
         }
     }, [screenSize]);
-
 
     return (
         <div className="development-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
@@ -56,14 +56,23 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
                     {type}
                 </p>
                 {
-                    !initialDevelopmentTypes.some((item) => item === type) &&
-                    <div className="cursor-pointer" onClick={() => openModal(type, "Confirm Deletion")}>
-                        <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" className="mx-1" />
-                    </div>
+                    !initialDevelopmentTypes.some((item) => item === type) ? (
+                        <div className="cursor-pointer" onClick={() => openModal(type, "Confirm Deletion")}>
+                            <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" className="mx-1" />
+                        </div>
+                    ) : (
+                        <div className="flex justify-center items-center lap:hidden desk:hidden">
+                            <p className="collapseDev cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">
+                                <Image src="/resources/icons/arrow-up.svg" height="10" width="10" alt="collapse" />
+                            </p>
+                            <p className="expandDev cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">
+                                <Image src="/resources/icons/arrow-down.svg" height="10" width="10" alt="expand" />
+                            </p>
+                        </div>
+                    )
                 }
-
             </div>
-            <div className="weekdays-outer-wrapper flex justify-evenly w-full mob:flex-col tablet:flex-col">
+            <div className={`weekdays-outer-wrapper flex justify-evenly w-full mob:flex-col tablet:flex-col ${!screenSize && "collapsed"}`}>
                 <div className="weekdays-inner-wrapper flex flex-col justify-evenly w-full">
                     <div className="flex lap:hidden desk:hidden bg-gray-200">
                         {weekDays.map((day, i) => (

@@ -14,7 +14,7 @@ import Image from "next/image"
 import { isUUID } from "../Sheet/SheetUtils"
 import { saveTimeSheet } from "@/utilities/timesheet-utils"
 import Modal from "../custom/Modals/Modal"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { showToast } from "@/utilities/toast-utils"
 
 function TimeSheet({ timesheet_data }) {
@@ -28,6 +28,7 @@ function TimeSheet({ timesheet_data }) {
     const [isSaving, setIsSaving] = useState(false)
 
     const router = useRouter()
+    const pathname = usePathname()
 
     // Combined state for modal visibility and content
     const [modal, setModal] = useState(null);
@@ -336,7 +337,7 @@ function TimeSheet({ timesheet_data }) {
                             onClick: () => {
                                 deleteDevelopmentRow(data)
                                 setModal(null);
-                                router
+                               
                             },
                         },
                         {
@@ -359,6 +360,7 @@ function TimeSheet({ timesheet_data }) {
                                 setIsSaving(true)
                                 await submitTimeSheet()
                                 setIsSaving(false)
+                                router.push(pathname)
                                 router.refresh()
                                 setModal(null)
 

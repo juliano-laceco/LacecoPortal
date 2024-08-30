@@ -121,6 +121,24 @@ body:has(.modal-container.isVisible) .sheet-container * {
   display: none !important
 }
 
+
+
+.development-type-cell.collapsed~.weekdays-outer-wrapper {
+  display: none !important;
+}
+
+.development-type-cell.collapsed~.weekdays-outer-wrapper~.development-type-cell {
+  display: none !important;
+}
+
+.development-type-cell.collapsed .collapseDev {
+  display: none !important
+}
+
+.development-type-cell.expanded .expandDev {
+  display: none !important
+}
+
 select {
   appearance: none !important;
 }

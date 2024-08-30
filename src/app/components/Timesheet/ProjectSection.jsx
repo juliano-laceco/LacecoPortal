@@ -6,7 +6,7 @@ import useScreenSize from "@/app/hooks/UseScreenSize";
 function ProjectSection({ project, projectIndex, weekDays, handleInputChange, getStatusForDay }) {
     const { title, phases } = project;
 
-    const screenSize = useScreenSize()
+    const screenSize = useScreenSize();
 
     useEffect(() => {
         const collapseButtons = document.querySelectorAll('.collapsePhase');
@@ -56,6 +56,19 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
         }, 0);
     };
 
+    // Function to calculate the progress percentage
+    const calculateProgressPercentage = (work_done_hrs, expected_work_hrs) => {
+        if (expected_work_hrs === 0) return 0; // Avoid division by zero
+        return (work_done_hrs / expected_work_hrs) * 100;
+    };
+    const getProgressColor = (progressPercentage) => {
+        if (progressPercentage <= 33) return 'bg-pric';
+        if (progressPercentage <= 75) return 'bg-orange-400';
+        return 'bg-green-500';
+    };
+
+
+
     return (
         <div key={`${project.project_id}`} className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
             <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
@@ -63,20 +76,36 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
             </div>
             <div className="phase-stacker flex flex-col flex-grow">
                 {phases.map((phase, phaseIndex) => {
-                    const { phase_name, assignments } = phase;
+                    const { phase_name, assignments, work_done_hrs, expected_work_hrs } = phase;
+                    const progressPercentage = Math.ceil(calculateProgressPercentage(work_done_hrs, expected_work_hrs));
 
                     return (
                         <div key={phase.phase_id} className="outer-phase-wrapper flex w-full mob:flex-col tablet:flex-col">
-                            <div className="phase-name-cell text-sm expanded p-2 border flex font-semibold justify-between mob:justify-between tablet:justify-between items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
-                                {phase_name}
-                                <div className="flex justify-center items-center lap:hidden desk:hidden">
-                                    <p className="collapsePhase cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">
-                                        <Image src="/resources/icons/arrow-up.svg" height="10" width="10" alt="collapse" />
-                                    </p>
-                                    <p className="expandPhase cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">
-                                        <Image src="/resources/icons/arrow-down.svg" height="10" width="10" alt="expand" />
-                                    </p>
+                            <div className="phase-name-cell text-sm expanded p-2 border flex flex-col font-semibold justify-between mob:justify-between tablet:justify-between items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-red-200 tablet:bg-red-200 border-r border-gray-200">
+                                <div className="flex justify-between w-full">
+                                    <span>{phase_name}</span>
+                                    <div className="flex justify-center items-center lap:hidden desk:hidden">
+                                        <p className="collapsePhase cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">
+                                            <Image src="/resources/icons/arrow-up.svg" height="10" width="10" alt="collapse" />
+                                        </p>
+                                        <p className="expandPhase cursor-pointer bg-pric p-[3px] rounded-full border border-red-300">
+                                            <Image src="/resources/icons/arrow-down.svg" height="10" width="10" alt="expand" />
+                                        </p>
+                                    </div>
                                 </div>
+                                <div className="flex w-full gap-2 mt-2">
+                                    <p className="text-xs">{progressPercentage}%</p>
+                                    <div className="w-full flex items-center bg-gray-300 rounded-full overflow-hidden h-2.5 mt-[3px]">
+                                        <div
+                                            className={`rounded-full font-normal h-2.5 text-xs ${getProgressColor(progressPercentage)}`}
+                                            style={{ width: `${progressPercentage}%` }}
+                                        >
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
                             </div>
                             <div className="weekdays-outer-wrapper flex justify-evenly w-full mob:flex-col tablet:flex-col">
                                 <div className="weekdays-inner-wrapper flex flex-col justify-evenly w-full">

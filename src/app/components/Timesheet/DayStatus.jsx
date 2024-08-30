@@ -1,16 +1,10 @@
 import React, { useState } from "react";
-import Modal from "../custom/Modals/Modal";
 import Image from "next/image";
-import Button from "../custom/Button";
 
-function DayStatus({ weekDays, getStatusForDay , openModal }) {
-    const [showReasonModal, setShowReasonModal] = useState(false);
-    const [currentReason, setCurrentReason] = useState("");
 
-    const toggleReasonModal = (reason) => {
-        setCurrentReason(reason);
-        setShowReasonModal(true);
-    };
+function DayStatus({ weekDays, getStatusForDay, openModal }) {
+
+
 
     return (
         <div className="flex font-bold mob:flex-col tablet:flex-col w-full">
@@ -59,12 +53,12 @@ function DayStatus({ weekDays, getStatusForDay , openModal }) {
                                 {!!rejectionReason && rejectionReason != "" && (
                                     <div
                                         className="absolute bottom-0 h-0 flex justify-center items-center w-full transform bg-red-200 border border-gray-200 p-1 text-[12px] font-normal shadow-lg opacity-0 transition-all duration-200 ease-in-out cursor-pointer text-red-500 lap:group-hover:opacity-100 lap:group-hover:h-full lap:group-hover:translate-y-0 desk:group-hover:opacity-100 desk:group-hover:h-full desk:group-hover:translate-y-0 mob:hidden tablet:hidden"
-                                        onClick={() => openModal(rejectionReason , "Rejection Reason")}
+                                        onClick={() => openModal(rejectionReason, "Rejection Reason")}
                                     >
                                         Show Reason
                                     </div>
                                 )}
-                                <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%]  text-center text-xs ${statusClass} desk:hidden lap:hidden`} onClick={() => (!!rejectionReason && rejectionReason != "") ? toggleReasonModal(rejectionReason) : null}>
+                                <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%]  text-center text-xs ${statusClass} desk:hidden lap:hidden`} onClick={() => (!!rejectionReason && rejectionReason != "") ? openModal(rejectionReason, "Rejection Reason") : null}>
                                     {!!statusImg && <Image height="20" width="20" src={`/resources/icons/${statusImg}`} alt="status-icon" />}
                                 </div>
                             </>
