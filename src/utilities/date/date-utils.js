@@ -1,3 +1,4 @@
+
 export function formatDate(date, format = 'YYYY-MM-DD') {
     const parsedDate = new Date(date);
     const year = parsedDate.getFullYear();

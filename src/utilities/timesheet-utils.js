@@ -5,7 +5,7 @@ import { getLoggedInId } from "./auth/auth-utils";
 import { commitTransaction, executeTrans, rollbackTransaction, startTransaction } from "./db/db-utils";
 import { logError } from "./misc-utils";
 
-export async function getEmployeeAssignments(employee_id = 1) {
+export async function getEmployeeAssignments(start, end, employee_id = 1) {
     let transaction;
 
     try {
@@ -29,7 +29,7 @@ export async function getEmployeeAssignments(employee_id = 1) {
               AND EXISTS (
                   SELECT 1 
                   FROM projected_work_week pww 
-                  WHERE pww.phase_assignee_id = pa.phase_assignee_id 
+                  WHERE pww.phase_assignee_id = pa.phase_assignee_id
               )
         `;
 
@@ -70,9 +70,10 @@ export async function getEmployeeAssignments(employee_id = 1) {
                         SELECT employee_work_day_id, phase_assignee_id , DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked , hours_worked AS initial_hours_worked , status , rejection_reason
                         FROM employee_work_day   
                         WHERE phase_assignee_id = ?
+                        AND work_day >= ? AND work_day <= ?
                     `;
 
-                    const filledWeeks = await executeTrans(filledWeeksQuery, [phase_assignee_id], transaction);
+                    const filledWeeks = await executeTrans(filledWeeksQuery, [phase_assignee_id, start, end], transaction);
                     assignee.assignments = filledWeeks;
 
                     Object.assign(phase, assignee);

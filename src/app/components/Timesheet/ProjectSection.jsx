@@ -61,13 +61,6 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
         if (expected_work_hrs === 0) return 0; // Avoid division by zero
         return (work_done_hrs / expected_work_hrs) * 100;
     };
-    const getProgressColor = (progressPercentage) => {
-        if (progressPercentage <= 33) return 'bg-pric';
-        if (progressPercentage <= 75) return 'bg-orange-400';
-        return 'bg-green-500';
-    };
-
-
 
     return (
         <div key={`${project.project_id}`} className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
@@ -97,7 +90,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                                     <p className="text-xs">{progressPercentage}%</p>
                                     <div className="w-full flex items-center bg-gray-300 rounded-full overflow-hidden h-2.5 mt-[3px]">
                                         <div
-                                            className={`rounded-full font-normal h-2.5 text-xs ${getProgressColor(progressPercentage)}`}
+                                            className={`rounded-full font-normal h-2.5 text-xs bg-gray-600`}
                                             style={{ width: `${progressPercentage}%` }}
                                         >
                                         </div>

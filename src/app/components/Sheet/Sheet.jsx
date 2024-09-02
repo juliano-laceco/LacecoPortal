@@ -913,7 +913,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             const phase_display = getPhaseStateFromLocalStorage(phase.phase_id)
 
             rows.push(
-                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex justify-between border-b border-white items-center sticky left-0 flex-1 font-bold bg-gray-500 text-left text-xl px-2 py-5 ${phase_display}`}>
+                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex justify-between border-b border-white items-center sticky left-0 flex-1 font-bold bg-gray-400 text-left text-xl px-2 py-5 ${phase_display}`}>
                     <div>
                         <span className="text-white">{phase.phase_name} - </span> {" "} &nbsp;
                         <span className="text-lg mr-4 font-semibold text-white">

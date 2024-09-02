@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useContext } from "react"
+import React, { useEffect, useState } from "react"
 import { startOfWeek, addDays, format } from "date-fns"
 import ProjectSection from "./ProjectSection"
 import TimeSheetHeader from "./TimeSheetHeader"
@@ -34,12 +34,12 @@ function TimeSheet({ timesheet_data }) {
     const [modal, setModal] = useState(null);
 
     useEffect(() => {
-        console.log("PROJECT SHEET", projectTimeSheet)
+        // console.log("PROJECT SHEET", projectTimeSheet)
     }, [projectTimeSheet])
 
 
     useEffect(() => {
-        //     console.log("DEVELOPMENT SHEET", developmentTimeSheet)
+        // console.log("DEVELOPMENT SHEET", developmentTimeSheet)
     }, [developmentTimeSheet])
 
     useEffect(() => {
@@ -337,7 +337,7 @@ function TimeSheet({ timesheet_data }) {
                             onClick: () => {
                                 deleteDevelopmentRow(data)
                                 setModal(null);
-                               
+
                             },
                         },
                         {
@@ -414,10 +414,6 @@ function TimeSheet({ timesheet_data }) {
             showToast("failed", "Error occured while saving timesheet")
         }
     };
-
-    const toggleIsEdited = () => {
-        !edited && setEdited(true)
-    }
 
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
