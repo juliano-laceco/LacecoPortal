@@ -1,5 +1,5 @@
 import DropdownLookup from "../../custom/Dropdowns/DropdownLookup";
-import Input from "../../custom/Input";
+import Input from "../../custom/Other/Input";
 
 const LeaveItem = ({ remove, index, control, errors, register, leaveTypesOptions }) => {
     return (

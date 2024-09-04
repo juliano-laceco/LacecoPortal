@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Button from "./Button";
-import { theme } from "../../../../tailwind.config";
+import { theme } from "../../../../../tailwind.config";
 
 function Form({
     title,

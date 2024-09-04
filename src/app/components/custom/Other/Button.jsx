@@ -1,7 +1,7 @@
 "use client"
 
 import { ClipLoader } from 'react-spinners'; // Assuming ClipLoader import
-import { theme } from "../../../../tailwind.config";
+import { theme } from "../../../../../tailwind.config";
 
 function Button({
     name,

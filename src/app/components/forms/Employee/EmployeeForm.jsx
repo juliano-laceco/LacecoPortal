@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // Components
 import DropdownLookup from "../../custom/Dropdowns/DropdownLookup";
-import Input from "../../custom/Input";
-import Form from '../../custom/Form';
+import Input from "../../custom/Other/Input";
+import Form from '../../custom/Other/Form';
 // Data
 import nationalities from "@/data/static/nationalities";
 import marital_statuses from "@/data/static/marital-status";
@@ -21,7 +21,7 @@ import { getDisciplines, getPositions, getPositionDetails } from '@/utilities/lo
 // Utilities
 import { showToast } from '@/utilities/toast-utils';
 import { formatDate } from '@/utilities/date/date-utils';
-import Button from '../../custom/Button';
+import Button from '../../custom/Other/Button';
 import Modal from '../../custom/Modals/Modal';
 import Image from 'next/image';
 

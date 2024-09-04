@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { showToast } from '@/utilities/toast-utils';
 import Modal from '../../custom/Modals/Modal';
 import Image from 'next/image';
-import Button from '../../custom/Button';
+import Button from '../../custom/Other/Button';
 
 
 const ProjectForm = ({ projectDropdowns, isEdit, defaultData }) => {

@@ -1,7 +1,7 @@
 "use client"
 
-import Button from './Button'
-import Input from './Input'
+import Button from './Other/Button'
+import Input from './Other/Input'
 import { toast } from 'react-toastify'
 
 function CustomControlsPage() {

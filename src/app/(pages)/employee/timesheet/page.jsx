@@ -1,10 +1,11 @@
-import TimeSheet from "@/app/components/Timesheet/TimeSheet";
-import RangePickerCalendar from "@/app/components/custom/RangePickerCalendar";
-import { getEmployeeAssignments } from "@/utilities/timesheet-utils";
+import TimeSheet from "@/app/components/timesheet/TimeSheet";
+import RangePickerCalendar from "@/app/components/custom/Other/RangePickerCalendar";
+import { getEmployeeAssignments } from "@/utilities/timesheet/timesheet-utils";
 import { endOfWeek, startOfWeek } from "date-fns";
 import React from "react";
 
 async function TimeSheetPage({ searchParams }) {
+    
     const { start, end } = searchParams;
     const timesheet_data = await getEmployeeAssignments(start, end);
 
@@ -22,7 +23,7 @@ async function TimeSheetPage({ searchParams }) {
                 <div className="flex gap-x-4">
                     <RangePickerCalendar maxDate={endOfCurrentWeek} start={startWeek} appendToQS />
                 </div>
-                <TimeSheet timesheet_data={timesheet_data} />
+                <TimeSheet timesheet_data={timesheet_data} start={startWeek} />
             </div>
         </div>
     );

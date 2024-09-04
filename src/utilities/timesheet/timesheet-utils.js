@@ -1,12 +1,18 @@
 "use server"
 
-import { isUUID } from "@/app/components/Sheet/SheetUtils";
-import { getLoggedInId } from "./auth/auth-utils";
-import { commitTransaction, executeTrans, rollbackTransaction, startTransaction } from "./db/db-utils";
-import { logError } from "./misc-utils";
+import { isUUID } from "@/app/components/sheet/SheetUtils";
+import { getLoggedInId } from "../auth/auth-utils";
+import { commitTransaction, executeTrans, rollbackTransaction, startTransaction } from "../db/db-utils";
+import { logError } from "../misc-utils";
 
-export async function getEmployeeAssignments(start, end, employee_id = 1) {
+
+export async function getEmployeeAssignments(start, end, employee_id) {
+
     let transaction;
+
+    const initiatorId = await getLoggedInId()
+
+    let assignee = employee_id ?? initiatorId
 
     try {
         transaction = await startTransaction();
@@ -32,7 +38,7 @@ export async function getEmployeeAssignments(start, end, employee_id = 1) {
                   WHERE pww.phase_assignee_id = pa.phase_assignee_id
               )
         `;
-        const projects = await executeTrans(projectQuery, [employee_id], transaction);
+        const projects = await executeTrans(projectQuery, [assignee], transaction);
 
         const validProjects = []; // Array to hold projects with valid phases
 
@@ -68,7 +74,7 @@ export async function getEmployeeAssignments(start, end, employee_id = 1) {
                   WHERE pww.phase_assignee_id = pa.phase_assignee_id
               )
             `;
-            const phases = await executeTrans(phasesQuery, [project_id, employee_id], transaction);
+            const phases = await executeTrans(phasesQuery, [project_id, assignee], transaction);
 
             if (phases.length > 0) { // Only proceed if phases are found
                 for (const phase of phases) {
@@ -80,7 +86,7 @@ export async function getEmployeeAssignments(start, end, employee_id = 1) {
                         WHERE pa.assignee_id = ? 
                         AND pa.phase_id = ?
                     `;
-                    const phaseAssignees = await executeTrans(phaseAssigneesQuery, [employee_id, phase_id], transaction);
+                    const phaseAssignees = await executeTrans(phaseAssigneesQuery, [assignee, phase_id], transaction);
 
                     if (phaseAssignees.length > 0) {
                         const assignee = phaseAssignees[0];
@@ -119,15 +125,99 @@ export async function getEmployeeAssignments(start, end, employee_id = 1) {
             WHERE employee_id = ?
             AND work_day BETWEEN ? AND ?
         `;
-        const developmentTimesheet = await executeTrans(developmentQuery, [employee_id , start , end], transaction);
+        const developmentTimesheet = await executeTrans(developmentQuery, [assignee, start, end], transaction);
+
+
+
+        // Non Working Days
+        const nonWorkingQuery = `
+         SELECT non_working_day_id , DATE_FORMAT(date, '%Y-%m-%d') AS date
+         FROM non_working_day
+         WHERE employee_id = ?
+         AND date BETWEEN ? and ?
+     `;
+        const non_working = await executeTrans(nonWorkingQuery, [assignee, start, end], transaction);
+
+
+
+        // First Rejected Day
+        const firstRejectedQuery = `
+                                 SELECT DATE_FORMAT(
+                                     COALESCE(
+                                         (SELECT LEAST(
+                                             (SELECT MIN(ewd.work_day) 
+                                              FROM employee_work_day ewd
+                                              JOIN phase_assignee pa 
+                                              ON ewd.phase_assignee_id = pa.phase_assignee_id
+                                              WHERE pa.assignee_id = ?
+                                              AND ewd.status = 'Rejected'),
+                                             (SELECT MIN(dh.work_day) 
+                                              FROM development_hour dh
+                                              WHERE dh.employee_id = ?
+                                              AND dh.status = 'Rejected')
+                                         )),
+                                         (SELECT MIN(ewd.work_day) 
+                                          FROM employee_work_day ewd
+                                          JOIN phase_assignee pa 
+                                          ON ewd.phase_assignee_id = pa.phase_assignee_id
+                                          WHERE pa.assignee_id = ?
+                                          AND ewd.status = 'Rejected'),
+                                         (SELECT MIN(dh.work_day) 
+                                          FROM development_hour dh
+                                          WHERE dh.employee_id = ?
+                                          AND dh.status = 'Rejected')
+                                     ),
+                                     '%Y-%m-%d'
+                                 ) AS min_rejected_date; `
+
+
+        const min_rejected_date = await executeTrans(firstRejectedQuery, [assignee, assignee, assignee, assignee], transaction)
+
+        // Last Finalized Day
+        const maxFinalizedDayQuery = `SELECT DATE_FORMAT(
+                                         COALESCE(
+                                             GREATEST(
+                                                 (SELECT MAX(ewd.work_day) 
+                                                  FROM employee_work_day ewd
+                                                  JOIN phase_assignee pa 
+                                                  ON ewd.phase_assignee_id = pa.phase_assignee_id
+                                                  WHERE pa.assignee_id = ?
+                                                  AND ewd.status != 'Rejected'
+                                                 ),
+                                                 (SELECT MAX(nwd.date) 
+                                                  FROM non_working_day nwd
+                                                  WHERE nwd.employee_id = ?
+                                                 )
+                                             ),
+                                             (SELECT MAX(ewd.work_day) 
+                                              FROM employee_work_day ewd
+                                              JOIN phase_assignee pa 
+                                              ON ewd.phase_assignee_id = pa.phase_assignee_id
+                                              WHERE pa.assignee_id = ?
+                                              AND ewd.status != 'Rejected'
+                                             ),
+                                             (SELECT MAX(nwd.date) 
+                                              FROM non_working_day nwd
+                                              WHERE nwd.employee_id = ?
+                                             )
+                                         ), 
+                                         '%Y-%m-%d'
+                                     ) AS max_finalized_date;  `;
+
+        const max_finalized_date = await executeTrans(maxFinalizedDayQuery, [assignee, assignee, assignee, assignee], transaction)
+
 
         // Commit transaction and return both project and development timesheet data
         await commitTransaction(transaction);
 
         return {
             project_timesheet: validProjects, // Return only the valid projects
-            development_timesheet: developmentTimesheet
+            development_timesheet: developmentTimesheet,
+            non_working,
+            min_rejected_date:  new Date(min_rejected_date[0].min_rejected_date) ?? null,
+            max_finalized_date: new Date(max_finalized_date[0].max_finalized_date) ?? null,
         };
+
     } catch (error) {
         console.error("Transaction failed:", error);
         await logError(error, "Error fetching employee timesheet assignments");
@@ -143,13 +233,13 @@ export async function getEmployeeAssignments(start, end, employee_id = 1) {
 
 export async function saveTimeSheet(timesheet_data) {
 
-
     let transaction;
 
+    console.log(timesheet_data.non_working)
     try {
         transaction = await startTransaction()
 
-        const { project_timesheet, development_timesheet } = timesheet_data
+        const { project_timesheet, development_timesheet, non_working } = timesheet_data
         const initiatorId = await getLoggedInId()
 
         project_timesheet.map(async (project) => {
@@ -158,7 +248,7 @@ export async function saveTimeSheet(timesheet_data) {
                 const { phase_id } = phase
 
                 phase?.assignments.map(async (assignment) => {
-                    const { employee_work_day_id, hours_worked, display_date, work_day, phase_assignee_id } = assignment
+                    const { employee_work_day_id, hours_worked, work_day } = assignment
 
                     if (isUUID(employee_work_day_id)) {
                         const query = `
@@ -194,7 +284,7 @@ export async function saveTimeSheet(timesheet_data) {
         })
 
         development_timesheet.map(async (development_item) => {
-            const { development_hour_day_id, type, hours_worked, display_date, work_day } = development_item
+            const { development_hour_day_id, type, hours_worked, work_day } = development_item
 
             if (isUUID(development_hour_day_id)) {
                 const query = `INSERT INTO development_hour(employee_id , work_day , hours_worked , type)
@@ -219,6 +309,16 @@ export async function saveTimeSheet(timesheet_data) {
                 }
             }
         })
+
+        non_working.map(async (non_working_day) => {
+            const { date } = non_working_day
+
+            const nwd_query = `INSERT INTO non_working_day (date , employee_id)  VALUES (? , ?)`
+
+            await executeTrans(nwd_query, [date, initiatorId], transaction)
+
+        })
+
 
         await commitTransaction(transaction)
 

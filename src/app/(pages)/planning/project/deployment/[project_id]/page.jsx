@@ -1,5 +1,5 @@
 import ProjectDetails from '@/app/components/ProjectDetails';
-import Sheet from '@/app/components/Sheet/Sheet';
+import Sheet from '@/app/components/sheet/Sheet';
 import { getAllEmployees } from '@/utilities/employee/employee-utils';
 import { getProjectData } from '@/utilities/project/project-utils';
 import React from 'react';

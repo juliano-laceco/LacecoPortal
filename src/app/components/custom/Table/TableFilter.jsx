@@ -1,7 +1,7 @@
 import Image from "next/image";
 import DropdownFilter from "../Dropdowns/DropdownFilter";
-import Input from "../Input";
-import Button from "../Button";
+import Input from "../Other/Input";
+import Button from "../Other/Button";
 
 function TableFilter({ filterItems, filterFunction, keywordRef, clearFunction }) {
     return (

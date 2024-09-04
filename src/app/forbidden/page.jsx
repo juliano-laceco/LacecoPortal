@@ -1,5 +1,5 @@
 import Image from "next/image"
-import Button from "../components/custom/Button"
+import Button from "../components/custom/Other/Button"
 import Link from "next/link";
 
 function page() {

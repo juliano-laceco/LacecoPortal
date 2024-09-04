@@ -3,8 +3,8 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import Form from '../../custom/Form';
-import Button from '../../custom/Button';
+import Form from '../../custom/Other/Form';
+import Button from '../../custom/Other/Button';
 import { formatDate } from '@/utilities/date/date-utils';
 import { createLeave } from '@/utilities/leave/leave-utils';
 import { showToast } from '@/utilities/toast-utils';
