@@ -19,8 +19,8 @@ import { showToast } from "@/utilities/toast-utils"
 
 function TimeSheet({ timesheet_data }) {
 
-    const [projectTimeSheet, setProjectTimeSheet] = useState(timesheet_data.project_timesheet);
-    const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data.development_timesheet);
+    const [projectTimeSheet, setProjectTimeSheet] = useState(timesheet_data?.project_timesheet ?? []);
+    const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data?.development_timesheet ?? []);
     const [selectedType, setSelectedType] = useState(""); // State to store selected type for new rows
     const [isDevelopmentSectionCollapsed, setIsDevelopmentSectionCollapsed] = useState(false); // State to manage collapse/expand of the section
     const [initialDevelopmentTypes, setInitialDevelopmentTypes] = useState([])
@@ -50,6 +50,12 @@ function TimeSheet({ timesheet_data }) {
     useEffect(() => {
         !edited && setEdited(true)
     }, [projectTimeSheet, developmentTimeSheet])
+
+    // Sync the internal state with the props whenever timesheet_data changes
+    useEffect(() => {
+        setProjectTimeSheet(timesheet_data?.project_timesheet ?? []);
+        setDevelopmentTimeSheet(timesheet_data?.development_timesheet ?? []);
+    }, [timesheet_data]);
 
     const today = new Date();
     const startDate = startOfWeek(today, { weekStartsOn: 1 });

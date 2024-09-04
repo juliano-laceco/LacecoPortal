@@ -58,8 +58,9 @@ export default function RangePickerCalendar({ maxDate, start, appendToQS }) {
         params.set("start", formatDate(adjustedValue.start, "YYYY-MM-DD"));
         params.set("end", formatDate(adjustedValue.end, "YYYY-MM-DD"));
 
-        router.push(`${pathname}?${params.toString()}`);
+        router.replace(`${pathname}?${params.toString()}`);
         router.refresh()
+
     };
 
     const handleRangeChange = (newValue) => {

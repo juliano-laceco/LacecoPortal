@@ -69,7 +69,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
             </div>
             <div className="phase-stacker flex flex-col flex-grow">
                 {phases.map((phase, phaseIndex) => {
-                    const { phase_name, assignments, work_done_hrs, expected_work_hrs } = phase;
+                    const { phase_name, assignments, work_done_hrs, expected_work_hrs , isActive } = phase;
                     const progressPercentage = Math.ceil(calculateProgressPercentage(work_done_hrs, expected_work_hrs));
 
                     return (
@@ -121,6 +121,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                                                     handleInputChange={handleInputChange}
                                                     projectIndex={projectIndex}
                                                     phaseIndex={phaseIndex}
+                                                    isActive={isActive}
                                                     dayStatus={status}
                                                 />
                                             );
