@@ -11,14 +11,14 @@ import { development_options } from "@/data/static/development-options"
 import Button from "../custom/Other/Button"
 import DropdownRegular from "../custom/Dropdowns/DropdownRegular"
 import Image from "next/image"
-import { isUUID } from "../Sheet/SheetUtils"
+import { isUUID } from "../sheet/SheetUtils"
 import { saveTimeSheet } from "@/utilities/timesheet/timesheet-utils"
 import Modal from "../custom/Modals/Modal"
 import { usePathname, useRouter } from "next/navigation"
 import { showToast } from "@/utilities/toast-utils"
 
 
-function TimeSheet({ timesheet_data, start }) {
+function TimeSheet({ timesheet_data, start , allowed_range }) {
 
     const [projectTimeSheet, setProjectTimeSheet] = useState(timesheet_data?.project_timesheet ?? []);
     const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data?.development_timesheet ?? []);
@@ -26,12 +26,8 @@ function TimeSheet({ timesheet_data, start }) {
     const [selectedType, setSelectedType] = useState(""); // State to store selected type for new rows
     const [isDevelopmentSectionCollapsed, setIsDevelopmentSectionCollapsed] = useState(false); // State to manage collapse/expand of the section
     const [initialDevelopmentTypes, setInitialDevelopmentTypes] = useState([])
-    const [min_rejected_date, setMinRejectedDate] = useState(timesheet_data?.min_rejected_date)
-    const [max_finalized_date, setMaxFinalizedDate] = useState(timesheet_data?.max_finalized_date)
+    const [startDate, setStartDate] = useState(startOfWeek((start), { weekStartsOn: 1 }))
 
-    const today = new Date();
-    // const [startDate, setStartDate] = useState(startOfWeek(min_rejected_date ? min_rejected_date : (start ?? today), { weekStartsOn: 1 }))
-    const [startDate, setStartDate] = useState(startOfWeek((start ?? today), { weekStartsOn: 1 }))
 
     const generateWeekDays = () => {
         return Array.from({ length: 7 }, (_, i) => {
@@ -55,7 +51,7 @@ function TimeSheet({ timesheet_data, start }) {
     const [isSaving, setIsSaving] = useState(false)
 
     const router = useRouter()
-    const pathname = usePathname()
+
 
     // Combined state for modal visibility and content
     const [modal, setModal] = useState(null);
@@ -88,17 +84,11 @@ function TimeSheet({ timesheet_data, start }) {
 
     useEffect(() => {
         setWeekDays(generateWeekDays())
-        console.log("Start Date", startDate)
     }, [startDate]);
 
     useEffect(() => {
-        setStartDate(startOfWeek((start ?? today), { weekStartsOn: 1 }))
-        // setStartDate(startOfWeek(min_rejected_date ? min_rejected_date : (start ?? today), { weekStartsOn: 1 }))
+        setStartDate(startOfWeek((start), { weekStartsOn: 1 }))
     }, [start]);
-
-    useEffect(() => {
-        console.log("Week Days", weekDays)
-    }, [weekDays])
 
 
 
@@ -275,9 +265,8 @@ function TimeSheet({ timesheet_data, start }) {
         setNonWorkingDays((prev) => prev.filter((day) => day.date != date))
     }
 
-
     // Function to organize timesheet data by type
-    const organizeTimesheetByType = (timesheet, options) => {
+    const organizeTimesheetByType = (timesheet) => {
         return timesheet.reduce((acc, current) => {
             const { type } = current;
             if (type) {
@@ -522,6 +511,7 @@ function TimeSheet({ timesheet_data, start }) {
                     weekDays={weekDays}
                     handleInputChange={handleInputChange}
                     getStatusForDay={getStatusForDay}
+                    allowed_range={allowed_range}
                 />
             ))}
             <h1 className="font-bold text-2xl mt-6 desk:hidden lap:hidden ">Non Billable Hours</h1>
@@ -560,6 +550,7 @@ function TimeSheet({ timesheet_data, start }) {
                                     initialDevelopmentTypes={initialDevelopmentTypes}
                                     openModal={openModal}
                                     setEdited={setEdited}
+                                    allowed_range={allowed_range}
                                 />
                             ))}
                             {availableTypesForNewRow.length > 0 && (

@@ -3,7 +3,8 @@ import Image from "next/image";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
 
-function ProjectSection({ project, projectIndex, weekDays, handleInputChange, getStatusForDay }) {
+function ProjectSection({ project, projectIndex, weekDays, handleInputChange, getStatusForDay , allowed_range }) {
+
     const { title, phases } = project;
 
     const screenSize = useScreenSize();
@@ -130,6 +131,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                                                     phaseIndex={phaseIndex}
                                                     isActive={isActive}
                                                     dayStatus={status}
+                                                    allowed_range={allowed_range}
                                                 />
                                             );
                                         })}

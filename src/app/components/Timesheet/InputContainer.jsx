@@ -1,15 +1,22 @@
 import React from "react";
-import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays, startOfWeek } from "date-fns";
 
-function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId, type, isActive }) {
+function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId, type, isActive, allowed_range }) {
+
     const hoursWorked = assignment ? assignment.hours_worked : '';
 
     const today = new Date();
+    const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Start of this week
     const dayDate = new Date(day.fullDate);
-    const daysDifference = differenceInCalendarDays(today, dayDate);
+   
 
-    // Enabled if today or yesterday and not a future date
-    const isDateEnabled = daysDifference <= 1 && daysDifference >= 0;
+    // Determine if the day is within the allowed range
+    const isWithinAllowedRange = allowed_range && allowed_range.week_start && allowed_range.week_end
+        ? dayDate >= new Date(allowed_range.week_start) && dayDate <= new Date(allowed_range.week_end)
+        : true;
+
+    // Enabled if the day is within this week and not a future date
+    const isDateEnabled = isWithinAllowedRange && dayDate >= startOfCurrentWeek && dayDate <= today;
 
     // Determine if the input should be disabled, except when the dayStatus is "Rejected"
     const shouldDisableInput =

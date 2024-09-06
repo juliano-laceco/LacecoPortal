@@ -22,7 +22,8 @@ export default function RangePickerCalendar({ maxDate, start, appendToQS }) {
         });
     };
 
-    // Convert maxDate to the correct format expected by RangeCalendar
+    // Convert start and maxDate to the correct format expected by RangeCalendar
+    const startFormatted = formatToLocale(start);
     const maxDateFormatted = formatToLocale(maxDate);
 
     // Reusable function to get the Monday-Sunday range
@@ -41,7 +42,7 @@ export default function RangePickerCalendar({ maxDate, start, appendToQS }) {
         };
     };
 
-    const default_range = start ? getWeekRange(formatToLocale(start)) : getWeekRange(now);
+    const default_range = getWeekRange(startFormatted);
 
     const thisWeek = getWeekRange(now);
     const lastWeek = getWeekRange(now.subtract({ weeks: 1 }));
@@ -59,8 +60,7 @@ export default function RangePickerCalendar({ maxDate, start, appendToQS }) {
         params.set("end", formatDate(adjustedValue.end, "YYYY-MM-DD"));
 
         router.replace(`${pathname}?${params.toString()}`);
-        router.refresh()
-
+        router.refresh();
     };
 
     const handleRangeChange = (newValue) => {
