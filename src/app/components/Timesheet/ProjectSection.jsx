@@ -56,11 +56,18 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
         }, 0);
     };
 
-    // Function to calculate the progress percentage
     const calculateProgressPercentage = (work_done_hrs, expected_work_hrs) => {
         if (expected_work_hrs === 0) return 0; // Avoid division by zero
         return (work_done_hrs / expected_work_hrs) * 100;
     };
+
+    // Filter the phases to only include those that should be rendered
+    const filteredPhases = phases.filter(phase => phase.isActive || phase.timesheet_exists);
+
+    // Only render the project if there are phases to render
+    if (filteredPhases.length === 0) {
+        return null;
+    }
 
     return (
         <div key={`${project.project_id}`} className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
@@ -68,8 +75,8 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                 {title}
             </div>
             <div className="phase-stacker flex flex-col flex-grow">
-                {phases.map((phase, phaseIndex) => {
-                    const { phase_name, assignments, work_done_hrs, expected_work_hrs , isActive } = phase;
+                {filteredPhases.map((phase, phaseIndex) => {
+                    const { phase_name, assignments, work_done_hrs, expected_work_hrs, isActive } = phase;
                     const progressPercentage = Math.ceil(calculateProgressPercentage(work_done_hrs, expected_work_hrs));
 
                     return (

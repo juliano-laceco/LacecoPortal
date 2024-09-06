@@ -11,7 +11,7 @@ import { development_options } from "@/data/static/development-options"
 import Button from "../custom/Other/Button"
 import DropdownRegular from "../custom/Dropdowns/DropdownRegular"
 import Image from "next/image"
-import { isUUID } from "../sheet/SheetUtils"
+import { isUUID } from "../Sheet/SheetUtils"
 import { saveTimeSheet } from "@/utilities/timesheet/timesheet-utils"
 import Modal from "../custom/Modals/Modal"
 import { usePathname, useRouter } from "next/navigation"
@@ -30,7 +30,6 @@ function TimeSheet({ timesheet_data, start }) {
     const [max_finalized_date, setMaxFinalizedDate] = useState(timesheet_data?.max_finalized_date)
 
     const today = new Date();
-
     // const [startDate, setStartDate] = useState(startOfWeek(min_rejected_date ? min_rejected_date : (start ?? today), { weekStartsOn: 1 }))
     const [startDate, setStartDate] = useState(startOfWeek((start ?? today), { weekStartsOn: 1 }))
 
@@ -526,11 +525,11 @@ function TimeSheet({ timesheet_data, start }) {
                 />
             ))}
             <h1 className="font-bold text-2xl mt-6 desk:hidden lap:hidden ">Non Billable Hours</h1>
-            <div className="bg-pric text-white p-4 flex items-center justify-between">
+            <div className="bg-gray-400 text-white p-4 flex items-center justify-between">
                 <span className="font-semibold">Non Billable Hours</span>
                 <div className="mobile-version-collapse flex justify-center items-center">
                     <p
-                        className="expand-collapse-dev-section cursor-pointer bg-red-400 px-3 py-2 rounded-lg border border-red-300"
+                        className="expand-collapse-dev-section cursor-pointer bg-red-500 px-3 py-2 rounded-lg border border-red-300"
                         onClick={toggleDevelopmentSection}
                     >
                         <Image

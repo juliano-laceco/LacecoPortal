@@ -1,6 +1,6 @@
 "use server"
 
-import { isUUID } from "@/app/components/sheet/SheetUtils";
+import { isUUID } from "@/app/components/Sheet/SheetUtils";
 import { getLoggedInId } from "../auth/auth-utils";
 import { commitTransaction, executeTrans, rollbackTransaction, startTransaction } from "../db/db-utils";
 import { logError } from "../misc-utils";
@@ -46,35 +46,50 @@ export async function getEmployeeAssignments(start, end, employee_id) {
             const { project_id } = project;
 
             const phasesQuery = `
-              SELECT p.phase_id, p.phase_name,
-                (
-                  SELECT COUNT(*)
-                  FROM projected_work_week pww_sub
-                  JOIN phase_assignee pa_sub ON pww_sub.phase_assignee_id = pa_sub.phase_assignee_id
-                  WHERE pa_sub.phase_id = p.phase_id
-                  AND NOW() BETWEEN (
-                      SELECT MIN(pww_inner.week_start)
-                      FROM projected_work_week pww_inner
-                      JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
-                      WHERE pa_inner.phase_id = p.phase_id
-                  ) AND (
-                      SELECT MAX(pww_inner.week_start)
-                      FROM projected_work_week pww_inner
-                      JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
-                      WHERE pa_inner.phase_id = p.phase_id
-                  )
-                ) > 0 AS isActive
-              FROM phase p
-              JOIN phase_assignee pa ON pa.phase_id = p.phase_id
-              WHERE project_id = ? 
-              AND pa.assignee_id = ?
-              AND EXISTS (
-                  SELECT 1
-                  FROM projected_work_week pww
-                  WHERE pww.phase_assignee_id = pa.phase_assignee_id
-              )
-            `;
-            const phases = await executeTrans(phasesQuery, [project_id, assignee], transaction);
+                             SELECT 
+                                 p.phase_id, 
+                                 p.phase_name,
+                                 (
+                                     SELECT COUNT(*)
+                                     FROM projected_work_week pww_sub
+                                     JOIN phase_assignee pa_sub ON pww_sub.phase_assignee_id = pa_sub.phase_assignee_id
+                                     WHERE pa_sub.phase_id = p.phase_id
+                                     AND NOW() BETWEEN (
+                                         SELECT MIN(pww_inner.week_start)
+                                         FROM projected_work_week pww_inner
+                                         JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
+                                         WHERE pa_inner.phase_id = p.phase_id
+                                     ) AND (
+                                         SELECT MAX(pww_inner.week_start)
+                                         FROM projected_work_week pww_inner
+                                         JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
+                                         WHERE pa_inner.phase_id = p.phase_id
+                                     )
+                                 ) > 0 AS isActive,
+                                 (
+                                     EXISTS (
+                                         SELECT 1
+                                         FROM employee_work_day ewd
+                                         JOIN phase_assignee pa_ewd ON ewd.phase_assignee_id = pa_ewd.phase_assignee_id
+                                         WHERE pa_ewd.phase_id = p.phase_id
+                                         AND ewd.work_day BETWEEN ? AND ?
+                                     )
+                                 ) AS timesheet_exists
+                             FROM 
+                                 phase p
+                             JOIN 
+                                 phase_assignee pa ON pa.phase_id = p.phase_id
+                             WHERE 
+                                 project_id = ? 
+                                 AND pa.assignee_id = ?
+                                 AND EXISTS (
+                                     SELECT 1
+                                     FROM projected_work_week pww
+                                     WHERE pww.phase_assignee_id = pa.phase_assignee_id
+                                 ) `;
+                        
+
+            const phases = await executeTrans(phasesQuery, [start, end, project_id, assignee], transaction);
 
             if (phases.length > 0) { // Only proceed if phases are found
                 for (const phase of phases) {
@@ -214,7 +229,7 @@ export async function getEmployeeAssignments(start, end, employee_id) {
             project_timesheet: validProjects, // Return only the valid projects
             development_timesheet: developmentTimesheet,
             non_working,
-            min_rejected_date:  new Date(min_rejected_date[0].min_rejected_date) ?? null,
+            min_rejected_date: new Date(min_rejected_date[0].min_rejected_date) ?? null,
             max_finalized_date: new Date(max_finalized_date[0].max_finalized_date) ?? null,
         };
 
