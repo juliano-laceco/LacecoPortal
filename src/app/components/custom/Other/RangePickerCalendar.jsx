@@ -7,7 +7,8 @@ import { useLocale } from "@react-aria/i18n";
 import { formatDate } from "@/utilities/date/date-utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
-export default function RangePickerCalendar({ maxDate, start, appendToQS }) {
+export default function RangePickerCalendar({ maxDate, start, appendToQS, isWeekFinalized }) {
+
     const { locale } = useLocale();
     const now = today(getLocalTimeZone());
     const router = useRouter();
@@ -185,6 +186,7 @@ export default function RangePickerCalendar({ maxDate, start, appendToQS }) {
                 onFocusChange={setFocusedValue}
                 maxValue={maxDateFormatted} // Use the maxDateFormatted prop instead of a hardcoded value
             />
+            {isWeekFinalized ? "Finalized" : "Not Finalized"}
         </div>
     );
 }

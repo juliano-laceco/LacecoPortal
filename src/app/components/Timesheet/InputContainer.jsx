@@ -1,5 +1,5 @@
 import React from "react";
-import { differenceInCalendarDays, startOfWeek } from "date-fns";
+import { startOfWeek } from "date-fns";
 
 function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId, type, isActive, allowed_range }) {
 
@@ -8,17 +8,23 @@ function InputContainer({ day, assignment, handleInputChange, projectIndex, phas
     const today = new Date();
     const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Start of this week
     const dayDate = new Date(day.fullDate);
-   
 
     // Determine if the day is within the allowed range
     const isWithinAllowedRange = allowed_range && allowed_range.week_start && allowed_range.week_end
         ? dayDate >= new Date(allowed_range.week_start) && dayDate <= new Date(allowed_range.week_end)
         : true;
 
-    // Enabled if the day is within this week and not a future date
-    const isDateEnabled = isWithinAllowedRange && dayDate >= startOfCurrentWeek && dayDate <= today;
+    // Determine if the date is enabled (not a future date and within allowed range)
+    let isDateEnabled = isWithinAllowedRange && dayDate <= today;
 
-    // Determine if the input should be disabled, except when the dayStatus is "Rejected"
+    // Additional check if the date is in the current week, only enable days from the start of this week until today
+    if (isWithinAllowedRange && dayDate >= startOfCurrentWeek && dayDate <= today) {
+        isDateEnabled = true;
+    } else if (dayDate > today) {
+        isDateEnabled = false; // Disable future dates
+    }
+
+    // Determine if the input should be disabled based on the status and whether it's within the allowed range
     const shouldDisableInput =
         dayStatus !== "Rejected" &&
         (!isDateEnabled || !isActive || dayStatus === "Approved" || dayStatus === "Pending" || dayStatus === "Non Working" || dayStatus === "New Non Working");
