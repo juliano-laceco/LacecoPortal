@@ -475,30 +475,61 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     "Error"
                 );
                 break;
+            case "Unactioned Days":
+                modalContent = renderModalContent(
+                    data,
+                    [
+                        {
+                            variant: "primary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        }
+                    ],
+                    "Unactioned Days"
+                );
+                break;
         }
         setModal(modalContent);
     };
 
     // Main function to sanitize all data
     const submitTimeSheet = async () => {
-
         const sanitizedDevelopmentData = sanitizeDevelopmentData();
         const sanitizedProjectData = sanitizeProjects();
 
-        try {
+        const unactionedDays = weekDays.filter(day => {
+            const dayStatus = getStatusForDay(day.fullDate);
+            const isWithinAllowedRange = allowed_range && allowed_range.week_start && allowed_range.week_end
+                ? new Date(day.fullDate) >= new Date(allowed_range.week_start) && new Date(day.fullDate) <= new Date(allowed_range.week_end)
+                : true;
 
+            return isWithinAllowedRange && !dayStatus.status;
+        });
+
+        if (unactionedDays.length > 0) {
+            openModal(
+                <>
+                    <div>Please ensure all days within the allowed range are actioned or contain data.</div>
+                    <div>Days without action: {unactionedDays.map(day => day.fullDate).join(', ')}</div>
+                </>,
+                "Unactioned Days"
+            );
+            return; // Exit the function without saving if there are unactioned days
+        }
+
+        try {
             await saveTimeSheet({
                 project_timesheet: sanitizedProjectData,
                 development_timesheet: sanitizedDevelopmentData,
                 non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id))
+            });
 
-            })
-
-            showToast("success", "Successfully updated timesheet")
+            showToast("success", "Successfully updated timesheet");
         } catch (error) {
-            showToast("failed", "Error occured while saving timesheet")
+            showToast("failed", "Error occurred while saving timesheet");
         }
     };
+
 
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
@@ -594,6 +625,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                 variant="primary"
                 name="Save"
                 onClick={() => openModal(null, "Confirm Save")}
+              
             />
             {modal}
         </div>
