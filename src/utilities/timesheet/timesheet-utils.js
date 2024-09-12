@@ -5,50 +5,63 @@ import { getLoggedInId } from "../auth/auth-utils";
 import { commitTransaction, execute, executeTrans, rollbackTransaction, startTransaction } from "../db/db-utils";
 import { logError } from "../misc-utils";
 import * as res from "../response-utils"
+import { eachDayOfInterval, endOfWeek, startOfWeek } from "date-fns";
+import { formatDate } from "../date/date-utils";
 
 
 export async function getRejectedAndFinalizedDates(assignee) {
 
     try {
-
         // First Rejected Day
         const firstRejectedQuery = `
-                                 SELECT DATE_FORMAT(
-                                     COALESCE(
-                                         (SELECT LEAST(
-                                             (SELECT MIN(ewd.work_day) 
-                                              FROM employee_work_day ewd
-                                              JOIN phase_assignee pa 
-                                              ON ewd.phase_assignee_id = pa.phase_assignee_id
-                                              WHERE pa.assignee_id = ?
-                                              AND ewd.status = 'Rejected'),
-                                             (SELECT MIN(dh.work_day) 
-                                              FROM development_hour dh
-                                              WHERE dh.employee_id = ?
-                                              AND dh.status = 'Rejected')
-                                         )),
-                                         (SELECT MIN(ewd.work_day) 
-                                          FROM employee_work_day ewd
-                                          JOIN phase_assignee pa 
-                                          ON ewd.phase_assignee_id = pa.phase_assignee_id
-                                          WHERE pa.assignee_id = ?
-                                          AND ewd.status = 'Rejected'),
-                                         (SELECT MIN(dh.work_day) 
-                                          FROM development_hour dh
-                                          WHERE dh.employee_id = ?
-                                          AND dh.status = 'Rejected')
-                                     ),
-                                     '%Y-%m-%d'
-                                 ) AS min_rejected_date;`
+            SELECT DATE_FORMAT(
+                COALESCE(
+                    (SELECT LEAST(
+                        (SELECT MIN(ewd.work_day) 
+                         FROM employee_work_day ewd
+                         JOIN phase_assignee pa 
+                         ON ewd.phase_assignee_id = pa.phase_assignee_id
+                         WHERE pa.assignee_id = ?
+                         AND ewd.status = 'Rejected'),
+                        (SELECT MIN(dh.work_day) 
+                         FROM development_hour dh
+                         WHERE dh.employee_id = ?
+                         AND dh.status = 'Rejected')
+                    )),
+                    (SELECT MIN(ewd.work_day) 
+                     FROM employee_work_day ewd
+                     JOIN phase_assignee pa 
+                     ON ewd.phase_assignee_id = pa.phase_assignee_id
+                     WHERE pa.assignee_id = ?
+                     AND ewd.status = 'Rejected'),
+                    (SELECT MIN(dh.work_day) 
+                     FROM development_hour dh
+                     WHERE dh.employee_id = ?
+                     AND dh.status = 'Rejected')
+                ),
+                '%Y-%m-%d'
+            ) AS min_rejected_date;
+        `;
 
-
-        const min_rejected_date = await execute(firstRejectedQuery, [assignee, assignee, assignee, assignee])
-
+        const min_rejected_date = await execute(firstRejectedQuery, [assignee, assignee, assignee, assignee]);
 
         // Last Finalized Day
-        const maxFinalizedDayQuery = `SELECT DATE_FORMAT(
-            COALESCE(
-                GREATEST(
+        const maxFinalizedDayQuery = `
+            SELECT DATE_FORMAT(
+                COALESCE(
+                    GREATEST(
+                        (SELECT MAX(ewd.work_day) 
+                         FROM employee_work_day ewd
+                         JOIN phase_assignee pa 
+                         ON ewd.phase_assignee_id = pa.phase_assignee_id
+                         WHERE pa.assignee_id = ?
+                         AND ewd.status != 'Rejected'
+                        ),
+                        (SELECT MAX(nwd.date) 
+                         FROM non_working_day nwd
+                         WHERE nwd.employee_id = ?
+                        )
+                    ),
                     (SELECT MAX(ewd.work_day) 
                      FROM employee_work_day ewd
                      JOIN phase_assignee pa 
@@ -60,34 +73,62 @@ export async function getRejectedAndFinalizedDates(assignee) {
                      FROM non_working_day nwd
                      WHERE nwd.employee_id = ?
                     )
-                ),
-                (SELECT MAX(ewd.work_day) 
-                 FROM employee_work_day ewd
-                 JOIN phase_assignee pa 
-                 ON ewd.phase_assignee_id = pa.phase_assignee_id
-                 WHERE pa.assignee_id = ?
-                 AND ewd.status != 'Rejected'
-                ),
-                (SELECT MAX(nwd.date) 
-                 FROM non_working_day nwd
-                 WHERE nwd.employee_id = ?
-                )
-            ), 
-            '%Y-%m-%d'
-        ) AS max_finalized_date;  `;
+                ), 
+                '%Y-%m-%d'
+            ) AS max_finalized_date;
+        `;
 
-        const max_finalized_date = await execute(maxFinalizedDayQuery, [assignee, assignee, assignee, assignee])
+        const max_finalized_date_result = await execute(maxFinalizedDayQuery, [assignee, assignee, assignee, assignee]);
+        const max_finalized_date = max_finalized_date_result[0]?.max_finalized_date ? new Date(max_finalized_date_result[0].max_finalized_date) : null;
 
+
+        let isWeekFinalized = false;
+        if (max_finalized_date) {
+            const week_start = startOfWeek(max_finalized_date, { weekStartsOn: 1 });
+            const week_end = endOfWeek(max_finalized_date, { weekStartsOn: 1 });
+
+            console.log("CHECKING WEEK STATUS", week_start, week_end)
+            // Check the status of each day in the week
+            const days = eachDayOfInterval({ start: week_start, end: week_end });
+
+            const checkWeekStatusQuery = `
+                SELECT ewd.status, ewd.work_day AS date
+                FROM employee_work_day ewd
+                JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                WHERE pa.assignee_id = ?
+                AND ewd.work_day BETWEEN ? AND ?
+                UNION
+                SELECT 'Non Working' AS status, nwd.date
+                FROM non_working_day nwd
+                WHERE nwd.employee_id = ?
+                AND nwd.date BETWEEN ? AND ?;
+            `;
+
+            const statusResults = await execute(checkWeekStatusQuery, [assignee, formatDate(week_start), formatDate(week_end), assignee, formatDate(week_start), formatDate(week_end)]);
+
+            const statusMap = new Map();
+            statusResults.forEach(row => {
+                statusMap.set(formatDate(new Date(row.date)), row.status);
+            });
+
+            // Check if all days in the week are finalized
+            isWeekFinalized = days.every(day => {
+                const formattedDate = formatDate(day);
+                const status = statusMap.get(formattedDate);
+                return status === 'Pending' || status === 'Approved' || status === 'Non Working';
+            });
+        }
 
         return res.success_data({
             min_rejected_date: min_rejected_date[0]?.min_rejected_date ? new Date(min_rejected_date[0].min_rejected_date) : null,
-            max_finalized_date: max_finalized_date[0]?.max_finalized_date ? new Date(max_finalized_date[0].max_finalized_date) : null
+            max_finalized_date: max_finalized_date,
+            is_week_finalized: isWeekFinalized
         });
-        
+
     } catch (error) {
-        await logError(error, "Error fetching first rejected day or finalized day")
-        console.error("Error fetching first rejected day or finalized day", error)
-        return res.failed()
+        await logError(error, "Error fetching first rejected day or finalized day");
+        console.error("Error fetching first rejected day or finalized day", error);
+        return res.failed();
     }
 }
 
@@ -260,7 +301,6 @@ export async function getEmployeeAssignments(start, end, employee_id) {
         }
     }
 }
-
 
 export async function saveTimeSheet(timesheet_data) {
 

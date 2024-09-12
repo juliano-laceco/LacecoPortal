@@ -8,66 +8,48 @@ import { formatDate } from "@/utilities/date/date-utils";
 import { redirect } from 'next/navigation';
 
 function getWeekStartEnd(date) {
+    return {
+        week_start: startOfWeek(date, { weekStartsOn: 1 }),
+        week_end: endOfWeek(date, { weekStartsOn: 1 })
+    };
+}
 
-    const week_start = startOfWeek(date, { weekStartsOn: 1 });
-    const week_end = endOfWeek(date, { weekStartsOn: 1 });
-
-    return { week_start, week_end };
+function determineAllowedRange(min_rejected_date, max_finalized_date, is_week_finalized) {
+    if (min_rejected_date) {
+        return getWeekStartEnd(min_rejected_date);
+    } else if (max_finalized_date) {
+        const max_finalized_range = getWeekStartEnd(max_finalized_date);
+        if (is_week_finalized) {
+            const next_week_start_date = new Date(max_finalized_range.week_start);
+            next_week_start_date.setDate(next_week_start_date.getDate() + 7); // Push by one week
+            return getWeekStartEnd(next_week_start_date);
+        } else {
+            return max_finalized_range;
+        }
+    }
+    return null;
 }
 
 async function TimeSheetPage({ searchParams }) {
     const initiatorId = await getLoggedInId();
-    const { start, end } = searchParams;
     const today = new Date();
 
-    let dates_data;
-    let allowed_range;
-
-    let start_date;
-    let end_date;
-
-    let end_of_current_week = endOfWeek(today, { weekStartsOn: 1 })
-
+    const { start, end } = searchParams;
     const rejectedAndFinalizedDatesRes = await getRejectedAndFinalizedDates(initiatorId);
+    const dates_data = rejectedAndFinalizedDatesRes?.data || {};
 
-    if (rejectedAndFinalizedDatesRes.res) {
-        dates_data = rejectedAndFinalizedDatesRes.data;
-    }
+    const { min_rejected_date, max_finalized_date, is_week_finalized } = dates_data;
 
-    const { min_rejected_date, max_finalized_date } = dates_data;
-    const first_rejection_range = getWeekStartEnd(min_rejected_date);
-    const max_finalized_range = getWeekStartEnd(max_finalized_date);
+    console.log("DATES DATA", dates_data)
+
     const this_week_range = getWeekStartEnd(today);
+    const start_date = start ? new Date(start) : min_rejected_date ? min_rejected_date : max_finalized_date || this_week_range.week_start;
+    const end_date = end ? new Date(end) : endOfWeek(start_date, { weekStartsOn: 1 });
 
-
-    if (!!start) {
-        start_date = new Date(start);
-    } else if (!!min_rejected_date) {
-        const { week_start, week_end } = first_rejection_range
-        start_date = week_start;
-        end_date = week_end;
-    } else if (!!max_finalized_date) {
-        const { week_start, week_end } = max_finalized_range
-        start_date = week_start;
-        end_date = week_end;
-    } else {
-        const { week_start, week_end } = this_week_range
-        start_date = week_start;
-        end_date = week_end;
-    }
-
-    // If end is not provided, use the determined week end
-    if (!end) {
-        end_date = end_date ?? endOfWeek(start_date, { weekStartsOn: 1 });
-    } else {
-        end_date = new Date(end);
-    }
-
-    // Redirect with computed start and end if not provided in the query string
     if (!start || !end) {
         const redirectUrl = new URL("http://localhost:3000/employee/timesheet");
-        redirectUrl.searchParams.set("start", formatDate(start_date, "YYYY-MM-DD"));
-        redirectUrl.searchParams.set("end", formatDate(end_date, "YYYY-MM-DD"));
+        redirectUrl.searchParams.set("start", formatDate(start_date));
+        redirectUrl.searchParams.set("end", formatDate(end_date));
         redirect(redirectUrl.toString());
     }
 
@@ -77,74 +59,9 @@ async function TimeSheetPage({ searchParams }) {
         initiatorId
     );
 
-    const getWeekStatus = (start, end, timesheet_data) => {
-        const days = eachDayOfInterval({ start, end });
+    const allowed_range = determineAllowedRange(min_rejected_date, max_finalized_date, is_week_finalized);
 
-        // Function to determine if a specific day is finalized
-        const isDayFinalized = (date) => {
-            const formattedDate = format(date, 'yyyy-MM-dd');
-
-            // Check if the date is a non-working day
-            const nonWorkingDay = timesheet_data.non_working.find(nwd => nwd.date === formattedDate);
-            if (nonWorkingDay) return true;
-
-            // Check the status in the project and development timesheets
-            let isFinalized = false;
-
-            timesheet_data.project_timesheet.forEach((project) => {
-                project.phases.forEach((phase) => {
-                    phase.assignments.forEach((assignment) => {
-                        if (assignment.work_day === formattedDate) {
-                            if (["Pending", "Approved", "Non Working"].includes(assignment.status)) {
-                                isFinalized = true;
-                            }
-                        }
-                    });
-                });
-            });
-
-            timesheet_data.development_timesheet.forEach((development) => {
-                if (development.work_day === formattedDate) {
-                    if (["Pending", "Approved", "Non Working"].includes(development.status)) {
-                        isFinalized = true;
-                    }
-                }
-            });
-
-            return isFinalized;
-        };
-
-        // Loop through each day and check if it's finalized
-        for (const day of days) {
-            if (!isDayFinalized(day)) {
-                return false; // If any day is not finalized, return false
-            }
-        }
-
-        return true; // If all days are finalized, return true
-    }
-
-    const isWeekFinalized = getWeekStatus(start_date, end_date, timesheet_data);
-
-
-    if (!!min_rejected_date || !!max_finalized_date) {
-        if (!isWeekFinalized) {
-            allowed_range = { start_date, end_date };
-        } else {
-            // Get the start and end for the week right after the current start_date and end_date
-            const next_week_start_date = new Date(start_date);
-            next_week_start_date.setDate(start_date.getDate() + 7); // Push the start date by one week
-            const next_week_range = getWeekStartEnd(next_week_start_date);
-    
-            // Update the allowed_range to the start and end of the next week
-            allowed_range = next_week_range;
-        }
-    }
-    
-    
-
-
-    console.log("ALLOWED RANGE", allowed_range)
+    const isWeekFinalized = determineWeekStatus(start_date, end_date, timesheet_data);
 
     return (
         <div className="space-y-4">
@@ -154,7 +71,7 @@ async function TimeSheetPage({ searchParams }) {
             <div className="flex w-full gap-4 h-fit select-none mob:flex-col mob:items-center tab:flex-col tab:items-center">
                 <div className="flex gap-x-4">
                     <RangePickerCalendar
-                        maxDate={end_of_current_week}
+                        maxDate={endOfWeek(today, { weekStartsOn: 1 })}
                         start={start_date}
                         isWeekFinalized={isWeekFinalized}
                         appendToQS
@@ -168,6 +85,29 @@ async function TimeSheetPage({ searchParams }) {
             </div>
         </div>
     );
+}
+
+function determineWeekStatus(start, end, timesheet_data) {
+    const days = eachDayOfInterval({ start, end });
+
+    const isDayFinalized = (date) => {
+        const formattedDate = format(date, 'yyyy-MM-dd');
+
+        const nonWorkingDay = timesheet_data.non_working.find(nwd => nwd.date === formattedDate);
+        if (nonWorkingDay) return true;
+
+        return timesheet_data.project_timesheet.some(project =>
+            project.phases.some(phase =>
+                phase.assignments.some(assignment =>
+                    assignment.work_day === formattedDate && ["Pending", "Approved", "Non Working"].includes(assignment.status)
+                )
+            )
+        ) || timesheet_data.development_timesheet.some(development =>
+            development.work_day === formattedDate && ["Pending", "Approved", "Non Working"].includes(development.status)
+        );
+    };
+
+    return days.every(isDayFinalized);
 }
 
 export default TimeSheetPage;

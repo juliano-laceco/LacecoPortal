@@ -2,7 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { isBefore, isToday } from "date-fns";
 
-function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, removeNonWorkingDay }) {
+function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, removeNonWorkingDay, allowed_range }) {
     const today = new Date();
 
     return (
@@ -27,6 +27,11 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
 
                     const dayDate = new Date(day.fullDate);
                     const isPastOrToday = isBefore(dayDate, today) || isToday(dayDate);
+
+                    // Determine if the day is within the allowed range
+                    const isWithinAllowedRange = allowed_range && allowed_range.week_start && allowed_range.week_end
+                        ? dayDate >= new Date(allowed_range.week_start) && dayDate <= new Date(allowed_range.week_end)
+                        : true;
 
                     switch (status) {
                         case "Rejected":
@@ -56,12 +61,15 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                             );
                             break;
                         default:
-                            statusClass = !has_data && isPastOrToday ? "bg-pric border border-red-500 text-white hover:bg-pri-hovc duration-200 ease" : "";
+                            const isButtonDisabled = !isPastOrToday || !isWithinAllowedRange;
+                            statusClass = `bg-pric border border-red-500 text-white ${isButtonDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-pri-hovc duration-200 ease"}`;
 
                             statusText = (
-                                !has_data && isPastOrToday ? 
+                                !has_data && isPastOrToday ?
                                     <button
                                         onClick={() => addNonWorkingDay(day.fullDate)}
+                                        disabled={isButtonDisabled}
+                                        className="h-full w-full"
                                     >
                                         Set OFF
                                     </button>
@@ -76,12 +84,14 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                     return (
                         <div
                             key={i}
-                            className="text-center border-t flex-1 flex flex-col justify-center items-center relative group mob:p-1 tablet:p-1"
+                            className={`text-center border-t flex-1 flex flex-col justify-center items-center relative group mob:p-1 tablet:p-1 ${!statusText ? "p-0 border-t" : ""}`}
                         >
                             <>
-                                <div className={`rounded-md font-normal px-2 py-1 w-[95%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
-                                    {statusText}
-                                </div>
+                                {statusText && (
+                                    <div className={`rounded-md font-normal px-2 py-1 w-[95%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
+                                        {statusText}
+                                    </div>
+                                )}
                                 {!!rejectionReason && rejectionReason !== "" && (
                                     <div
                                         className="absolute bottom-0 h-0 flex justify-center items-center w-full transform bg-red-200 border border-gray-200 p-1 text-[12px] font-normal shadow-lg opacity-0 transition-all duration-200 ease-in-out cursor-pointer text-red-500 lap:group-hover:opacity-100 lap:group-hover:h-full lap:group-hover:translate-y-0 desk:group-hover:opacity-100 desk:group-hover:h-full desk:group-hover:translate-y-0 mob:hidden tablet:hidden"
@@ -90,7 +100,7 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                                         Show Reason
                                     </div>
                                 )}
-                                <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%] text-center text-xs ${statusClass} desk:hidden lap:hidden`} onClick={() => (!!rejectionReason && rejectionReason !== "") ? openModal(rejectionReason, "Rejection Reason") : null}>
+                                <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%] text-center text-xs ${statusClass} desk:hidden lap:hidden ${!statusText ? "p-0 border-none" : ""}`} onClick={() => (!!rejectionReason && rejectionReason !== "") ? openModal(rejectionReason, "Rejection Reason") : null}>
                                     {!!statusImg && <Image height="20" width="20" src={`/resources/icons/${statusImg}`} alt="status-icon" />}
                                     {!statusImg && statusText}
                                 </div>

@@ -18,7 +18,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { showToast } from "@/utilities/toast-utils"
 
 
-function TimeSheet({ timesheet_data, start , allowed_range }) {
+function TimeSheet({ timesheet_data, start, allowed_range }) {
 
     const [projectTimeSheet, setProjectTimeSheet] = useState(timesheet_data?.project_timesheet ?? []);
     const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data?.development_timesheet ?? []);
@@ -118,7 +118,7 @@ function TimeSheet({ timesheet_data, start , allowed_range }) {
                     work_day: date,
                     display_date: date,
                     hours_worked: updatedValue,
-                    status: "Submitted", // Default status for new entries
+                    status: "Awaiting Submission", // Default status for new entries
                     rejection_reason: null,
                     type // Set any default or null type
                 });
@@ -145,7 +145,9 @@ function TimeSheet({ timesheet_data, start , allowed_range }) {
                     employee_work_day_id: crypto.randomUUID(),
                     work_day: date,
                     display_date: format(new Date(date), 'dd MMMM yyyy'),
-                    hours_worked: updatedValue
+                    hours_worked: updatedValue,
+                    status: "Awaiting Submission",  // Default status for new entries
+                    rejection_reason: null,
                 });
             }
 
@@ -231,7 +233,6 @@ function TimeSheet({ timesheet_data, start , allowed_range }) {
 
         return { status, rejectionReason, has_data: hasData };
     };
-
 
 
     const addNonWorkingDay = (date) => {
@@ -582,6 +583,7 @@ function TimeSheet({ timesheet_data, start , allowed_range }) {
                 openModal={openModal}
                 addNonWorkingDay={addNonWorkingDay}
                 removeNonWorkingDay={removeNonWorkingDay}
+                allowed_range={allowed_range}
             />
             <TimeSheetFooter
                 weekDays={weekDays}
