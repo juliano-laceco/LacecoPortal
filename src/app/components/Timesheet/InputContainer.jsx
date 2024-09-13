@@ -26,8 +26,8 @@ function InputContainer({ day, assignment, handleInputChange, projectIndex, phas
 
     // Determine if the input should be disabled based on the status and whether it's within the allowed range
     const shouldDisableInput =
-        dayStatus !== "Rejected" &&
-        (!isDateEnabled || !isActive || dayStatus === "Approved" || dayStatus === "Pending" || dayStatus === "Non Working" || dayStatus === "New Non Working");
+        (dayStatus !== "Rejected") &&
+        (!isDateEnabled || (!isDevelopment && !isActive) || dayStatus === "Approved" || dayStatus === "Pending" || dayStatus === "Non Working" || dayStatus === "New Non Working");
 
     const handleChange = (e) => {
         const { value } = e.target;

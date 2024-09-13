@@ -11,10 +11,10 @@ import { development_options } from "@/data/static/development-options"
 import Button from "../custom/Other/Button"
 import DropdownRegular from "../custom/Dropdowns/DropdownRegular"
 import Image from "next/image"
-import { isUUID } from "../sheet/SheetUtils"
+import { isUUID } from "../Sheet/SheetUtils"
 import { saveTimeSheet } from "@/utilities/timesheet/timesheet-utils"
 import Modal from "../custom/Modals/Modal"
-import { usePathname, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { showToast } from "@/utilities/toast-utils"
 
 
@@ -57,13 +57,13 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
     const [modal, setModal] = useState(null);
 
     useEffect(() => {
-        // console.log("PROJECT SHEET", projectTimeSheet)
+        console.log("PROJECT SHEET", projectTimeSheet)
         setWeekDays(weekDays)
     }, [projectTimeSheet])
 
 
     useEffect(() => {
-        // console.log("DEVELOPMENT SHEET", developmentTimeSheet)
+        console.log("DEVELOPMENT SHEET", developmentTimeSheet)
     }, [developmentTimeSheet])
 
     useEffect(() => {
@@ -198,6 +198,8 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                 status = "Non Working";
             }
         } else {
+
+
             projectTimeSheet.forEach((project) => {
                 project.phases.forEach((phase) => {
                     phase.assignments.forEach((assignment) => {
@@ -215,7 +217,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     });
                 });
             });
-
+            
             developmentTimeSheet.forEach((development) => {
                 if (development.work_day === date) {
                     hasData = true; // We have data in the development timesheet
@@ -229,6 +231,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     }
                 }
             });
+
         }
 
         return { status, rejectionReason, has_data: hasData };
@@ -289,7 +292,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     work_day: null, // This will be filled later by the user
                     display_date: null,
                     hours_worked: 0,
-                    status: "Submitted",
+                    status: "Awaiting Submission",
                     rejection_reason: null,
                     type: selectedType
                 }
@@ -494,42 +497,24 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
 
     // Main function to sanitize all data
     const submitTimeSheet = async () => {
+
         const sanitizedDevelopmentData = sanitizeDevelopmentData();
         const sanitizedProjectData = sanitizeProjects();
 
-        const unactionedDays = weekDays.filter(day => {
-            const dayStatus = getStatusForDay(day.fullDate);
-            const isWithinAllowedRange = allowed_range && allowed_range.week_start && allowed_range.week_end
-                ? new Date(day.fullDate) >= new Date(allowed_range.week_start) && new Date(day.fullDate) <= new Date(allowed_range.week_end)
-                : true;
-
-            return isWithinAllowedRange && !dayStatus.status;
-        });
-
-        if (unactionedDays.length > 0) {
-            openModal(
-                <>
-                    <div>Please ensure all days within the allowed range are actioned or contain data.</div>
-                    <div>Days without action: {unactionedDays.map(day => day.fullDate).join(', ')}</div>
-                </>,
-                "Unactioned Days"
-            );
-            return; // Exit the function without saving if there are unactioned days
-        }
-
         try {
+
             await saveTimeSheet({
                 project_timesheet: sanitizedProjectData,
                 development_timesheet: sanitizedDevelopmentData,
                 non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id))
-            });
 
-            showToast("success", "Successfully updated timesheet");
+            })
+
+            showToast("success", "Successfully updated timesheet")
         } catch (error) {
-            showToast("failed", "Error occurred while saving timesheet");
+            showToast("failed", "Error occured while saving timesheet")
         }
     };
-
 
     return (
         <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
@@ -625,7 +610,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                 variant="primary"
                 name="Save"
                 onClick={() => openModal(null, "Confirm Save")}
-              
+
             />
             {modal}
         </div>

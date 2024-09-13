@@ -3,7 +3,7 @@ import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
 import Image from "next/image";
 
-function DevelopmentSection({ development_items, weekDays, handleInputChange, getStatusForDay, type, openModal, initialDevelopmentTypes, setIsEdited }) {
+function DevelopmentSection({ development_items, weekDays, handleInputChange, getStatusForDay, type, openModal, initialDevelopmentTypes, setIsEdited, allowed_range }) {
     const screenSize = useScreenSize();
 
     useEffect(() => {
@@ -85,6 +85,7 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
                         {weekDays.map((day, i) => {
                             const assignment = development_items.find(item => item.work_day === day.fullDate);
                             const { status } = getStatusForDay(day.fullDate);
+                            console.log(status)
 
                             return (
                                 <InputContainer
@@ -98,6 +99,7 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
                                     dayStatus={status}
                                     isDevelopment={true}
                                     developmentId={!!assignment ? assignment.development_hour_day_id : null}
+                                    allowed_range={allowed_range}
                                 />
                             );
                         })}

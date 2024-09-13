@@ -1,6 +1,6 @@
 "use server"
 
-import { isUUID } from "@/app/components/sheet/SheetUtils";
+import { isUUID } from "@/app/components/Sheet/SheetUtils"; 
 import { getLoggedInId } from "../auth/auth-utils";
 import { commitTransaction, execute, executeTrans, rollbackTransaction, startTransaction } from "../db/db-utils";
 import { logError } from "../misc-utils";
@@ -273,7 +273,7 @@ export async function getEmployeeAssignments(start, end, employee_id) {
 
         //  ------------------ Non Working Days ------------------------------------ //
         const nonWorkingQuery = `
-         SELECT non_working_day_id , DATE_FORMAT(date, '%Y-%m-%d') AS date
+         SELECT non_working_day_id , DATE_FORMAT(date, '%Y-%m-%d') AS date , status , rejection_reason
          FROM non_working_day
          WHERE employee_id = ?
          AND date BETWEEN ? and ?
@@ -307,6 +307,7 @@ export async function saveTimeSheet(timesheet_data) {
     let transaction;
 
     console.log(timesheet_data.non_working)
+    
     try {
         transaction = await startTransaction()
 
