@@ -61,6 +61,10 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
         setWeekDays(weekDays)
     }, [projectTimeSheet])
 
+    useEffect(() => {
+        console.log("NON WORKING DAYS", nonWorkingDays)
+    }, [nonWorkingDays])
+
 
     useEffect(() => {
         console.log("DEVELOPMENT SHEET", developmentTimeSheet)
@@ -91,10 +95,76 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
     }, [start]);
 
 
+    const getStatusForDay = (date) => {
+        let status = null;
+        let rejectionReason = null;
+        let hasData = false;
+
+        // Check if the date is a non-working day with a non_working_day_id (UUID)
+        const nonWorkingDay = nonWorkingDays.find(nwd => nwd.date == date);
+
+        if (nonWorkingDay && (isUUID(nonWorkingDay.non_working_day_id) || nonWorkingDay.newNonWorking)) {
+            // Priority: New Non Working
+            status = "New Non Working";
+            return { status, rejectionReason, has_data: hasData };
+        }
+
+        // Process project timesheets
+        projectTimeSheet.forEach((project) => {
+            project.phases.forEach((phase) => {
+                phase.assignments.forEach((assignment) => {
+                    if (assignment.work_day === date) {
+                        (assignment.hours_worked != "") && (hasData = true) // We have data in the project timesheet
+                        if (assignment.status === "Rejected") {
+                            status = "Rejected";
+                            rejectionReason = assignment.rejection_reason;
+                        } else if (assignment.status === "Pending" && status !== "Rejected") {
+                            status = "Pending";
+                        } else if (!status) {
+                            status = assignment.status;
+                        }
+                    }
+                });
+            });
+        });
+
+        // Process development timesheets
+        developmentTimeSheet.forEach((development) => {
+            if (development.work_day === date) {
+                hasData = true; // We have data in the development timesheet
+                if (development.status === "Rejected") {
+                    status = "Rejected";
+                    rejectionReason = development.rejection_reason;
+                } else if (development.status === "Pending" && status !== "Rejected") {
+                    status = "Pending";
+                } else if (!status) {
+                    status = development.status;
+                }
+            }
+        });
+
+        // Process non-working days
+        nonWorkingDays.forEach((nwd) => {
+            if (nwd.date === date) {
+                if (nwd.status === "Rejected") {
+                    status = "Rejected";
+                    rejectionReason = nwd.rejection_reason;
+                } else if (nwd.status === "Pending" && status !== "Rejected") {
+                    status = "Pending";
+                } else if (!status) {
+                    status = nwd.status;
+                }
+            }
+        });
+
+        return { status, rejectionReason, has_data: hasData };
+    };
+
 
     const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null, type = null) => {
         const { value } = e.target;
         const updatedValue = value ? parseFloat(value) : ""; // Set to "" if value is empty
+        const { status } = getStatusForDay(date)
 
         if (isDevelopment) {
             let newDevelopmentTimesheet = developmentTimeSheet.map(item => {
@@ -118,7 +188,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     work_day: date,
                     display_date: date,
                     hours_worked: updatedValue,
-                    status: "Awaiting Submission", // Default status for new entries
+                    status: status, // Default status for new entries
                     rejection_reason: null,
                     type // Set any default or null type
                 });
@@ -146,7 +216,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     work_day: date,
                     display_date: format(new Date(date), 'dd MMMM yyyy'),
                     hours_worked: updatedValue,
-                    status: "Awaiting Submission",  // Default status for new entries
+                    status: status,  // Default status for new entries
                     rejection_reason: null,
                 });
             }
@@ -183,71 +253,18 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
         );
     };
 
-    const getStatusForDay = (date) => {
-        let status = null;
-        let rejectionReason = null;
-        let hasData = false;
-
-        // Check if the date is a non-working day
-        const nonWorkingDay = nonWorkingDays.find(nwd => nwd.date === date);
-
-        if (nonWorkingDay) {
-            if (isUUID(nonWorkingDay.non_working_day_id)) {
-                status = "New Non Working";
-            } else {
-                status = "Non Working";
-            }
-        } else {
-
-
-            projectTimeSheet.forEach((project) => {
-                project.phases.forEach((phase) => {
-                    phase.assignments.forEach((assignment) => {
-                        if (assignment.work_day === date) {
-                            hasData = true; // We have data in the project timesheet
-                            if (assignment.status === "Rejected") {
-                                status = "Rejected";
-                                rejectionReason = assignment.rejection_reason;
-                            } else if (assignment.status === "Pending" && status !== "Rejected") {
-                                status = "Pending";
-                            } else if (!status) {
-                                status = assignment.status;
-                            }
-                        }
-                    });
-                });
-            });
-            
-            developmentTimeSheet.forEach((development) => {
-                if (development.work_day === date) {
-                    hasData = true; // We have data in the development timesheet
-                    if (development.status === "Rejected") {
-                        status = "Rejected";
-                        rejectionReason = development.rejection_reason;
-                    } else if (development.status === "Pending" && status !== "Rejected") {
-                        status = "Pending";
-                    } else if (!status) {
-                        status = development.status;
-                    }
-                }
-            });
-
-        }
-
-        return { status, rejectionReason, has_data: hasData };
-    };
 
 
     const addNonWorkingDay = (date) => {
         // Check if there is any project data on this day
         const hasProjectData = projectTimeSheet.some(project =>
             project.phases.some(phase =>
-                phase.assignments.some(assignment => assignment.work_day === date)
+                phase.assignments.some(assignment => assignment.work_day === date && assignment.hours_worked != "")
             )
         );
 
         // Check if there is any development data on this day
-        const hasDevelopmentData = developmentTimeSheet.some(development => development.work_day === date);
+        const hasDevelopmentData = developmentTimeSheet.some(development => development.work_day === date && assignment.hours_worked != "");
 
         if (hasProjectData || hasDevelopmentData) {
             // If there is data, do not allow adding the non-working day and show an alert or modal
@@ -255,19 +272,55 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                 <>
                     <div>Cannot add non-working day while having hours filled.</div>
                     <div> Date : <span className="font-bold">{date}</span></div>
-                </>
-                , "Addition Error");
+                </>,
+                "Addition Error"
+            );
         } else {
-            // If no data, proceed with adding the non-working day
-            let newDay = { non_working_day_id: crypto.randomUUID(), date };
-            setNonWorkingDays((prev) => [...prev, newDay]);
+            // Check if the date already exists in nonWorkingDays
+            const existingIndex = nonWorkingDays.findIndex(nwd => nwd.date === date);
+
+            if (existingIndex !== -1) {
+                // Date exists, add 'newNonWorking = true' to the existing record
+                setNonWorkingDays(prev => {
+                    const updatedDays = [...prev];
+                    updatedDays[existingIndex] = {
+                        ...updatedDays[existingIndex],
+                        newNonWorking: true
+                    };
+                    return updatedDays;
+                });
+            } else {
+                // If no data, proceed with adding the non-working day
+                let newDay = {
+                    non_working_day_id: crypto.randomUUID(),
+                    date,
+                    status: "New Non Working",
+                };
+                setNonWorkingDays(prev => [...prev, newDay]);
+            }
         }
     };
 
 
+
     const removeNonWorkingDay = (date) => {
-        setNonWorkingDays((prev) => prev.filter((day) => day.date != date))
-    }
+        setNonWorkingDays((prev) => {
+            return prev.reduce((acc, day) => {
+                if (day.date === date) {
+                    if (day.newNonWorking) {
+                        // Remove the 'newNonWorking' property
+                        const { newNonWorking, ...rest } = day;
+                        acc.push(rest);
+                    }
+                    // Else, do not add the day to the accumulator (effectively removing it)
+                } else {
+                    acc.push(day);
+                }
+                return acc;
+            }, []);
+        });
+    };
+
 
     // Function to organize timesheet data by type
     const organizeTimesheetByType = (timesheet) => {
@@ -500,15 +553,23 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
 
         const sanitizedDevelopmentData = sanitizeDevelopmentData();
         const sanitizedProjectData = sanitizeProjects();
+        console.log({
+            project_timesheet: sanitizedProjectData,
+            development_timesheet: sanitizedDevelopmentData,
+            non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id))
+
+        })
 
         try {
 
             await saveTimeSheet({
                 project_timesheet: sanitizedProjectData,
                 development_timesheet: sanitizedDevelopmentData,
-                non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id))
+                non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id) || day.newNonWorking)
 
             })
+
+
 
             showToast("success", "Successfully updated timesheet")
         } catch (error) {

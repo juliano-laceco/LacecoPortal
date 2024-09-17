@@ -120,7 +120,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                                         {weekDays.map((day, i) => {
                                             const assignment = assignments.find(assignment => assignment.work_day === day.fullDate);
                                             const { status } = getStatusForDay(day.fullDate);
-                                            console.log(status)
+                                        
                                             return (
                                                 <InputContainer
                                                     key={i}

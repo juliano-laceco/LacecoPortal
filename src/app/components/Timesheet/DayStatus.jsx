@@ -20,7 +20,6 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
             <div className="flex flex-1 w-full">
                 {weekDays.map((day, i) => {
                     const { status, rejectionReason, has_data } = getStatusForDay(day.fullDate);
-
                     let statusClass;
                     let statusText;
                     let statusImg;
@@ -32,6 +31,7 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                     const isWithinAllowedRange = allowed_range && allowed_range.week_start && allowed_range.week_end
                         ? dayDate >= new Date(allowed_range.week_start) && dayDate <= new Date(allowed_range.week_end)
                         : true;
+                    const isButtonDisabled = !isPastOrToday || !isWithinAllowedRange;
 
                     switch (status) {
                         case "Rejected":
@@ -61,7 +61,6 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                             );
                             break;
                         default:
-                            const isButtonDisabled = !isPastOrToday || !isWithinAllowedRange;
                             statusClass = `bg-pric border border-red-500 text-white ${isButtonDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-pri-hovc duration-200 ease"}`;
 
                             statusText = (
@@ -82,29 +81,40 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                     statusImg = statusText && typeof statusText === 'string' ? statusText.toLowerCase() + "-icon.svg" : null;
 
                     return (
-                        <div
-                            key={i}
-                            className={`text-center border-t flex-1 flex flex-col justify-center items-center relative group mob:p-1 tablet:p-1 ${!statusText ? "p-0 border-t" : ""}`}
-                        >
-                            <>
-                                {statusText && (
-                                    <div className={`rounded-md font-normal px-2 py-1 w-[95%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
-                                        {statusText}
+                        <div className="w-full">
+
+                            <div
+                                key={i}
+                                className={`text-center border-t flex-1 flex flex-col justify-center items-center relative group mob:p-1 tablet:p-1 ${!statusText ? "p-0 border-t" : ""}`}
+                            >
+                                <>
+                                    {statusText && (
+                                        <div className={`rounded-md font-normal px-2 py-1 w-[95%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
+                                            {statusText}
+                                        </div>
+                                    )}
+                                    {!!rejectionReason && rejectionReason !== "" && (
+                                        <div
+                                            className="absolute bottom-0 h-0 flex justify-center items-center w-full transform bg-red-200 border border-gray-200 p-1 text-[12px] font-normal shadow-lg opacity-0 transition-all duration-200 ease-in-out cursor-pointer text-red-500 lap:group-hover:opacity-100 lap:group-hover:h-full lap:group-hover:translate-y-0 desk:group-hover:opacity-100 desk:group-hover:h-full desk:group-hover:translate-y-0 mob:hidden tablet:hidden"
+                                            onClick={() => openModal(rejectionReason, "Rejection Reason")}
+                                        >
+                                            Reason
+                                        </div>
+                                    )}
+                                    <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%] text-center text-xs ${statusClass} desk:hidden lap:hidden ${!statusText ? "p-0 border-none" : ""}`} onClick={() => (!!rejectionReason && rejectionReason !== "") ? openModal(rejectionReason, "Rejection Reason") : null}>
+                                        {!!statusImg && <Image height="20" width="20" src={`/resources/icons/${statusImg}`} alt="status-icon" />}
+                                        {!statusImg && statusText}
                                     </div>
-                                )}
-                                {!!rejectionReason && rejectionReason !== "" && (
-                                    <div
-                                        className="absolute bottom-0 h-0 flex justify-center items-center w-full transform bg-red-200 border border-gray-200 p-1 text-[12px] font-normal shadow-lg opacity-0 transition-all duration-200 ease-in-out cursor-pointer text-red-500 lap:group-hover:opacity-100 lap:group-hover:h-full lap:group-hover:translate-y-0 desk:group-hover:opacity-100 desk:group-hover:h-full desk:group-hover:translate-y-0 mob:hidden tablet:hidden"
-                                        onClick={() => openModal(rejectionReason, "Rejection Reason")}
-                                    >
-                                        Show Reason
-                                    </div>
-                                )}
-                                <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%] text-center text-xs ${statusClass} desk:hidden lap:hidden ${!statusText ? "p-0 border-none" : ""}`} onClick={() => (!!rejectionReason && rejectionReason !== "") ? openModal(rejectionReason, "Rejection Reason") : null}>
-                                    {!!statusImg && <Image height="20" width="20" src={`/resources/icons/${statusImg}`} alt="status-icon" />}
-                                    {!statusImg && statusText}
-                                </div>
-                            </>
+                                </>
+                            </div>
+                            {status === "Rejected" && !has_data && <button
+                                onClick={() => addNonWorkingDay(day.fullDate)}
+                                disabled={isButtonDisabled}
+                                className="w-full text-xs"
+                            >
+                                Set OFF
+                            </button>
+                            }
                         </div>
                     );
                 })}

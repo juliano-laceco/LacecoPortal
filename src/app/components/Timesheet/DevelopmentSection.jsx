@@ -85,8 +85,7 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
                         {weekDays.map((day, i) => {
                             const assignment = development_items.find(item => item.work_day === day.fullDate);
                             const { status } = getStatusForDay(day.fullDate);
-                            console.log(status)
-
+                           
                             return (
                                 <InputContainer
                                     key={`${type}-${i}`}
