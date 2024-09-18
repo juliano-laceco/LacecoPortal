@@ -11,14 +11,14 @@ import { development_options } from "@/data/static/development-options"
 import Button from "../custom/Other/Button"
 import DropdownRegular from "../custom/Dropdowns/DropdownRegular"
 import Image from "next/image"
-import { isUUID } from "../Sheet/SheetUtils"
+import { isUUID } from "../sheet/SheetUtils"
 import { saveTimeSheet } from "@/utilities/timesheet/timesheet-utils"
 import Modal from "../custom/Modals/Modal"
 import { useRouter } from "next/navigation"
 import { showToast } from "@/utilities/toast-utils"
 
 
-function TimeSheet({ timesheet_data, start, allowed_range }) {
+function TimeSheet({ timesheet_data, start, end, allowed_range }) {
 
     const [projectTimeSheet, setProjectTimeSheet] = useState(timesheet_data?.project_timesheet ?? []);
     const [developmentTimeSheet, setDevelopmentTimeSheet] = useState(timesheet_data?.development_timesheet ?? []);
@@ -57,27 +57,22 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
     const [modal, setModal] = useState(null);
 
     useEffect(() => {
-        console.log("PROJECT SHEET", projectTimeSheet)
+        //console.log("PROJECT SHEET", projectTimeSheet)
         setWeekDays(weekDays)
     }, [projectTimeSheet])
 
     useEffect(() => {
-        console.log("NON WORKING DAYS", nonWorkingDays)
+        // console.log("NON WORKING DAYS", nonWorkingDays)
     }, [nonWorkingDays])
 
-
     useEffect(() => {
-        console.log("DEVELOPMENT SHEET", developmentTimeSheet)
+        //  console.log("DEVELOPMENT SHEET", developmentTimeSheet)
     }, [developmentTimeSheet])
 
     useEffect(() => {
         const types = Object.keys(organizeTimesheetByType(developmentTimeSheet, development_options))
         setInitialDevelopmentTypes(types)
     }, [])
-
-    useEffect(() => {
-        !edited && setEdited(true)
-    }, [projectTimeSheet, developmentTimeSheet])
 
     // Sync the internal state with the props whenever timesheet_data changes
     useEffect(() => {
@@ -131,7 +126,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
         // Process development timesheets
         developmentTimeSheet.forEach((development) => {
             if (development.work_day === date) {
-                hasData = true; // We have data in the development timesheet
+                (development.hours_worked != "") && (hasData = true)
                 if (development.status === "Rejected") {
                     status = "Rejected";
                     rejectionReason = development.rejection_reason;
@@ -160,11 +155,14 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
         return { status, rejectionReason, has_data: hasData };
     };
 
+    const setIsEdited = () => {
+        !edited && setEdited(true)
+    }
 
     const handleInputChange = (e, projectIndex, phaseIndex, date, isDevelopment = false, developmentId = null, type = null) => {
         const { value } = e.target;
         const updatedValue = value ? parseFloat(value) : ""; // Set to "" if value is empty
-        const { status } = getStatusForDay(date)
+        const { status } = getStatusForDay(date);
 
         if (isDevelopment) {
             let newDevelopmentTimesheet = developmentTimeSheet.map(item => {
@@ -173,9 +171,14 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     if (!updatedValue && developmentId && isUUID(developmentId)) {
                         return null;
                     }
+                    // Check if the updated value is different from the previous one
+                    if (item.hours_worked !== updatedValue) {
+                        setEdited(true); // Call setIsEdited if the value has changed
+                    }
                     return {
                         ...item,
                         hours_worked: updatedValue,
+                        status: status
                     };
                 }
                 return item;
@@ -192,6 +195,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     rejection_reason: null,
                     type // Set any default or null type
                 });
+                setEdited(true); // Set edited if a new entry is added
             }
 
             setDevelopmentTimeSheet(newDevelopmentTimesheet);
@@ -202,10 +206,15 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
             );
 
             if (assignmentIndex !== -1) {
+                const currentAssignment = newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex];
                 // If the input is empty and it's a UUID, remove the record
-                if (!updatedValue && isUUID(newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].employee_work_day_id)) {
+                if (!updatedValue && isUUID(currentAssignment.employee_work_day_id)) {
                     newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.splice(assignmentIndex, 1);
                 } else {
+                    // Check if the updated value is different from the previous one
+                    if (currentAssignment.hours_worked !== updatedValue) {
+                        setEdited(true); // Call setIsEdited if the value has changed
+                    }
                     // If assignment exists, update the hours worked
                     newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].hours_worked = updatedValue;
                 }
@@ -219,11 +228,13 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                     status: status,  // Default status for new entries
                     rejection_reason: null,
                 });
+                setEdited(true); // Set edited if a new entry is added
             }
 
             setProjectTimeSheet(newProjectTimeSheet);
         }
     };
+
 
     const calculateTotalHours = (date) => {
         const projectHours = projectTimeSheet.reduce((total, project) => {
@@ -253,9 +264,10 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
         );
     };
 
-
-
     const addNonWorkingDay = (date) => {
+
+        setIsEdited()
+
         // Check if there is any project data on this day
         const hasProjectData = projectTimeSheet.some(project =>
             project.phases.some(phase =>
@@ -264,7 +276,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
         );
 
         // Check if there is any development data on this day
-        const hasDevelopmentData = developmentTimeSheet.some(development => development.work_day === date && assignment.hours_worked != "");
+        const hasDevelopmentData = developmentTimeSheet.some(development => development.work_day === date && development.hours_worked != "");
 
         if (hasProjectData || hasDevelopmentData) {
             // If there is data, do not allow adding the non-working day and show an alert or modal
@@ -301,9 +313,8 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
         }
     };
 
-
-
     const removeNonWorkingDay = (date) => {
+        setIsEdited()
         setNonWorkingDays((prev) => {
             return prev.reduce((acc, day) => {
                 if (day.date === date) {
@@ -320,7 +331,6 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
             }, []);
         });
     };
-
 
     // Function to organize timesheet data by type
     const organizeTimesheetByType = (timesheet) => {
@@ -370,11 +380,6 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
     // Function to sanitize development data
     const sanitizeDevelopmentData = () => {
         return developmentTimeSheet.filter((developmentItem) => {
-            if (!isUUID(developmentItem.development_hour_day_id)) {
-                // Include if hours_worked is different from initial_hours_worked
-                return developmentItem.hours_worked !== developmentItem.initial_hours_worked;
-            }
-            // Keep if display_date is not null
             return developmentItem.display_date != null;
         });
     };
@@ -382,11 +387,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
     // Function to sanitize assignments
     const sanitizeAssignments = (assignments) => {
         return assignments.filter((assignment) => {
-            if (!isUUID(assignment.employee_work_day_id)) {
-                // Include if hours_worked is different from initial_hours_worked
-                return assignment.hours_worked !== assignment.initial_hours_worked;
-            }
-            return true; // Exclude if not a UUID
+            return true;
         });
     };
 
@@ -439,7 +440,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                 </div>
             </div>
             <div className="flex justify-center gap-4 mb-4 mt-5">
-                {buttons.map((button, index) => (
+                {buttons.map((button) => (
                     <Button
                         key={crypto.randomUUID()}
                         {...button}
@@ -553,12 +554,6 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
 
         const sanitizedDevelopmentData = sanitizeDevelopmentData();
         const sanitizedProjectData = sanitizeProjects();
-        console.log({
-            project_timesheet: sanitizedProjectData,
-            development_timesheet: sanitizedDevelopmentData,
-            non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id))
-
-        })
 
         try {
 
@@ -568,17 +563,54 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                 non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id) || day.newNonWorking)
 
             })
-
-
-
             showToast("success", "Successfully updated timesheet")
         } catch (error) {
             showToast("failed", "Error occured while saving timesheet")
         }
     };
 
+    const currentInAllowedRange = (startDate, endDate) => {
+        if (!allowed_range || !allowed_range.week_start || !allowed_range.week_end) {
+            // If allowed_range or its boundaries are not defined, assume it's within the range
+            return true;
+        }
+
+        const rangeStart = new Date(allowed_range.week_start);
+        const rangeEnd = new Date(allowed_range.week_end);
+
+        const isStartWithinRange = new Date(startDate) >= rangeStart && new Date(startDate) <= rangeEnd;
+        const isEndWithinRange = new Date(endDate) >= rangeStart && new Date(endDate) <= rangeEnd;
+
+        // Check if both start and end dates are within the allowed range
+        return isStartWithinRange && isEndWithinRange;
+    };
+
+    const countEnabledDays = () => {
+        const today = new Date();
+        let enabledDays = 0;
+
+        weekDays.forEach(day => {
+            const { status } = getStatusForDay(day.fullDate);
+            const dayDate = new Date(day.fullDate);
+
+            const isWithinAllowedRange = allowed_range && allowed_range.week_start && allowed_range.week_end
+                ? dayDate >= new Date(allowed_range.week_start) && dayDate <= today
+                : dayDate <= today; // Check only up to today
+
+            // A day is enabled if it's within the allowed range and its status is either null or Rejected
+            if (isWithinAllowedRange && (status === null || status === "Rejected")) {
+                enabledDays++;
+            }
+
+        });
+
+        return { enabledDays };
+    };
+
+    const { enabledDays } = countEnabledDays()
+
     return (
-        <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg">
+        <div className="w-fit mob:w-full tablet:w-full mob:space-y-7 tablet:space-y-7 lap:text-sm overflow-hidden desk:border lap:border rounded-lg flex flex-col">
             <h1 className="font-bold text-2xl mt-5 desk:hidden lap:hidden">Projects</h1>
             <TimeSheetHeader weekDays={weekDays} />
             {projectTimeSheet.map((project, projectIndex) => (
@@ -627,7 +659,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                                     handleDelete={deleteDevelopmentRow}
                                     initialDevelopmentTypes={initialDevelopmentTypes}
                                     openModal={openModal}
-                                    setEdited={setEdited}
+                                    setEdited={setIsEdited}
                                     allowed_range={allowed_range}
                                 />
                             ))}
@@ -636,7 +668,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
                                     <DropdownRegular
                                         options={availableTypesForNewRow}
                                         isSearchable={true}
-                                        isDisabled={false}
+                                        isDisabled={isSaving || !currentInAllowedRange(start, end) || enabledDays === 0}
                                         isLoading={false}
                                         onChange={(selectedOption) => setSelectedType(selectedOption.value)}
                                         value={selectedType}
@@ -644,7 +676,7 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
 
                                     <Button
                                         onClick={addNewDevelopmentRow}
-                                        isDisabled={isSaving}
+                                        isDisabled={isSaving || !currentInAllowedRange(start, end) || enabledDays === 0}
                                         variant="primary"
                                         name="Add"
                                     />
@@ -670,8 +702,9 @@ function TimeSheet({ timesheet_data, start, allowed_range }) {
             <Button
                 variant="primary"
                 name="Save"
+                className="self-center m-1"
+                isDisabled={isSaving || !currentInAllowedRange(start, end) || !edited}
                 onClick={() => openModal(null, "Confirm Save")}
-
             />
             {modal}
         </div>

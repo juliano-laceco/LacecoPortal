@@ -1,6 +1,6 @@
 "use server"
 
-import { isUUID } from "@/app/components/Sheet/SheetUtils";
+import { isUUID } from "@/app/components/sheet/SheetUtils";
 import { getLoggedInId } from "../auth/auth-utils";
 import { commitTransaction, execute, executeTrans, rollbackTransaction, startTransaction } from "../db/db-utils";
 import { logError } from "../misc-utils";
@@ -323,67 +323,82 @@ export async function getEmployeeAssignments(start, end, employee_id) {
 }
 
 export async function saveTimeSheet(timesheet_data) {
-
     let transaction;
-    let statusesChanged = false;
-    let clearedDates = []
+    let clearedDates = [];
 
     try {
-        transaction = await startTransaction()
+        transaction = await startTransaction();
 
-        const { project_timesheet, development_timesheet, non_working } = timesheet_data
-        const initiatorId = await getLoggedInId()
+        const { project_timesheet, development_timesheet, non_working } = timesheet_data;
 
+        // Check if data has changed for each rejected date
+        const changesPerRejectedDate = checkIfDataChangedPerRejectedDate(timesheet_data);
+
+        const initiatorId = await getLoggedInId();
+
+        // Loop through changesPerRejectedDate to remove non-working days if the data has changed for that day
+        for (const dateChangeInfo of changesPerRejectedDate) {
+            const date = Object.keys(dateChangeInfo)[0];
+            const hasChanged = dateChangeInfo[date];
+
+            if (hasChanged) {
+                // If data for this day has changed, remove it from non_working_day
+                const deleteNonWorkingDayQuery = `
+                    DELETE FROM non_working_day
+                    WHERE employee_id = ? 
+                    AND date = ?
+                `;
+                await executeTrans(deleteNonWorkingDayQuery, [initiatorId, date], transaction);
+            }
+        }
+
+        // Process non-working days
         non_working.map(async (non_working_day) => {
-            const { date, newNonWorking, non_working_day_id } = non_working_day
-
+            const { date, newNonWorking, non_working_day_id } = non_working_day;
 
             let nwd_query;
 
             if (!newNonWorking) {
-                nwd_query = `INSERT INTO non_working_day (date , employee_id)  VALUES (? , ?)`
-                await executeTrans(nwd_query, [date, initiatorId], transaction)
-                clearedDates.push(date)
+                nwd_query = `INSERT INTO non_working_day (date , employee_id)  VALUES (? , ?)`;
+                await executeTrans(nwd_query, [date, initiatorId], transaction);
+                clearedDates.push(date);
 
                 // Delete from employee_work_day
                 const deleteEmployeeWorkDayQuery = `
-            DELETE FROM employee_work_day
-            WHERE work_day = ?
-              AND employee_work_day_id IN (
-                  SELECT ewd.employee_work_day_id
-                  FROM employee_work_day ewd
-                  JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                  WHERE pa.assignee_id = ?
-                  AND status = 'Rejected'
-              )
-            `;
-                await executeTrans(deleteEmployeeWorkDayQuery, [date, initiatorId], transaction);
+                    DELETE ewd
+                    FROM employee_work_day ewd
+                    JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                    WHERE pa.assignee_id = ?
+                    AND ewd.work_day = ?
+                    AND ewd.status = 'Rejected'
+                `;
+                await executeTrans(deleteEmployeeWorkDayQuery, [initiatorId, date], transaction);
 
                 // Delete from development_hour
                 const deleteDevelopmentHourQuery = `
-            DELETE FROM development_hour
-            WHERE work_day = ?
-              AND employee_id = ?
-              AND status = 'Rejected'
-            `;
+                    DELETE FROM development_hour
+                    WHERE work_day = ?
+                    AND employee_id = ?
+                    AND status = 'Rejected'
+                `;
                 await executeTrans(deleteDevelopmentHourQuery, [date, initiatorId], transaction);
             } else {
-                nwd_query = `UPDATE non_working_day SET status = 'Pending' , actioned_by = ? , rejection_reason = ? WHERE non_working_day_id = ? `
-                await executeTrans(nwd_query, [initiatorId, non_working_day_id], transaction)
+                nwd_query = `UPDATE non_working_day SET status = 'Pending' , actioned_by = ? , rejection_reason = ? WHERE non_working_day_id = ? `;
+                await executeTrans(nwd_query, [initiatorId, non_working_day_id], transaction);
             }
+        });
 
-
-
-
-        })
-
+        // Process project_timesheet records
         project_timesheet.map(async (project) => {
             project?.phases.map(async (phase) => {
-
-                const { phase_id } = phase
+                const { phase_id } = phase;
 
                 phase?.assignments.map(async (assignment) => {
-                    const { employee_work_day_id, hours_worked, work_day, status } = assignment
+                    const { employee_work_day_id, hours_worked, work_day } = assignment;
+
+                    // Check if data for the specific rejected date has changed
+                    const dateChangeInfo = changesPerRejectedDate.find(item => Object.keys(item)[0] === work_day);
+                    const hasChanged = dateChangeInfo ? dateChangeInfo[work_day] : false;
 
                     if (isUUID(employee_work_day_id)) {
                         const query = `
@@ -393,72 +408,119 @@ export async function saveTimeSheet(timesheet_data) {
                               ?, 
                               ?
                             )`;
-
                         await executeTrans(query, [phase_id, initiatorId, work_day, hours_worked], transaction);
                     } else {
-
                         if (hours_worked !== "") {
-
-                            const query = `UPDATE employee_work_day 
-                                               SET hours_worked = ?
-                                               WHERE employee_work_day_id = ?
-                                               `;
-
-                            await executeTrans(query, [hours_worked, employee_work_day_id], transaction)
+                            const query = `
+                                UPDATE employee_work_day 
+                                SET hours_worked = ? ${hasChanged ? ", status = 'Pending'" : ""}
+                                WHERE employee_work_day_id = ?
+                            `;
+                            await executeTrans(query, [hours_worked, employee_work_day_id], transaction);
                         } else {
-
-                            const query = `DELETE FROM employee_work_day 
-                                               WHERE employee_work_day_id = ?
-                                               `;
-                            await executeTrans(query, [employee_work_day_id], transaction)
-
+                            const query = `
+                                DELETE FROM employee_work_day 
+                                WHERE employee_work_day_id = ?
+                            `;
+                            await executeTrans(query, [employee_work_day_id], transaction);
                         }
                     }
-                })
-            })
-        })
+                });
+            });
+        });
 
+        // Process development_timesheet records
         development_timesheet.map(async (development_item) => {
-            const { development_hour_day_id, type, hours_worked, work_day } = development_item
+            const { development_hour_day_id, type, hours_worked, work_day } = development_item;
+
+            // Check if data for the specific rejected date has changed
+            const dateChangeInfo = changesPerRejectedDate.find(item => Object.keys(item)[0] === work_day);
+            const hasChanged = dateChangeInfo ? dateChangeInfo[work_day] : false;
 
             if (isUUID(development_hour_day_id)) {
-                const query = `INSERT INTO development_hour(employee_id , work_day , hours_worked , type)
-                               VALUES ( ? , ? , ? , ?)
-                               `;
-
-                await executeTrans(query, [initiatorId, work_day, hours_worked, type], transaction)
+                const query = `
+                    INSERT INTO development_hour(employee_id , work_day , hours_worked , type)
+                    VALUES ( ? , ? , ? , ?)
+                `;
+                await executeTrans(query, [initiatorId, work_day, hours_worked, type], transaction);
             } else {
                 if (hours_worked !== "") {
-                    const query = `UPDATE development_hour 
-                    SET hours_worked = ?
-                    WHERE development_hour_day_id = ?
+                    const query = `
+                        UPDATE development_hour 
+                        SET hours_worked = ? ${hasChanged ? ", status = 'Pending'" : ""}
+                        WHERE development_hour_day_id = ?
                     `;
-
-                    await executeTrans(query, [hours_worked, development_hour_day_id], transaction)
+                    await executeTrans(query, [hours_worked, development_hour_day_id], transaction);
                 } else {
-                    const query = `DELETE FROM development_hour 
-                    WHERE development_hour_day_id = ?
+                    const query = `
+                        DELETE FROM development_hour 
+                        WHERE development_hour_day_id = ?
                     `;
-                    await executeTrans(query, [development_hour_day_id], transaction)
-
+                    await executeTrans(query, [development_hour_day_id], transaction);
                 }
             }
-        })
+        });
 
-
-
-
-        await commitTransaction(transaction)
-
+        await commitTransaction(transaction);
 
     } catch (error) {
-        await logError(error, "Transaction failed. Cannot save timesheet")
-        await rollbackTransaction(transaction)
+        await logError(error, "Transaction failed. Cannot save timesheet");
+        await rollbackTransaction(transaction);
     } finally {
         if (transaction) {
-            transaction.release()
+            transaction.release();
+        }
+    }
+}
+
+
+const checkIfDataChangedPerRejectedDate = (timesheet_data) => {
+    const { project_timesheet, development_timesheet } = timesheet_data;
+    const rejected_dates = {};
+
+    // Helper function to check if data has changed for a given day
+    const checkDataChangedForDay = (day, isUUID, initial_hours_worked, hours_worked) => {
+        if (!rejected_dates[day]) {
+            rejected_dates[day] = false; // Initialize as false (no changes by default)
+        }
+        // If the assignment/development is new (UUID) or data has changed (hours mismatch)
+        if (isUUID || initial_hours_worked != hours_worked) {
+            rejected_dates[day] = true; // Mark as changed
+        }
+    };
+
+    // Check project_timesheet records
+    for (const project of project_timesheet) {
+        for (const phase of project.phases) {
+            for (const assignment of phase.assignments) {
+                // Only consider records with status 'Rejected'
+                if (assignment.status === "Rejected") {
+                    checkDataChangedForDay(
+                        assignment.work_day,
+                        isUUID(assignment.employee_work_day_id),
+                        assignment.initial_hours_worked,
+                        assignment.hours_worked
+                    );
+                }
+            }
         }
     }
 
+    // Check development_timesheet records
+    for (const development of development_timesheet) {
+        // Only consider records with status 'Rejected'
+        if (development.status === "Rejected") {
+            checkDataChangedForDay(
+                development.work_day,
+                isUUID(development.development_hour_day_id),
+                development.initial_hours_worked,
+                development.hours_worked
+            );
+        }
+    }
 
-}
+    // Convert the result object to an array of key-value pairs
+    return Object.entries(rejected_dates).map(([date, changed]) => ({ [date]: changed }));
+};
+
+

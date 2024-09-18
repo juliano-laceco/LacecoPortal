@@ -80,6 +80,7 @@ async function TimeSheetPage({ searchParams }) {
                 <TimeSheet
                     timesheet_data={timesheet_data}
                     start={start_date}
+                    end={end_date}
                     allowed_range={allowed_range}
                 />
             </div>

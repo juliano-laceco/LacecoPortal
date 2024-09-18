@@ -41,7 +41,7 @@ function InputContainer({ day, assignment, handleInputChange, projectIndex, phas
     return (
         <div
             className={`relative flex-1 text-center h-full border border-gray-200 mob:p-0 tablet:p-0 bg-white`}
-            title={shouldDisableInput ? (dayStatus === "Approved" ? "Submission for this day is approved. Unable to modify." : dayStatus === "Pending" ? "You have already made a submission for this day and you must await your HoD's response." : "") : ""}
+            title={shouldDisableInput ? (dayStatus === "Approved" ? "Submission for this day is approved. Unable to modify." : dayStatus === "Pending" ? "You have already made a submission for this day and you must await your HoD's response." : (dayStatus === "New Non Working") ? "This is a non working day." : "Not Allowed.") : ""}
         >
             <input
                 className={`arrowless-input text-center w-full h-full border-0 focus:border focus:border-pric focus:ring-0 disabled:bg-zinc-100 disabled:cursor-not-allowed ${dayStatus === "Rejected" ? "bg-red-100" : ""}`}

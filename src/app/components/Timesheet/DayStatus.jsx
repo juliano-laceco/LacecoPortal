@@ -7,7 +7,7 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
 
     return (
         <div className="flex font-bold mob:flex-col tablet:flex-col w-full">
-            <div className="p-4 border-t flex justify-center items-center desk:min-w-[26rem] desk:max-w-[26rem] lap:min-w-[18rem] lap:max-w-[18rem] mob:bg-pric tablet:bg-pric mob:justify-start tablet:justify-start mob:text-white tablet:text-white">
+            <div className="p-1 border-t flex justify-center items-start desk:min-w-[26rem] desk:max-w-[26rem] lap:min-w-[18rem] lap:max-w-[18rem] mob:bg-pric tablet:bg-pric mob:justify-start tablet:justify-start mob:text-white tablet:text-white mob:p-4 tablet:p-4 desk:invisible lap:invisible">
                 Day Approval Status
             </div>
             <div className="flex lap:hidden desk:hidden bg-gray-200">
@@ -56,7 +56,7 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                                 <button
                                     onClick={() => removeNonWorkingDay(day.fullDate)}
                                 >
-                                    Unset OFF
+                                    Unset
                                 </button>
                             );
                             break;
@@ -81,15 +81,14 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                     statusImg = statusText && typeof statusText === 'string' ? statusText.toLowerCase() + "-icon.svg" : null;
 
                     return (
-                        <div className="w-full">
-
+                        <div className={`w-full flex flex-col justify-between`} key={crypto.randomUUID()}>
                             <div
                                 key={i}
-                                className={`text-center border-t flex-1 flex flex-col justify-center items-center relative group mob:p-1 tablet:p-1 ${!statusText ? "p-0 border-t" : ""}`}
+                                className={`text-center border-t flex-1 flex flex-col justify-start items-center p-1 relative group mob:justify-center tablet:justify-center ${!statusText ? "p-0 border-t" : ""}`}
                             >
                                 <>
                                     {statusText && (
-                                        <div className={`rounded-md font-normal px-2 py-1 w-[95%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
+                                        <div className={`rounded-md  min-w-fit text-center font-normal px-2 py-1 w-[95%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
                                             {statusText}
                                         </div>
                                     )}
@@ -101,10 +100,12 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                                             Reason
                                         </div>
                                     )}
-                                    <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%] text-center text-xs ${statusClass} desk:hidden lap:hidden ${!statusText ? "p-0 border-none" : ""}`} onClick={() => (!!rejectionReason && rejectionReason !== "") ? openModal(rejectionReason, "Rejection Reason") : null}>
-                                        {!!statusImg && <Image height="20" width="20" src={`/resources/icons/${statusImg}`} alt="status-icon" />}
-                                        {!statusImg && statusText}
-                                    </div>
+                                    {(statusImg || statusText) &&
+                                        <div className={`flex justify-center items-center rounded-md font-normal px-2 py-1 w-[90%] text-center text-xs ${statusClass} desk:hidden lap:hidden ${!statusText ? "p-0 border-none" : ""}`} onClick={() => (!!rejectionReason && rejectionReason !== "") ? openModal(rejectionReason, "Rejection Reason") : null}>
+                                            {!!statusImg && <Image height="16" width="16" src={`/resources/icons/${statusImg}`} alt="status-icon" />}
+                                            {!statusImg && statusText}
+                                        </div>
+                                    }
                                 </>
                             </div>
                             {status === "Rejected" && !has_data && <button
@@ -119,10 +120,8 @@ function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, rem
                     );
                 })}
             </div>
-            <div className="text-center p-4 border-t flex-1 desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28">
-                {/* You can put something here if needed */}
-            </div>
-        </div>
+            <div className="text-center p-4 border-t flex-1 desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28"></div>
+        </div >
     );
 }
 
