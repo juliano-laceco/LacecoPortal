@@ -7,7 +7,7 @@ import { TimeSheetContext } from "./TimeSheetContext";
 function ProjectSection({ project, projectIndex }) {
 
     const { title, phases } = project;
-    const { weekDays, handleInputChange, getStatusForDay, allowed_range } = useContext(TimeSheetContext)
+    const { weekDays, getStatusForDay, is_readonly } = useContext(TimeSheetContext)
 
     const screenSize = useScreenSize();
 
@@ -66,7 +66,7 @@ function ProjectSection({ project, projectIndex }) {
     };
 
     // Filter the phases to only include those that should be rendered
-    const filteredPhases = phases.filter(phase => phase.isActive || phase.timesheet_exists);
+    const filteredPhases = phases.filter(phase => is_readonly ? (phase.timesheet_exists) : (phase.isActive || phase.timesheet_exists));
 
     // Only render the project if there are phases to render
     if (filteredPhases.length === 0) {

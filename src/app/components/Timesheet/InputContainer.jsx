@@ -4,7 +4,7 @@ import { TimeSheetContext } from "./TimeSheetContext";
 
 function InputContainer({ day, assignment, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId, type, isActive }) {
 
-    const { handleInputChange, allowed_range } = useContext(TimeSheetContext)
+    const { handleInputChange, allowed_range, is_readonly } = useContext(TimeSheetContext)
 
     const hoursWorked = assignment ? assignment.hours_worked : '';
 
@@ -49,7 +49,7 @@ function InputContainer({ day, assignment, projectIndex, phaseIndex, dayStatus, 
             <input
                 className={`arrowless-input text-center w-full h-full border-0 focus:border focus:border-pric focus:ring-0 disabled:bg-zinc-100 disabled:cursor-not-allowed ${dayStatus === "Rejected" ? "bg-red-100" : ""}`}
                 type="number"
-                disabled={shouldDisableInput}
+                disabled={shouldDisableInput || is_readonly}
                 min="0"
                 max="24"
                 value={hoursWorked}

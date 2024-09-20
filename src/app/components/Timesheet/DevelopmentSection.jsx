@@ -7,7 +7,7 @@ import { TimeSheetContext } from "./TimeSheetContext";
 function DevelopmentSection({ development_items, type, openModal, initialDevelopmentTypes }) {
     const screenSize = useScreenSize();
 
-    const { weekDays, handleInputChange, getStatusForDay, allowed_range } = useContext(TimeSheetContext)
+    const { weekDays, getStatusForDay } = useContext(TimeSheetContext)
 
     useEffect(() => {
         // Handle collapse and expand functionality for development cells

@@ -218,6 +218,12 @@ export async function getEmployeeAssignments(start, end, employee_id) {
                                          JOIN phase_assignee pa_ewd ON ewd.phase_assignee_id = pa_ewd.phase_assignee_id
                                          WHERE pa_ewd.phase_id = p.phase_id
                                          AND ewd.work_day BETWEEN ? AND ?
+                                     ) OR 
+                                      EXISTS (
+                                      SELECT 1 
+                                      FROM non_working_day 
+                                      WHERE employee_id = ?
+                                      AND date BETWEEN ? AND ?
                                      )
                                  ) AS timesheet_exists
                              FROM 
@@ -234,7 +240,7 @@ export async function getEmployeeAssignments(start, end, employee_id) {
                                  ) `;
 
 
-            const phases = await executeTrans(phasesQuery, [start, end, project_id, assignee], transaction);
+            const phases = await executeTrans(phasesQuery, [start, end, initiatorId, start, end, project_id, assignee], transaction);
 
             if (phases.length > 0) { // Only proceed if phases are found
                 for (const phase of phases) {

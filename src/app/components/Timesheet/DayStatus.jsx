@@ -3,9 +3,10 @@ import Image from "next/image";
 import { isBefore, isToday } from "date-fns";
 import { TimeSheetContext } from "./TimeSheetContext";
 
+
 function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
-    
-    const { weekDays, getStatusForDay, allowed_range } = useContext(TimeSheetContext)
+
+    const { weekDays, getStatusForDay, allowed_range, is_readonly } = useContext(TimeSheetContext)
     const today = new Date();
 
     return (
@@ -67,7 +68,7 @@ function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
                             statusClass = `bg-pric border border-red-500 text-white ${isButtonDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-pri-hovc duration-200 ease"}`;
 
                             statusText = (
-                                !has_data && isPastOrToday ?
+                                (!has_data && isPastOrToday && !is_readonly) ?
                                     <button
                                         onClick={() => addNonWorkingDay(day.fullDate)}
                                         disabled={isButtonDisabled}
@@ -87,7 +88,7 @@ function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
                         <div className={`w-full flex flex-col justify-between`} key={crypto.randomUUID()}>
                             <div
                                 key={i}
-                                className={`text-center border-t flex-1 flex flex-col justify-start items-center p-1 relative group mob:justify-center tablet:justify-center ${!statusText ? "p-0 border-t" : ""}`}
+                                className={`text-center flex-1 flex flex-col justify-start items-center p-1 relative group mob:justify-center tablet:justify-center ${!statusText ? "p-0" : ""}`}
                             >
                                 <>
                                     {statusText && (
@@ -111,7 +112,7 @@ function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
                                     }
                                 </>
                             </div>
-                            {status === "Rejected" && !has_data && <button
+                            {(status === "Rejected" && !has_data && !is_readonly) && <button
                                 onClick={() => addNonWorkingDay(day.fullDate)}
                                 disabled={isButtonDisabled}
                                 className="w-full text-xs"
@@ -123,7 +124,7 @@ function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
                     );
                 })}
             </div>
-            <div className="text-center p-4 border-t flex-1 desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28"></div>
+            <div className="text-center p-4 flex-1 desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28"></div>
         </div >
     );
 }
