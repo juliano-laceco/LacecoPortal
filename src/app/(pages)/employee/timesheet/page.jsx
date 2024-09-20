@@ -2,7 +2,7 @@ import TimeSheet from "@/app/components/timesheet/TimeSheet";
 import RangePickerCalendar from "@/app/components/custom/Other/RangePickerCalendar";
 import { getEmployeeAssignments, getRejectedAndFinalizedDates } from "@/utilities/timesheet/timesheet-utils";
 import { endOfWeek, startOfWeek, eachDayOfInterval, format } from "date-fns";
-import React from "react";
+import React, { Suspense } from "react";
 import { getLoggedInId } from "@/utilities/auth/auth-utils";
 import { formatDate } from "@/utilities/date/date-utils";
 import { redirect } from 'next/navigation';
@@ -77,12 +77,12 @@ async function TimeSheetPage({ searchParams }) {
                         appendToQS
                     />
                 </div>
-                <TimeSheet
-                    timesheet_data={timesheet_data}
-                    start={start_date}
-                    end={end_date}
-                    allowed_range={allowed_range}
-                />
+                    <TimeSheet
+                        timesheet_data={timesheet_data}
+                        start={start_date}
+                        end={end_date}
+                        allowed_range={allowed_range}
+                    />
             </div>
         </div>
     );

@@ -1,11 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
 import Image from "next/image";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
+import { TimeSheetContext } from "./TimeSheetContext";
 
-function ProjectSection({ project, projectIndex, weekDays, handleInputChange, getStatusForDay , allowed_range }) {
+function ProjectSection({ project, projectIndex }) {
 
     const { title, phases } = project;
+    const { weekDays, handleInputChange, getStatusForDay, allowed_range } = useContext(TimeSheetContext)
 
     const screenSize = useScreenSize();
 
@@ -50,6 +52,7 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
             });
         }
     }, [screenSize]);
+
 
     const calculateTotalPhaseHours = (assignments) => {
         return assignments.reduce((total, assignment) => {
@@ -120,18 +123,16 @@ function ProjectSection({ project, projectIndex, weekDays, handleInputChange, ge
                                         {weekDays.map((day, i) => {
                                             const assignment = assignments.find(assignment => assignment.work_day === day.fullDate);
                                             const { status } = getStatusForDay(day.fullDate);
-                                        
+
                                             return (
                                                 <InputContainer
                                                     key={i}
                                                     day={day}
                                                     assignment={assignment}
-                                                    handleInputChange={handleInputChange}
                                                     projectIndex={projectIndex}
                                                     phaseIndex={phaseIndex}
                                                     isActive={isActive}
                                                     dayStatus={status}
-                                                    allowed_range={allowed_range}
                                                 />
                                             );
                                         })}

@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useContext } from "react";
 import Image from "next/image";
 import { isBefore, isToday } from "date-fns";
+import { TimeSheetContext } from "./TimeSheetContext";
 
-function DayStatus({ weekDays, getStatusForDay, openModal, addNonWorkingDay, removeNonWorkingDay, allowed_range }) {
+function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
+    
+    const { weekDays, getStatusForDay, allowed_range } = useContext(TimeSheetContext)
     const today = new Date();
 
     return (

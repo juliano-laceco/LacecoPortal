@@ -1,10 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
 import Image from "next/image";
+import { TimeSheetContext } from "./TimeSheetContext";
 
-function DevelopmentSection({ development_items, weekDays, handleInputChange, getStatusForDay, type, openModal, initialDevelopmentTypes, setIsEdited, allowed_range }) {
+function DevelopmentSection({ development_items, type, openModal, initialDevelopmentTypes }) {
     const screenSize = useScreenSize();
+
+    const { weekDays, handleInputChange, getStatusForDay, allowed_range } = useContext(TimeSheetContext)
 
     useEffect(() => {
         // Handle collapse and expand functionality for development cells
@@ -56,7 +59,7 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
                     {type}
                 </p>
                 {
-                    !initialDevelopmentTypes.some((item) => item === type) ? (
+                    !initialDevelopmentTypes.some((item) => item == type) ? (
                         <div className="cursor-pointer" onClick={() => openModal(type, "Confirm Deletion")}>
                             <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" className="mx-1" />
                         </div>
@@ -85,20 +88,18 @@ function DevelopmentSection({ development_items, weekDays, handleInputChange, ge
                         {weekDays.map((day, i) => {
                             const assignment = development_items.find(item => item.work_day === day.fullDate);
                             const { status } = getStatusForDay(day.fullDate);
-                           
+
                             return (
                                 <InputContainer
                                     key={`${type}-${i}`}
                                     day={day}
                                     type={type}
                                     assignment={assignment}
-                                    handleInputChange={handleInputChange}
                                     projectIndex={null}
                                     phaseIndex={null}
                                     dayStatus={status}
                                     isDevelopment={true}
                                     developmentId={!!assignment ? assignment.development_hour_day_id : null}
-                                    allowed_range={allowed_range}
                                 />
                             );
                         })}

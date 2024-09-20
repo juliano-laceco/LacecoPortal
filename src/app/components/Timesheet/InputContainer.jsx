@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useContext } from "react";
 import { startOfWeek } from "date-fns";
+import { TimeSheetContext } from "./TimeSheetContext";
 
-function InputContainer({ day, assignment, handleInputChange, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId, type, isActive, allowed_range }) {
+function InputContainer({ day, assignment, projectIndex, phaseIndex, dayStatus, isDevelopment, developmentId, type, isActive }) {
+
+    const { handleInputChange, allowed_range } = useContext(TimeSheetContext)
 
     const hoursWorked = assignment ? assignment.hours_worked : '';
 
