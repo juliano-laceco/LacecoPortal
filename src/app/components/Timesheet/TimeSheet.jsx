@@ -545,29 +545,37 @@ function TimeSheet({ timesheet_data, start, end, allowed_range }) {
                     "Unactioned Days"
                 );
                 break;
+
         }
         setModal(modalContent);
     };
 
     // Main function to sanitize all data
     const submitTimeSheet = async () => {
+        // Check for gaps between filled days
+        if (!checkForGapsInFilledDays()) {
+            openModal(
+                "You cannot have unfilled days between two filled days. Please fill in all days or remove gaps before submitting.",
+                "Unactioned Days"
+            );
+            return;
+        }
 
         const sanitizedDevelopmentData = sanitizeDevelopmentData();
         const sanitizedProjectData = sanitizeProjects();
 
         try {
-
             await saveTimeSheet({
                 project_timesheet: sanitizedProjectData,
                 development_timesheet: sanitizedDevelopmentData,
-                non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id) || day.newNonWorking)
-
-            })
-            showToast("success", "Successfully updated timesheet")
+                non_working: nonWorkingDays.filter((day) => isUUID(day.non_working_day_id) || day.newNonWorking),
+            });
+            showToast("success", "Successfully updated timesheet");
         } catch (error) {
-            showToast("failed", "Error occured while saving timesheet")
+            showToast("failed", "Error occurred while saving timesheet");
         }
     };
+
 
     const currentInAllowedRange = (startDate, endDate) => {
         if (!allowed_range || !allowed_range.week_start || !allowed_range.week_end) {
@@ -606,6 +614,45 @@ function TimeSheet({ timesheet_data, start, end, allowed_range }) {
 
         return { enabledDays };
     };
+
+    const checkForGapsInFilledDays = () => {
+        let lastFilledDay = null;
+        let hasGap = false;
+
+        for (let i = 0; i < weekDays.length; i++) {
+            const day = weekDays[i];
+            const { status } = getStatusForDay(day.fullDate);
+            console.log(`DAY: ${day} , STATUS: ${status}`)
+
+            // Only consider 'Approved', 'Pending', or 'New Non Working' as filled days
+            if (status === "Approved" || status === "Pending" || status === "New Non Working") {
+                if (lastFilledDay && hasGap) {
+                    return false; // Invalid, there is a gap between filled days with specified statuses
+                }
+                lastFilledDay = day.fullDate; // Update last filled day with valid status
+                hasGap = false; // Reset gap tracker when a filled day is found
+            } else if (status === null) {
+                // Check if there's a filled day before and after the current day
+                if (lastFilledDay) {
+                    // Look ahead to see if there's a filled day later in the week
+                    for (let j = i + 1; j < weekDays.length; j++) {
+                        const futureDayStatus = getStatusForDay(weekDays[j].fullDate).status;
+                        if (futureDayStatus === "Approved" || futureDayStatus === "Pending" || futureDayStatus === "New Non Working") {
+                            hasGap = true; // Mark that a gap exists between two filled days
+                            break;
+                        }
+                        if (futureDayStatus !== null) {
+                            break; // No need to check further if we find a filled day that breaks the gap
+                        }
+                    }
+                }
+            }
+        }
+
+        return true; // No gaps found
+    };
+
+
 
     const { enabledDays } = countEnabledDays()
 
