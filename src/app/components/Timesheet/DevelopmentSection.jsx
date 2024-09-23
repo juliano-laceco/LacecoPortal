@@ -87,7 +87,7 @@ function DevelopmentSection({ development_items, type, openModal, initialDevelop
                     <div className="flex h-full">
                         {weekDays.map((day, i) => {
                             const assignment = development_items.find(item => item.work_day === day.fullDate);
-                            const { status } = getStatusForDay(day.fullDate);
+                            const { status , non_working} = getStatusForDay(day.fullDate);
 
                             return (
                                 <InputContainer
@@ -100,6 +100,7 @@ function DevelopmentSection({ development_items, type, openModal, initialDevelop
                                     dayStatus={status}
                                     isDevelopment={true}
                                     developmentId={!!assignment ? assignment.development_hour_day_id : null}
+                                    non_working={non_working}
                                 />
                             );
                         })}

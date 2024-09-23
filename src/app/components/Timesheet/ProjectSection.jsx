@@ -3,11 +3,12 @@ import Image from "next/image";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
 import { TimeSheetContext } from "./TimeSheetContext";
+import { isUUID } from "../Sheet/SheetUtils";
 
 function ProjectSection({ project, projectIndex }) {
 
     const { title, phases } = project;
-    const { weekDays, getStatusForDay, is_readonly } = useContext(TimeSheetContext)
+    const { weekDays, getStatusForDay, is_readonly, nonWorkingDays } = useContext(TimeSheetContext)
 
     const screenSize = useScreenSize();
 
@@ -65,17 +66,21 @@ function ProjectSection({ project, projectIndex }) {
         return (work_done_hrs / expected_work_hrs) * 100;
     };
 
+    // Check if it's a non-working day within the week
+    const hasNonWorkingDay = weekDays.some((day) => {
+        return nonWorkingDays.some(nwd => nwd.date === day.fullDate && !isUUID(nwd.non_working_day_id));
+    });
+
     // Filter the phases to only include those that should be rendered
-    const filteredPhases = phases.filter(phase => is_readonly ? (phase.timesheet_exists) : (phase.isActive || phase.timesheet_exists));
+    const filteredPhases = phases.filter(phase => is_readonly ? (phase.timesheet_exists ) : (phase.isActive || phase.timesheet_exists ));
 
     // Only render the project if there are phases to render
     if (filteredPhases.length === 0) {
         return null;
     }
-
     return (
         <div key={`${project.project_id}`} className="project-wrapper flex bg-gray-50 w-full mob:flex-col tablet:flex-col mob:bg-gray-300">
-            <div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
+            <div className="project-title-cell border-b border-t flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200">
                 {title}
             </div>
             <div className="phase-stacker flex flex-col flex-grow">
@@ -122,7 +127,7 @@ function ProjectSection({ project, projectIndex }) {
                                     <div className="flex h-full">
                                         {weekDays.map((day, i) => {
                                             const assignment = assignments.find(assignment => assignment.work_day === day.fullDate);
-                                            const { status } = getStatusForDay(day.fullDate);
+                                            const { status , non_working } = getStatusForDay(day.fullDate);
 
                                             return (
                                                 <InputContainer
@@ -133,13 +138,14 @@ function ProjectSection({ project, projectIndex }) {
                                                     phaseIndex={phaseIndex}
                                                     isActive={isActive}
                                                     dayStatus={status}
+                                                    non_working={non_working}
                                                 />
                                             );
                                         })}
                                     </div>
                                 </div>
                             </div>
-                            <div className="phase-hours-cell flex justify-center items-center p-4 border-b border-l border-gray-200 bg-gray-100 font-bold desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28">
+                            <div className="phase-hours-cell flex justify-center items-center p-4 border-b border-t border-l border-gray-200 bg-gray-100 font-bold desk:min-w-32 desk:max-w-32 lap:min-w-28 lap:max-w-28">
                                 <span className="lap:hidden desk:hidden">Total: &nbsp;</span>{calculateTotalPhaseHours(assignments)} <span className="lap:hidden desk:hidden ml-1">hrs</span>
                             </div>
                         </div>

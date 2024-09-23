@@ -1,7 +1,7 @@
 // TimeSheetUtils.js
 
 import { addDays, format } from 'date-fns';
-import { isUUID } from '../sheet/SheetUtils';
+import { isUUID } from '../Sheet/SheetUtils';
 
 // Generate week days starting from the given date
 export function generateWeekDays(startDate) {
@@ -35,17 +35,20 @@ export function organizeTimesheetByType(timesheet) {
 }
 
 // Get status for a specific day
+// Get status for a specific day
 export function getStatusForDay(date, nonWorkingDays, projectTimeSheet, developmentTimeSheet) {
     let status = null;
     let rejectionReason = null;
     let has_data = false;
+    let non_working = false; // Initialize non_working as false
 
     // Check if the date is a non-working day
     const nonWorkingDay = nonWorkingDays.find((nwd) => nwd.date === date);
 
     if (nonWorkingDay && (isUUID(nonWorkingDay.non_working_day_id) || nonWorkingDay.newNonWorking)) {
         status = 'New Non Working';
-        return { status, rejectionReason, has_data };
+        non_working = true; // Set non_working to true
+        return { status, rejectionReason, has_data, non_working };
     }
 
     // Process project timesheets
@@ -53,7 +56,7 @@ export function getStatusForDay(date, nonWorkingDays, projectTimeSheet, developm
         project.phases.forEach((phase) => {
             phase.assignments.forEach((assignment) => {
                 if (assignment.work_day === date) {
-                    if (assignment.hours_worked != '') has_data = true;
+                    if (assignment.hours_worked !== '') has_data = true;
                     if (assignment.status === 'Rejected') {
                         status = 'Rejected';
                         rejectionReason = assignment.rejection_reason;
@@ -70,7 +73,7 @@ export function getStatusForDay(date, nonWorkingDays, projectTimeSheet, developm
     // Process development timesheets
     developmentTimeSheet.forEach((development) => {
         if (development.work_day === date) {
-            if (development.hours_worked != '') has_data = true;
+            if (development.hours_worked !== '') has_data = true;
             if (development.status === 'Rejected') {
                 status = 'Rejected';
                 rejectionReason = development.rejection_reason;
@@ -85,6 +88,7 @@ export function getStatusForDay(date, nonWorkingDays, projectTimeSheet, developm
     // Process non-working days
     nonWorkingDays.forEach((nwd) => {
         if (nwd.date === date) {
+            non_working = true; // Set non_working to true if date is found in nonWorkingDays
             if (nwd.status === 'Rejected') {
                 status = 'Rejected';
                 rejectionReason = nwd.rejection_reason;
@@ -96,8 +100,9 @@ export function getStatusForDay(date, nonWorkingDays, projectTimeSheet, developm
         }
     });
 
-    return { status, rejectionReason, has_data };
+    return { status, rejectionReason, has_data, non_working };
 }
+
 
 // Sanitize development data
 export function sanitizeDevelopmentData(developmentTimeSheet) {

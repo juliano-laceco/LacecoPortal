@@ -11,7 +11,7 @@ import { development_options } from '@/data/static/development-options';
 import Button from '../custom/Other/Button';
 import DropdownRegular from '../custom/Dropdowns/DropdownRegular';
 import Image from 'next/image';
-import { isUUID } from '../sheet/SheetUtils';
+import { isUUID } from '../Sheet/SheetUtils';
 import { saveTimeSheet } from '@/utilities/timesheet/timesheet-utils';
 import Modal from '../custom/Modals/Modal';
 import { useRouter } from 'next/navigation';
@@ -29,6 +29,8 @@ import {
     calculateTotalHours,
     calculateTotalWeekHours,
 } from './TimeSheetUtils';
+import DayAction from './DayAction';
+import DayType from './DayType';
 
 function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = false }) {
 
@@ -499,6 +501,11 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         );
     }
 
+    // Check if it's a non-working day within the week
+    const hasNonWorkingDay = weekDays.some((day) => {
+        return nonWorkingDays.some(nwd => nwd.date === day.fullDate && !isUUID(nwd.non_working_day_id));
+    });
+
     return (
         <TimeSheetContext.Provider
             value={{
@@ -507,18 +514,20 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                 allowed_range,
                 handleInputChange,
                 setEdited,
-                is_readonly
+                is_readonly,
+                nonWorkingDays
             }}
         >
             <div className="w-fit mob:w-full tablet:w-full mob:space-y-4 tablet:space-y-4 lap:text-sm overflow-hidden desk:border lap:border rounded-lg flex flex-col">
                 <h1 className="font-bold text-2xl mt-5 desk:hidden lap:hidden">Projects</h1>
                 <TimeSheetHeader weekDays={weekDays} />
+                {/* {hasNonWorkingDay && <DayType />} */}
                 {!projectTimeSheet.some((project) => {
                     // Filter the phases to only include those that should be rendered
-                    const filteredPhases = project.phases.filter(phase => is_readonly ? (phase.timesheet_exists) : (phase.isActive || phase.timesheet_exists));
+                    const filteredPhases = project.phases.filter(phase => is_readonly ? (phase.timesheet_exists || hasNonWorkingDay) : (phase.isActive || phase.timesheet_exists));
                     return filteredPhases.length > 0
                 }) ?
-                    <p className="text-pric p-4 w-full flex justify-center items-center mob:justify-start tablet:justify-start">No Projects Found</p>
+                    <p className="text-pric p-4 w-full flex justify-center items-center mob:justify-start tablet:justify-start">No Data Found</p>
                     :
                     projectTimeSheet.map((project, projectIndex) => (
                         <ProjectSection key={project.project_id} project={project} projectIndex={projectIndex} />
@@ -528,74 +537,91 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                 <h1 className="font-bold text-2xl mt-6 desk:hidden lap:hidden ">Non Billable Hours</h1>
                 <div className="bg-gray-400 text-white p-4 flex items-center justify-between">
                     <span className="font-semibold">Non Billable Hours</span>
-                    {developmentTimeSheet.length > 0 && 
-                    <div className="mobile-version-collapse flex justify-center items-center">
-                        <p
-                            className="expand-collapse-dev-section cursor-pointer bg-red-500 px-3 py-2 rounded-lg border border-red-300"
-                            onClick={toggleDevelopmentSection}
-                        >
-                            <Image
-                                src={
-                                    isDevelopmentSectionCollapsed
-                                        ? '/resources/icons/arrow-down.svg'
-                                        : '/resources/icons/arrow-up.svg'
-                                }
-                                height="12"
-                                width="12"
-                                alt={isDevelopmentSectionCollapsed ? 'expand' : 'collapse'}
-                            />
-                        </p>
-                    </div>
+                    {developmentTimeSheet.length > 0 &&
+                        <div className="mobile-version-collapse flex justify-center items-center">
+                            <p
+                                className="expand-collapse-dev-section cursor-pointer bg-red-500 px-3 py-2 rounded-lg border border-red-300"
+                                onClick={toggleDevelopmentSection}
+                            >
+                                <Image
+                                    src={
+                                        isDevelopmentSectionCollapsed
+                                            ? '/resources/icons/arrow-down.svg'
+                                            : '/resources/icons/arrow-up.svg'
+                                    }
+                                    height="12"
+                                    width="12"
+                                    alt={isDevelopmentSectionCollapsed ? 'expand' : 'collapse'}
+                                />
+                            </p>
+                        </div>
                     }
                 </div>
                 {!isDevelopmentSectionCollapsed && (
                     <>
-                        <div className="development-section bg-gray-50 flex mob:flex-col tablet:flex-col">
-                            {developmentTimeSheet.length > 0 ?
-                                <>
-                                    <div className="project-title-cell  flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200 mob:hidden tablet:hidden ">
-                                        Non Billable Hours
-                                    </div>
-                                    <div className="flex flex-col">
+                        <div className="development-section bg-gray-50 flex w-full mob:flex-col tablet:flex-col">
+                            {(is_readonly && developmentTimeSheet.length > 0) ?
+
+                                (<div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200 mob:hidden tablet:hidden ">
+                                    Non Billable Hours
+                                </div>)
+                                :
+                                (!is_readonly) && (<div className="project-title-cell border-b flex justify-center mob:justify-start tablet:justify-start items-center text-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36 mob:bg-pric tablet:bg-pric mob:text-white tab:text-white p-4 border-r border-gray-200 mob:hidden tablet:hidden ">
+                                    Non Billable Hours
+                                </div>)
+                            }
+                            <div className="flex flex-col w-full border-b border-gray-200">
+                                {developmentTimeSheet.length > 0 ? (
+                                    <>
                                         {Object.keys(organizedTimesheet).map((key_name) => (
                                             <DevelopmentSection
                                                 key={key_name}
                                                 development_items={organizedTimesheet[key_name]}
                                                 type={key_name}
                                                 handleDelete={deleteDevelopmentRow}
-                                                initialDevelopmentTypes={initialDevelopmentTypes}
                                                 openModal={openModal}
+                                                initialDevelopmentTypes={initialDevelopmentTypes}
                                             />
                                         ))}
-                                        {(availableTypesForNewRow.length > 0 && !is_readonly) && (
+                                    </>
+                                ) : (
+                                    <p className="text-pric p-4 w-full flex justify-center items-center border-b border-gray-200 bg-gray-100 mob:justify-start tablet:justify-start">
+                                        No Data Found
+                                    </p>
+                                )}
+                                {!is_readonly && (
+                                    <>
+                                        {availableTypesForNewRow.length > 0 && (
                                             <div className="flex items-center gap-3 p-2 w-fit">
                                                 <DropdownRegular
                                                     options={availableTypesForNewRow}
                                                     isSearchable={true}
                                                     isDisabled={
-                                                        isSaving || !currentInAllowedRange(start, end, allowed_range) || enabledDays === 0
+                                                        isSaving ||
+                                                        !currentInAllowedRange(start, end, allowed_range) ||
+                                                        enabledDays === 0
                                                     }
                                                     isLoading={false}
-                                                    onChange={(selectedOption) => setSelectedType(selectedOption.value)}
+                                                    onChange={(selectedOption) =>
+                                                        setSelectedType(selectedOption.value)
+                                                    }
                                                     value={selectedType}
                                                 />
-
                                                 <Button
                                                     onClick={addNewDevelopmentRow}
                                                     isDisabled={
-                                                        isSaving || !currentInAllowedRange(start, end, allowed_range) || enabledDays === 0
+                                                        isSaving ||
+                                                        !currentInAllowedRange(start, end, allowed_range) ||
+                                                        enabledDays === 0
                                                     }
                                                     variant="primary"
                                                     name="Add"
                                                 />
                                             </div>
                                         )}
-                                    </div>
-                                </>
-                                :
-                                <p className="text-pric p-4 w-full flex justify-center items-center bg-gray-100 mob:justify-start tablet:justify-start">No Data Found</p>
-                            }
-
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </>
                 )}
@@ -604,6 +630,11 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     addNonWorkingDay={addNonWorkingDay}
                     removeNonWorkingDay={removeNonWorkingDay}
                 />
+                {is_readonly &&
+                    <DayAction
+                        openModal={openModal}
+                    />
+                }
                 <TimeSheetFooter
                     calculateTotalHours={calculateTotalHoursWrapper}
                     calculateTotalWeekHours={calculateTotalWeekHoursWrapper}

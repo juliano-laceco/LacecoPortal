@@ -23,7 +23,7 @@ function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
             </div>
             <div className="flex flex-1 w-full">
                 {weekDays.map((day, i) => {
-                    const { status, rejectionReason, has_data } = getStatusForDay(day.fullDate);
+                    const { status, rejectionReason, has_data, non_working } = getStatusForDay(day.fullDate);
                     let statusClass;
                     let statusText;
                     let statusImg;
@@ -40,15 +40,15 @@ function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
                     switch (status) {
                         case "Rejected":
                             statusClass = "bg-red-100 border border-red-400 text-red-400";
-                            statusText = "Rejected";
+                            statusText = "Rejected"
                             break;
                         case "Pending":
                             statusClass = "bg-orange-100 border border-orange-400 text-orange-400";
-                            statusText = "Pending";
+                            statusText = "Pending"
                             break;
                         case "Approved":
                             statusClass = "bg-green-100 border border-green-400 text-green-400";
-                            statusText = "Approved";
+                            statusText = "Approved"
                             break;
                         case "Non Working":
                             statusClass = "bg-red-100 border border-red-400 text-red-400";
@@ -92,10 +92,11 @@ function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
                             >
                                 <>
                                     {statusText && (
-                                        <div className={`rounded-md  min-w-fit text-center font-normal px-2 py-1 w-[95%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
+                                        <div className={`rounded-md h-max min-w-fit text-center font-normal px-2 py-1 w-[95%] text-xs ${statusClass} mob:hidden tablet:hidden`}>
                                             {statusText}
                                         </div>
                                     )}
+                                    {/* {non_working && (status === "Pending" || status === "Rejected") && <p className="text-[10px] font-semibold"> Day Off</p>} */}
                                     {!!rejectionReason && rejectionReason !== "" && (
                                         <div
                                             className="absolute bottom-0 h-0 flex justify-center items-center w-full transform bg-red-200 border border-gray-200 p-1 text-[12px] font-normal shadow-lg opacity-0 transition-all duration-200 ease-in-out cursor-pointer text-red-500 lap:group-hover:opacity-100 lap:group-hover:h-full lap:group-hover:translate-y-0 desk:group-hover:opacity-100 desk:group-hover:h-full desk:group-hover:translate-y-0 mob:hidden tablet:hidden"
