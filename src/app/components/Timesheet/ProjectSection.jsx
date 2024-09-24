@@ -3,7 +3,7 @@ import Image from "next/image";
 import InputContainer from "./InputContainer";
 import useScreenSize from "@/app/hooks/UseScreenSize";
 import { TimeSheetContext } from "./TimeSheetContext";
-import { isUUID } from "../Sheet/SheetUtils";
+import { isUUID } from "../sheet/SheetUtils";
 
 function ProjectSection({ project, projectIndex }) {
 
@@ -72,7 +72,7 @@ function ProjectSection({ project, projectIndex }) {
     });
 
     // Filter the phases to only include those that should be rendered
-    const filteredPhases = phases.filter(phase => is_readonly ? (phase.timesheet_exists ) : (phase.isActive || phase.timesheet_exists ));
+    const filteredPhases = phases.filter(phase => is_readonly ? (phase.timesheet_exists || hasNonWorkingDay) : (phase.isActive || phase.timesheet_exists || hasNonWorkingDay));
 
     // Only render the project if there are phases to render
     if (filteredPhases.length === 0) {
@@ -127,7 +127,7 @@ function ProjectSection({ project, projectIndex }) {
                                     <div className="flex h-full">
                                         {weekDays.map((day, i) => {
                                             const assignment = assignments.find(assignment => assignment.work_day === day.fullDate);
-                                            const { status , non_working } = getStatusForDay(day.fullDate);
+                                            const { status, non_working } = getStatusForDay(day.fullDate);
 
                                             return (
                                                 <InputContainer

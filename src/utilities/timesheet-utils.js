@@ -1,12 +1,13 @@
 "use server"
 
 import { isUUID } from "@/app/components/sheet/SheetUtils";
-import { getLoggedInId } from "../auth/auth-utils";
-import { commitTransaction, execute, executeTrans, rollbackTransaction, startTransaction } from "../db/db-utils";
-import { logError } from "../misc-utils";
-import * as res from "../response-utils"
+import { getLoggedInId } from "./auth/auth-utils";
+import { commitTransaction, execute, executeTrans, rollbackTransaction, startTransaction } from "../utilities/db/db-utils"
+import { logError } from "../utilities/misc-utils"
+import * as res from "../utilities/response-utils"
 import { eachDayOfInterval, endOfWeek, startOfWeek } from "date-fns";
-import { formatDate } from "../date/date-utils";
+import { formatDate } from "./date/date-utils";
+
 
 
 export async function getRejectedAndFinalizedDates(assignee) {
@@ -473,6 +474,133 @@ export async function saveTimeSheet(timesheet_data) {
         await logError(error, "Transaction failed. Cannot save timesheet");
         await rollbackTransaction(transaction);
     } finally {
+        if (transaction) {
+            transaction.release();
+        }
+    }
+}
+
+export async function actionTimesheet(timesheet_data, dateActions) {
+    let transaction;
+    const initiatorId = await getLoggedInId()
+
+    try {
+        // Start a new transaction
+        transaction = await startTransaction();
+
+        const { project_timesheet, development_timesheet, non_working } = timesheet_data;
+
+        // Process project_timesheet records
+        for (const project of project_timesheet) {
+            for (const phase of project.phases) {
+                for (const assignment of phase.assignments) {
+                    const { work_day, employee_work_day_id } = assignment;
+
+                    // Find if there's an action for the current work_day
+                    const dayAction = dateActions.find(action => action.date === work_day);
+
+                    if (dayAction) {
+                        const { action_status, rejection_reason } = dayAction;
+
+                        if (action_status === "Approved") {
+                            // Update employee_work_day status to "Approved"
+                            const query = `
+                                UPDATE employee_work_day 
+                                SET status = 'Approved', rejection_reason = NULL , actioned_by = ?
+                                WHERE employee_work_day_id = ?
+                            `;
+                            await executeTrans(query, [initiatorId, employee_work_day_id], transaction);
+
+                        } else if (action_status === "Rejected") {
+                            // Update employee_work_day status to "Rejected" with rejection reason
+                            const query = `
+                                UPDATE employee_work_day 
+                                SET status = 'Rejected', rejection_reason = ? , actioned_by = ?
+                                WHERE employee_work_day_id = ? 
+                            `;
+                            await executeTrans(query, [rejection_reason ?? "", initiatorId, employee_work_day_id], transaction);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Commit the transaction after all updates are successful
+        await commitTransaction(transaction);
+
+
+        // Process development_timesheet records
+        for (const development of development_timesheet) {
+            const { work_day, development_hour_day_id } = development;
+
+            // Find if there's an action for the current work_day
+            const dayAction = dateActions.find(action => action.date === work_day);
+
+            if (dayAction) {
+                const { action_status, rejection_reason } = dayAction;
+
+                if (action_status === "Approved") {
+                    // Update development_hour status to "Approved"
+                    const query = `
+                        UPDATE development_hour 
+                        SET status = 'Approved', rejection_reason = NULL , actioned_by = ?
+                        WHERE development_hour_day_id = ? 
+                    `;
+                    await executeTrans(query, [initiatorId, development_hour_day_id], transaction);
+
+                } else if (action_status === "Rejected") {
+                    // Update development_hour status to "Rejected" with rejection reason
+                    const query = `
+                        UPDATE development_hour 
+                        SET status = 'Rejected', rejection_reason = ? , actioned_by = ?
+                        WHERE development_hour_day_id = ? 
+                    `;
+                    await executeTrans(query, [initiatorId, rejection_reason, development_hour_day_id], transaction);
+                }
+            }
+        }
+
+        // Process non-working days
+        for (const nonWorkingDay of non_working) {
+            const { date, non_working_day_id } = nonWorkingDay;
+
+            // Find if there's an action for the current date
+            const dayAction = dateActions.find(action => action.date === date);
+
+            if (dayAction) {
+                const { status, rejection_reason } = dayAction;
+
+                if (status === "Approved") {
+                    // Update non_working_day status to "Approved"
+                    const query = `
+                        UPDATE non_working_day 
+                        SET status = 'Approved', rejection_reason = NULL , actioned_by = ?
+                        WHERE non_working_day_id = ?
+                    `;
+                    await executeTrans(query, [initiatorId, non_working_day_id], transaction);
+
+                } else if (status === "Rejected") {
+                    // Update non_working_day status to "Rejected" with rejection reason
+                    const query = `
+                        UPDATE non_working_day 
+                        SET status = 'Rejected', rejection_reason = ? , actioned_by = ?
+                        WHERE non_working_day_id = ? 
+                    `;
+                    await executeTrans(query, [initiatorId, rejection_reason, non_working_day_id], transaction);
+                }
+            }
+        }
+
+        // Commit the transaction after all updates are successful
+        await commitTransaction(transaction);
+
+    } catch (error) {
+        // Log the error for debugging purposes
+        console.error("Transaction failed. Cannot action timesheet:", error);
+        await rollbackTransaction(transaction);
+        throw error; // Re-throw the error after rollback
+    } finally {
+        // Release the transaction if it exists
         if (transaction) {
             transaction.release();
         }

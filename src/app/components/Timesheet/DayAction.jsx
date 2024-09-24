@@ -1,21 +1,18 @@
-// DayAction.js
 import React, { useContext } from "react";
 import { TimeSheetContext } from "./TimeSheetContext";
+import Image from "next/image";
 
-function DayAction({ openModal }) {
+function DayAction({ openModal, checkDayAction }) {
   const { weekDays, getStatusForDay } = useContext(TimeSheetContext);
 
+
   const handleApprove = (date) => {
-    // Implement approval logic here
-    // For example, open a modal or call a function
-    openModal(date, "Approve");
-  };
+    openModal(date, "Confirm Day Approve")
+  }
 
   const handleReject = (date) => {
-    // Implement rejection logic here
-    // For example, open a modal or call a function
-    openModal(date, "Reject");
-  };
+    openModal(date, "Confirm Day Reject")
+  }
 
   return (
     <div className="flex font-bold mob:flex-col tablet:flex-col w-full">
@@ -35,6 +32,8 @@ function DayAction({ openModal }) {
       <div className="flex flex-1 w-full">
         {weekDays.map((day, i) => {
           const { status } = getStatusForDay(day.fullDate);
+          const { action_status, rejection_reason } = checkDayAction(day.fullDate);
+          console.log(action_status)
 
           if (status === "Pending") {
             return (
@@ -42,41 +41,44 @@ function DayAction({ openModal }) {
                 key={i}
                 className="w-full flex flex-col items-center justify-center"
               >
-                <div className="flex space-x-2">
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => handleApprove(day.fullDate)}
-                  >
-                    {/* Tick icon in green */}
-                    <svg
-                      className="w-6 h-6 text-green-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
+                <div className="flex items-center">
+                  {(action_status === "Rejected" || !action_status) && (
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => handleApprove(day.fullDate)}
                     >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414L9 14.414 5.293 10.707a1 1 0 011.414-1.414L9 11.586l6.293-6.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => handleReject(day.fullDate)}
-                  >
-                    {/* Cross icon in red */}
-                    <svg
-                      className="w-6 h-6 text-red-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
+                      <svg
+                        className="w-6 h-6 text-green-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414L9 14.414 5.293 10.707a1 1 0 011.414-1.414L9 11.586l6.293-6.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                  {(action_status === "Approved" || !action_status) && (
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => handleReject(day.fullDate)}
                     >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 8.586l4.95-4.95a1 1 0 111.414 1.414L11.414 10l4.95 4.95a1 1 0 01-1.414 1.414L10 11.414l-4.95 4.95a1 1 0 01-1.414-1.414L8.586 10l-4.95-4.95a1 1 0 011.414-1.414L10 8.586z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
+                      <svg
+                        className="w-5 h-5 text-red-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 8.586l4.95-4.95a1 1 0 111.414 1.414L11.414 10l4.95 4.95a1 1 0 01-1.414 1.414L10 11.414l-4.95 4.95a1 1 0 01-1.414-1.414L8.586 10l-4.95-4.95a1 1 0 011.414-1.414L10 8.586z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                  {action_status === "Rejected" && <Image height="20" width="20" src="resources/icons/edit-underlined.svg" className="cursor-pointer" onClick={() => { handleReject(day.fullDate) }} />}
                 </div>
               </div>
             );

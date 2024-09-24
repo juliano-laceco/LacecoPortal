@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format, startOfWeek } from 'date-fns';
 import ProjectSection from './ProjectSection';
 import TimeSheetHeader from './TimeSheetHeader';
@@ -11,7 +11,7 @@ import { development_options } from '@/data/static/development-options';
 import Button from '../custom/Other/Button';
 import DropdownRegular from '../custom/Dropdowns/DropdownRegular';
 import Image from 'next/image';
-import { isUUID } from '../Sheet/SheetUtils';
+import { isUUID } from '../sheet/SheetUtils';
 import { saveTimeSheet } from '@/utilities/timesheet/timesheet-utils';
 import Modal from '../custom/Modals/Modal';
 import { useRouter } from 'next/navigation';
@@ -31,6 +31,8 @@ import {
 } from './TimeSheetUtils';
 import DayAction from './DayAction';
 import DayType from './DayType';
+import { actionTimesheet } from '@/utilities/timesheet-utils';
+
 
 function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = false }) {
 
@@ -47,6 +49,8 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
     const [weekDays, setWeekDays] = useState(generateWeekDays(startDate));
     const [edited, setEdited] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [dateActions, setDateActions] = useState([])
+    const rejection_ref = useRef()
 
     const router = useRouter();
 
@@ -77,7 +81,9 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         setInitialDevelopmentTypes(types);
     }, []);
 
-
+    useEffect(() => {
+        console.log("Date Actions: " + JSON.stringify(dateActions))
+    }, [dateActions])
 
     useEffect(() => {
         setWeekDays(generateWeekDays(startDate));
@@ -105,6 +111,8 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         developmentId = null,
         type = null
     ) => {
+
+        console.log(projectIndex, phaseIndex)
         const { value } = e.target;
         const updatedValue = value ? parseFloat(value) : ''; // Set to "" if value is empty
         const { status } = getStatusForDayWrapper(date);
@@ -418,6 +426,68 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     'Unactioned Days'
                 );
                 break;
+            case 'Confirm Day Approve':
+                modalContent = renderModalContent(
+                    "Are you sure you want to approve this day? This action will clear any previous actions you made on this day.",
+                    [
+                        {
+                            variant: 'primary',
+                            name: 'Approve',
+                            onClick: () => {
+                                approve_day(data)
+                                setModal(null)
+                            },
+                        },
+                        {
+                            variant: 'secondary',
+                            name: 'Close',
+                            onClick: () => { setModal(null) },
+                        }
+                    ],
+                    'Confirm'
+                );
+                break;
+            case 'Confirm Day Reject':
+                const { rejection_reason } = checkDayAction(data)
+                modalContent = renderModalContent(
+                    <div>
+                        <div className="mb-2">
+                            Rejecting this day will clear any previous actions you made.
+                        </div>
+                        <textarea
+                            className="rounded-md resize-none border border-gray-300 text-sm w-full desk:h-24 lap:h-24 focus:border-pric focus:outline-none focus:ring-0"
+                            ref={rejection_ref}
+                            defaultValue={rejection_reason ? rejection_reason : ""}
+                            maxLength={150} // Limits the input to 200 characters
+                            onPaste={(e) => e.preventDefault()} // Prevents pasting
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault(); // Prevents pressing the enter key
+                                }
+                            }}
+                        ></textarea>
+                        <div className="text-sm mob:text-xs text-gray-500">
+                            Max 150 characters
+                        </div>
+                    </div>,
+                    [
+                        {
+                            variant: 'primary',
+                            name: 'Reject',
+                            onClick: () => {
+                                reject_day(data, rejection_ref.current.value)
+                                setModal(null)
+                            },
+                        },
+                        {
+                            variant: 'secondary',
+                            name: 'Close',
+                            onClick: () => { setModal(null) },
+                        }
+                    ],
+                    'Confirm'
+                );
+                break;
         }
         setModal(modalContent);
     };
@@ -506,6 +576,93 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         return nonWorkingDays.some(nwd => nwd.date === day.fullDate && !isUUID(nwd.non_working_day_id));
     });
 
+    const approve_day = (date) => {
+        setDateActions((prevActions = []) => { // Ensure prevActions is initialized as an array
+            // Check if the date already exists in the dateActions array
+            const existingDayIndex = prevActions.findIndex(day => day.date === date);
+
+            // If the date does not exist, create a new entry and return the updated array
+            if (existingDayIndex === -1) {
+                return [
+                    ...prevActions,
+                    {
+                        date: date,              // Date to be approved
+                        action_status: "Approved",      // Status set to "Approved"
+                        rejection_reason: null   // No rejection reason
+                    }
+                ];
+            } else {
+                // If the date already exists, update its status and rejection_reason
+                const updatedDays = [...prevActions];
+                updatedDays[existingDayIndex] = {
+                    ...updatedDays[existingDayIndex],
+                    action_status: "Approved",
+                    rejection_reason: null // Clear the rejection reason when approved
+                };
+                return updatedDays;
+            }
+        });
+    };
+
+    const reject_day = (date, rejection_reason = "Inaccurate Data") => {
+        setDateActions((prevActions = []) => { // Ensure prevActions is initialized as an array
+            // Check if the date already exists in the dateActions array
+            const existingDayIndex = prevActions.findIndex(day => day.date === date);
+
+            // If the date does not exist, create a new entry with status "Rejected"
+            if (existingDayIndex === -1) {
+                return [
+                    ...prevActions,
+                    {
+                        date: date,              // Date to be rejected
+                        action_status: "Rejected",      // Status set to "Rejected"
+                        rejection_reason: rejection_reason   // Rejection reason passed from the param
+                    }
+                ];
+            } else {
+                // If the date already exists, update its rejection_reason
+                const updatedDays = [...prevActions];
+                updatedDays[existingDayIndex] = {
+                    ...updatedDays[existingDayIndex],
+                    action_status: "Rejected",
+                    rejection_reason: rejection_reason // Update with the new rejection reason
+                };
+                return updatedDays;
+            }
+        });
+    };
+
+    const checkDayAction = (date) => {
+        // Assuming dateActions is a state or an array containing day actions
+        const dayAction = dateActions.find(day => day.date === date);
+
+        // If the day is found, return its status and rejection reason
+        if (dayAction) {
+            return {
+                action_status: dayAction.action_status,
+                rejection_reason: dayAction.rejection_reason
+            };
+        }
+
+        // If the day is not found, return null for both status and rejection_reason
+        return {
+            action_status: null,
+            rejection_reason: null
+        };
+    };
+
+    const handleActionTimesheet = async () => {
+        try {
+            await actionTimesheet(timesheet_data, dateActions);
+            showToast("success", "Timesheet actions successfully updated.");
+            router.refresh()
+        } catch (error) {
+            showToast("failed", "Failed to update timesheet actions.");
+        }
+    };
+
+
+
     return (
         <TimeSheetContext.Provider
             value={{
@@ -521,13 +678,14 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
             <div className="w-fit mob:w-full tablet:w-full mob:space-y-4 tablet:space-y-4 lap:text-sm overflow-hidden desk:border lap:border rounded-lg flex flex-col">
                 <h1 className="font-bold text-2xl mt-5 desk:hidden lap:hidden">Projects</h1>
                 <TimeSheetHeader weekDays={weekDays} />
-                {/* {hasNonWorkingDay && <DayType />} */}
+                {hasNonWorkingDay && <DayType />}
                 {!projectTimeSheet.some((project) => {
                     // Filter the phases to only include those that should be rendered
-                    const filteredPhases = project.phases.filter(phase => is_readonly ? (phase.timesheet_exists || hasNonWorkingDay) : (phase.isActive || phase.timesheet_exists));
+                    const filteredPhases = project.phases.filter(phase => is_readonly ? (phase.timesheet_exists || hasNonWorkingDay) : (phase.isActive || phase.timesheet_exists || hasNonWorkingDay));
                     return filteredPhases.length > 0
                 }) ?
-                    <p className="text-pric p-4 w-full flex justify-center items-center mob:justify-start tablet:justify-start">No Data Found</p>
+                    <p className="text-pric p-4 w-full flex justify-center items-center mob:justify-start t
+                    ablet:justify-start">No Data Found</p>
                     :
                     projectTimeSheet.map((project, projectIndex) => (
                         <ProjectSection key={project.project_id} project={project} projectIndex={projectIndex} />
@@ -612,7 +770,8 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                                                     isDisabled={
                                                         isSaving ||
                                                         !currentInAllowedRange(start, end, allowed_range) ||
-                                                        enabledDays === 0
+                                                        enabledDays === 0 ||
+                                                        !selectedType
                                                     }
                                                     variant="primary"
                                                     name="Add"
@@ -633,6 +792,9 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                 {is_readonly &&
                     <DayAction
                         openModal={openModal}
+                        approve_day={approve_day}
+                        reject_day={reject_day}
+                        checkDayAction={checkDayAction}
                     />
                 }
                 <TimeSheetFooter
@@ -643,17 +805,23 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     variant="primary"
                     name="Save"
                     className="self-center m-1"
-                    isDisabled={isSaving || !currentInAllowedRange(start, end, allowed_range) || !edited}
+                    isDisabled={!is_readonly ? (isSaving || !currentInAllowedRange(start, end, allowed_range) || !edited) : false}
                     onClick={() => {
-                        // Check for gaps between filled days
-                        if (!noGapsInFilledDays) {
-                            openModal(
-                                'All days must be filled sequentially. No gaps are allowed in actioned days.',
-                                'Unactioned Days'
-                            );
-                            return;
+
+                        if (!is_readonly) {
+                            // Check for gaps between filled days
+                            if (!noGapsInFilledDays) {
+                                openModal(
+                                    'All days must be filled sequentially. No gaps are allowed in actioned days.',
+                                    'Unactioned Days'
+                                );
+                                return;
+                            }
+                            openModal(null, 'Confirm Save');
+                        } else {
+                            handleActionTimesheet()
                         }
-                        openModal(null, 'Confirm Save');
+
                     }}
                 />
                 {modal}

@@ -26,7 +26,7 @@ function DayType() {
 
                     const displayText =
                         non_working === true || status === "New Non Working"
-                            ? "Day OFF"
+                            ? "OFF"
                             : "";
 
                     return (
