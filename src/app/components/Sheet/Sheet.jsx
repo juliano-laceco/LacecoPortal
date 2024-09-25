@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -31,18 +28,19 @@ import Button from "../custom/Other/Button";
 import { usePathname, useRouter } from "next/navigation";
 import { formatDate } from "@/utilities/date/date-utils";
 import { showToast } from "@/utilities/toast-utils";
+import { logError } from "@/utilities/misc-utils";
 
 const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date, deployment_data, project_data }) => {
 
     // Memoized Employee and Discipline Data
-    const memoizedEmployeeData = useMemo(() => employee_data, [employee_data])
-    const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data])
+    const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
+    const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
     const [isLoading, setIsLoading] = useState(false);
     const [populated, setPopulated] = useState(false);
 
     // Router Utils
-    const router = useRouter()
-    const pathname = usePathname()
+    const router = useRouter();
+    const pathname = usePathname();
 
     // Combined state for modal visibility and content
     const [modal, setModal] = useState(null);
@@ -51,30 +49,28 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date, project_end_date));
     const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false); // Flags if the headers are changed
     const [initialHeaderDates, setInitialHeaderDates] = useState([]);    // Initial Persisting Copy of initialHeader dates
-    const [isFirstRender, setIsFirstRender] = useState(true)
+    const [isFirstRender, setIsFirstRender] = useState(true);
 
     // Deleted phase assignee tracking
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
 
     // Initial Data
-    const numCols = headerDates.length + 5;
-    const [initialData, setInitialData] = useState(() => deployment_data)
-    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData), [initialData])
-    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates])
+    const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
+    const [initialData, setInitialData] = useState(() => deployment_data);
+    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData), [initialData]);
+    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
 
     // Date Variables
-    const currentMonday = getThisMondayDate()
-    const [currentEndDate, setCurrentEndDate] = useState(end_date)
+    const currentMonday = useMemo(() => getThisMondayDate(), []);
+    const [currentEndDate, setCurrentEndDate] = useState(end_date);
 
-    // Flag inbdicates whether the page has been edited 
-    const [edited, setEdited] = useState(false)
+    // Flag that indicates whether the page has been edited 
+    const [edited, setEdited] = useState(false);
     const uneditableCellCount = 0;
-
 
     // Setting up using useSheet
     const {
         cellRefs,
-        selectedCells,
         cellContents,
         editableCell,
         handleMouseDown,
@@ -87,7 +83,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         setCellContents,
         setHistory
     } = useSheet(
-        initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0),
+        useMemo(() => initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0), [initialData]),
         numCols,
         initialCellContents,
         uneditableCellCount,
@@ -96,8 +92,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     );
 
     useEffect(() => {
-        setIsFirstRender(false)
-    }, [])
+        setIsFirstRender(false);
+    }, []);
 
     // Sets the cell contents whenever the data is updated
     useEffect(() => {
@@ -120,28 +116,22 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
     // Saves a copy of the initial headerDates
     useEffect(() => {
         setInitialHeaderDates(headerDates);
-    }, []);
+    }, [headerDates]);
 
     // Triggers a change event as soon as the page loads
     useEffect(() => {
         const selectElements = document.querySelectorAll('select');
-
         selectElements.forEach(select => {
-            // Create and dispatch a change event
             const event = new Event('change', { bubbles: true });
             select.dispatchEvent(event);
         });
-
-        setPopulated(true)
-
+        setPopulated(true);
     }, []);
 
     // Scroll to the end when headerDates is updated
     useEffect(() => {
         if (headerDatesUpdated) {
             const el = document.querySelector(".sheet-container");
-
-            // Scroll to the farthest right after headerDates is updated
             el.scrollTo({
                 left: el.scrollWidth,
                 behavior: "smooth"
@@ -155,19 +145,15 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-                    // Check horizontal visibility
                     const isVisibleHorizontally = entry.isIntersecting;
-
                     if (isVisibleHorizontally) {
-                        document.querySelector(".sheet-container")?.classList?.add("out-of-view")
+                        document.querySelector(".sheet-container")?.classList?.add("out-of-view");
                     } else {
-                        document.querySelector(".sheet-container")?.classList?.remove("out-of-view")
+                        document.querySelector(".sheet-container")?.classList?.remove("out-of-view");
                     }
                 });
             },
-            {
-                threshold: [0, 1] // Trigger when completely out of view horizontally
-            }
+            { threshold: [0, 1] } // Trigger when completely out of view horizontally
         );
 
         const elements = document.querySelectorAll('.user-header');
@@ -182,10 +168,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         };
     }, [initial_assignee_count]);
 
-
-
-    // Function that loops over the cells to update the current data so it persists across re-renders
-    const getUpdatedData = () => {
+    const getUpdatedData = useCallback(() => {
         const updatedData = initialData.map((phase) => ({
             phase_id: phase.phase_id,
             expected_work_hours: phase.expected_work_hours,
@@ -194,10 +177,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 phase_assignee_id: assignee.phase_assignee_id,
                 discipline: assignee.discipline,
                 assignee: assignee.assignee,
+                timesheet_exists: assignee.timesheet_exists,
                 initial_projected_work_weeks: assignee.initial_projected_work_weeks,
                 projected_work_weeks: {},
-                updated_projected_work_weeks: {},
-
+                updated_projected_work_weeks: {}
             })),
         }));
 
@@ -212,7 +195,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     const newValue = selectElement ? selectElement.value : cell.textContent;
 
                     if (isUUID(phaseAssigneeId)) {
-                        // Append all cells for rows with UUIDs
                         if (colIndex === 1) {
                             updatedData[phaseIndex].assignees[assigneeIndex].discipline = newValue;
                         } else if (colIndex === 2) {
@@ -223,18 +205,12 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             }
                         }
                     } else {
-
-                        // Only check for changed cells for rows with non-UUIDs
                         const dataChanged = cell.getAttribute("data-initial") != cell.textContent;
-
                         if (colIndex === 1) {
-
                             updatedData[phaseIndex].assignees[assigneeIndex].discipline = newValue;
                         } else if (colIndex === 2) {
                             updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
-
                         } else if (colIndex > 4) {
-
                             if (newValue != "") {
                                 updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
                             }
@@ -248,42 +224,26 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         });
 
         return updatedData;
-    }
+    }, [cellRefs, initialData]);
 
-    // Function that adds a new month to the headerDates
-    const addNewMonth = () => {
-
+    const addNewMonth = useCallback(() => {
         setHeaderDates(() => {
-
-            const lastDateHeader = headerDates[headerDates.length - 1]
-
-            const newEndDate = formatDate(add(new Date(lastDateHeader), { months: 1 }), "m-y")
-
-            // Generate new header dates
+            const lastDateHeader = headerDates[headerDates.length - 1];
+            const newEndDate = formatDate(add(new Date(lastDateHeader), { months: 1 }), "m-y");
             const newDates = generateHeaderDates(start_date, newEndDate, project_end_date);
-
-            // Update the end date
             setCurrentEndDate(newEndDate);
-
-            // Saving the current data to avoid losing it on rerender
             const newInitialData = [...getUpdatedData()];
-            setInitialData(newInitialData)
-
+            setInitialData(newInitialData);
             return newDates;
         });
+        setHeaderDatesUpdated(true); 
+        !edited && setEdited(true);
+    }, [headerDates, start_date, project_end_date, getUpdatedData, setEdited, edited]);
 
-        setHeaderDatesUpdated(true); // Set the flag to true
-        !edited && setEdited(true)
-
-    }
-
-    // Function that removes the last week of the headerDates
-    const removeLastWeek = () => {
-
+    const removeLastWeek = useCallback(() => {
         let weekContainsData = false;
         const lastColumnIndex = headerDates.length + 4;
         const lastColumnCells = document.querySelectorAll(`[data-col="${lastColumnIndex}"]`);
-
         lastColumnCells.forEach((lastColumnCell) => {
             if (lastColumnCell.textContent?.trim() !== "") {
                 weekContainsData = true;
@@ -300,7 +260,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
             setCellContents((prevContents) => {
                 const newContents = { ...prevContents };
-                const lastColIndex = lastColumnIndex; // Last column index
+                const lastColIndex = lastColumnIndex;
 
                 for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
                     delete newContents[`${row}-${lastColIndex}`];
@@ -317,10 +277,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         } else {
             updateState();
         }
-    }
+    }, [headerDates, initialData, setCellContents, setEdited, edited]);
 
-    // Calculate the budget hours for the cumulative phases
-    const getBudgetHoursCells = (row) => {
+    const getBudgetHoursCells = useCallback((row) => {
         let total = 0;
         for (let i = 5; i < numCols; i++) {
             let content =
@@ -330,133 +289,107 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             total += parseInt(content);
         }
         return total;
-    }
+    }, [cellContents, numCols]);
 
-    // Calculate budget hours for each phase
     const getPhaseBudgetHours = useMemo(() => {
-        const phaseBudgetHours = initialData.map((phase, phaseIndex) => {
+        return initialData.map((phase, phaseIndex) => {
             let total = 0;
             let rowCounter = 0;
 
-            // Calculate the starting row for the phase
             for (let i = 0; i < phaseIndex; i++) {
                 rowCounter += initialData[i].assignees.length;
             }
 
-            // Calculate the budget hours for each assignee in the phase
             for (let row = rowCounter; row < rowCounter + phase.assignees?.length; row++) {
                 total += getBudgetHoursCells(row);
             }
 
             return total;
         });
-
-        return phaseBudgetHours;
     }, [initialData, getBudgetHoursCells]);
 
+    const handleAddAssignee = useCallback((phaseIndex) => {
+        const newAssignee = {
+            phase_assignee_id: crypto.randomUUID(),
+            discipline: "",
+            assignee: "",
+            initial_projected_work_weeks: null,
+            projected_work_weeks: {}
+        };
 
-    const handleAddAssignee = useCallback(
-        (phaseIndex) => {
-            const newAssignee = {
-                phase_assignee_id: crypto.randomUUID(),
-                discipline: "",
-                assignee: "",
-                initial_projected_work_weeks: null,
-                projected_work_weeks: {},
+        headerDates.forEach((date) => {
+            newAssignee.projected_work_weeks[date] = "";
+        });
 
-            };
+        const updatedData = [...getUpdatedData()];
+        updatedData[phaseIndex] = {
+            ...updatedData[phaseIndex],
+            assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
+        };
 
-            headerDates.forEach((date) => {
-                newAssignee.projected_work_weeks[date] = "";
+        setInitialData(updatedData);
+
+        const newRowIndex = updatedData.reduce((acc, phase, idx) => {
+            return idx < phaseIndex ? acc + phase.assignees?.length : acc;
+        }, 0) + updatedData[phaseIndex].assignees.length - 1;
+
+        setCellContents((prevContents) => {
+            const newContents = {};
+            Object.keys(prevContents).forEach(key => {
+                const [row, col] = key.split('-').map(Number);
+                if (row >= newRowIndex) {
+                    newContents[`${row + 1}-${col}`] = prevContents[key];
+                } else {
+                    newContents[key] = prevContents[key];
+                }
             });
 
-            const updatedData = [...getUpdatedData()];
-            updatedData[phaseIndex] = {
-                ...updatedData[phaseIndex],
-                assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
-            };
-
-            setInitialData(updatedData);
-
-            const newRowIndex =
-                updatedData.reduce((acc, phase, idx) => {
-                    return idx < phaseIndex ? acc + phase.assignees?.length : acc;
-                }, 0) + updatedData[phaseIndex].assignees.length - 1;
-
-            // Adjust the indices of the cell contents for all subsequent rows
-            setCellContents((prevContents) => {
-                const newContents = {};
-                Object.keys(prevContents).forEach(key => {
-                    const [row, col] = key.split('-').map(Number);
-                    if (row >= newRowIndex) {
-                        newContents[`${row + 1}-${col}`] = prevContents[key];
-                    } else {
-                        newContents[key] = prevContents[key];
-                    }
-                });
-
-                // Add the new row's cells
-                for (let col = 5; col < numCols; col++) {
-                    newContents[`${newRowIndex}-${col}`] = "";
-                }
-                return newContents;
-            });
-
-            setHistory([cellContents]);
-
-            // Trigger change event on the newly added select element
-            setTimeout(() => {
-                const selectElement = document.getElementById(`select-${newRowIndex}-1`);
-                if (selectElement) {
-                    const event = new Event('change', { bubbles: true });
-                    selectElement.dispatchEvent(event);
-                }
-            }, 0);
-        },
-        [headerDates, numCols, setCellContents, cellContents, setHistory, getUpdatedData, setInitialData]
-    );
-
-    // Handles assignee deletion
-    const deleteAssignee = useCallback(
-        (row) => {
-            const phaseIndex = findPhaseIndex(row, initialData);
-            const assigneeIndex = findAssigneeIndex(row, phaseIndex);
-            const assigneeId = initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
-
-            if (!isUUID(assigneeId)) {
-                setDeletedPhaseAssignees((prev) => [...prev, assigneeId]);
+            for (let col = 5; col < numCols; col++) {
+                newContents[`${newRowIndex}-${col}`] = "";
             }
+            return newContents;
+        });
 
-            const newInitialData = [...getUpdatedData()];
+        setHistory([cellContents]);
 
-            openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
-            setEdited(true)
+        setTimeout(() => {
+            const selectElement = document.getElementById(`select-${newRowIndex}-1`);
+            if (selectElement) {
+                const event = new Event('change', { bubbles: true });
+                selectElement.dispatchEvent(event);
+            }
+        }, 0);
+    }, [headerDates, numCols, getUpdatedData, setCellContents, setHistory, cellContents]);
 
-        },
-        [initialData]
-    );
+    const deleteAssignee = useCallback((row) => {
+        const phaseIndex = findPhaseIndex(row, initialData);
+        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+        const assigneeId = initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
 
-    // Handles saving to the DB
-    const handleSave = async (refresh = true) => {
+        if (!isUUID(assigneeId)) {
+            setDeletedPhaseAssignees((prev) => [...prev, assigneeId]);
+        }
 
+        const newInitialData = [...getUpdatedData()];
+        openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
+        setEdited(true);
+    }, [initialData, getUpdatedData]);
+
+    const handleSave = useCallback(async (refresh = true) => {
         const updatedData = getUpdatedData();
-
         let isValid = true;
         let hasDuplicateAssignees = false;
         let empty_rows = false;
-
         const invalidAssignees = [];
 
-        // Check each phase in the updated data
         updatedData.forEach((phase) => {
             const assigneeNames = new Set();
-            const flaggedAssignees = new Set(); // To track flagged assignees for duplicates
-            const flaggedEmptyAssignees = new Set(); // To track flagged assignees for empty assignments
+            const flaggedAssignees = new Set();
+            const flaggedEmptyAssignees = new Set();
 
             phase?.assignees?.forEach((assignee) => {
                 let issues = [];
 
-                // Validate discipline and assignee selection
                 if (assignee.discipline == "Select...") {
                     isValid = false;
                     issues.push("Discipline not selected");
@@ -468,7 +401,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 }
 
                 const assigneeName = getEmployeeName(assignee.assignee, employee_data);
-
                 let is_empty = true;
 
                 for (const date in assignee.projected_work_weeks) {
@@ -479,15 +411,13 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 }
 
                 if (is_empty) {
-                    // Filter out the keys from initial_projected_work_weeks that are not in headerDates
                     const relevantKeys = Object.keys(assignee.initial_projected_work_weeks ?? {}).filter(date => !headerDates.includes(date));
 
                     if (relevantKeys.length === 0) {
                         empty_rows = true;
 
-                        // Only add the empty assignment issue once per assignee
                         if (!flaggedEmptyAssignees.has(assigneeName)) {
-                            flaggedEmptyAssignees.add(assigneeName); // Mark this assignee as flagged for empty assignment
+                            flaggedEmptyAssignees.add(assigneeName);
                             issues.push("No hours filled");
                         }
                     }
@@ -505,9 +435,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     hasDuplicateAssignees = true;
                     isValid = false;
 
-                    // Only add the duplicate issue once per assignee
                     if (!flaggedAssignees.has(assigneeName)) {
-                        flaggedAssignees.add(assigneeName); // Mark this assignee as flagged for duplicate
+                        flaggedAssignees.add(assigneeName);
                         invalidAssignees.push({
                             phaseName: phase.phase_name,
                             assigneeName,
@@ -520,7 +449,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             });
         });
 
-        // Build the JSX noticeMessage with the invalid assignees details
         const noticeMessage = (
             <ul>
                 {invalidAssignees.map(({ phaseName, assigneeName, issues }, index) => (
@@ -543,21 +471,18 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             return;
         }
 
-        // If there are duplicate assignees
         if (hasDuplicateAssignees) {
             openModal(noticeMessage, "Duplicate Employees");
             setIsLoading(false);
             return;
         }
 
-        // If the validation failed
         if (!isValid) {
             openModal(noticeMessage, "Missing Data");
             setIsLoading(false);
             return;
         }
 
-        // Proceed with saving if validation passed
         openModal({
             handlerFunction: async () => {
                 try {
@@ -570,20 +495,18 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             },
             refresh
         }, "Save");
-    };
+    }, [getUpdatedData, deletedPhaseAssignees, employee_data, headerDates]);
 
-    const clearPath = () => {
-
-        if (initialHeaderDates.length != headerDates.length) {
+    const clearPath = useCallback(() => {
+        if (initialHeaderDates.length !== headerDates.length) {
             router.push(`${pathname}`);
             router.refresh();
         } else {
             router.refresh();
         }
+    }, [initialHeaderDates.length, headerDates.length, pathname, router]);
 
-    }
-
-    const findPhaseIndex = (row) => {
+    const findPhaseIndex = useCallback((row) => {
         let phaseIndex = 0;
         let currentRow = 0;
 
@@ -593,51 +516,46 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         }
 
         return phaseIndex;
-    }
+    }, [initialData]);
 
-    const findAssigneeIndex = (row, phaseIndex) => {
+    const findAssigneeIndex = useCallback((row, phaseIndex) => {
         let assigneeIndex = row;
         for (let i = 0; i < phaseIndex; i++) {
             assigneeIndex -= initialData[i].assignees.length;
         }
         return assigneeIndex;
-    }
+    }, [initialData]);
 
-    const updateAssigneeDiscipline = (row, value) => {
-
+    const updateAssigneeDiscipline = useCallback((row, value) => {
         const newInitialData = [...getUpdatedData()];
         const phaseIndex = findPhaseIndex(row);
         const assigneeIndex = findAssigneeIndex(row, phaseIndex);
         newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
         setInitialData(newInitialData);
-
         document.querySelector(`#select-${row}-2`).value = "Select...";
         const event = new Event('change', { bubbles: true });
         document.querySelector(`#select-${row}-2`).dispatchEvent(event);
-    }
+    }, [findPhaseIndex, findAssigneeIndex, getUpdatedData]);
 
-    const updateAssigneeUser = (row, value) => {
+    const updateAssigneeUser = useCallback((row, value) => {
         const newInitialData = [...getUpdatedData()];
         const phaseIndex = findPhaseIndex(row);
         const assigneeIndex = findAssigneeIndex(row, phaseIndex);
         newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
         setInitialData(newInitialData);
-    }
+    }, [findPhaseIndex, findAssigneeIndex, getUpdatedData]);
 
-    const handleSelectChange = (e, row, col) => {
-
+    const handleSelectChange = useCallback((e, row, col) => {
         const value = e.target.value;
-
         if (col === 1) {
             updateAssigneeDiscipline(row, value);
         } else if (col === 2) {
             updateAssigneeUser(row, value);
         }
-        !edited && populated && setEdited(true)
+        !edited && populated && setEdited(true);
+    }, [updateAssigneeDiscipline, updateAssigneeUser, edited, populated]);
 
-    }
-
-    const renderModalContent = (message, buttons, title = "") => (
+    const renderModalContent = useCallback((message, buttons, title = "") => (
         <Modal open={true}
             onClose={() => {
                 setModal(null);
@@ -662,12 +580,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 ))}
             </div>
         </Modal>
-    );
+    ), [isLoading]);
 
-    const openModal = (data = null, type) => {
-
+    const openModal = useCallback((data = null, type) => {
         let modalContent;
-
         switch (type) {
             case "Assignee Delete":
                 const { newInitialData, phaseIndex, assigneeIndex } = data;
@@ -734,8 +650,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             variant: "primary",
                             name: "Close",
                             onClick: () => {
-                                setModal(null)
-                                scrollToFirstWarning()
+                                setModal(null);
+                                scrollToFirstWarning();
                             },
                         },
                     ],
@@ -750,8 +666,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             variant: "primary",
                             name: "Close",
                             onClick: () => {
-                                setModal(null)
-                                scrollToFirstWarning()
+                                setModal(null);
+                                scrollToFirstWarning();
                             },
                         },
                     ],
@@ -778,7 +694,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         },
                     ],
                     "Warning"
-                )
+                );
                 break;
             case "Date Change":
                 modalContent = renderModalContent(
@@ -800,7 +716,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         },
                     ],
                     "Warning"
-                )
+                );
                 break;
             case "Invalid Dates":
                 modalContent = renderModalContent(
@@ -812,7 +728,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             onClick: () => setModal(null),
                         },
                     ]
-                )
+                );
                 break;
             case "Save":
                 modalContent = renderModalContent(
@@ -822,8 +738,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             variant: "primary",
                             name: "Save",
                             onClick: async () => {
-                                setIsLoading(true)
-                                await data.handlerFunction()
+                                setIsLoading(true);
+                                await data.handlerFunction();
                                 if (data.refresh) {
                                     clearPath();
                                 }
@@ -839,7 +755,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         },
                     ],
                     "Confirmation"
-                )
+                );
                 break;
             case "Blank Employee Assignment":
                 modalContent = renderModalContent(
@@ -852,14 +768,13 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         },
                     ],
                     "Assignment Error"
-                )
+                );
                 break;
         }
         setModal(modalContent);
-    };
+    }, [renderModalContent, clearPath, handleSave]);
 
     const renderGrid = useCallback(() => {
-
         const rows = [];
 
         // Add header row
@@ -884,9 +799,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 Budget Hours
             </div>,
             ...headerDates.map((date, index) => {
-                const color = getColorForMonth(date)
+                const color = getColorForMonth(date);
                 return <div
-                    key={`header-${index}-${date}`}  // Ensure a unique key using index and date
+                    key={`header-${index}-${date}`}
                     className={"border border-gray-300 min-w-12 max-w-12 flex justify-center items-center px-1 py-4 text-gray-600 font-semibold"}
                     style={{
                         writingMode: "vertical-rl",
@@ -896,7 +811,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     }}
                 >
                     {date}
-                </div>
+                </div>;
             }),
         ];
         rows.push(
@@ -907,10 +822,8 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
 
         let rowCounter = 0;
 
-        // Add data rows
         initialData.forEach((phase, phaseIndex) => {
-
-            const phase_display = getPhaseStateFromLocalStorage(phase.phase_id)
+            const phase_display = getPhaseStateFromLocalStorage(phase.phase_id);
 
             rows.push(
                 <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex justify-between border-b border-white items-center sticky left-0 flex-1 font-bold bg-gray-400 text-left text-xl px-2 py-5 ${phase_display}`}>
@@ -935,32 +848,32 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                 phase?.assignees?.forEach((assignee, assigneeIndex) => {
                     const assignee_grade = getGradeName(assignee.assignee, employee_data);
                     const assignee_name = getEmployeeName(assignee.assignee, employee_data);
-
+                    const { timesheet_exists } = assignee;
                     const row = rowCounter;
                     rowCounter += 1;
                     const cols = [];
 
                     for (let col = 0; col < numCols; col++) {
                         let content, initialContent;
-                        let isSelected = selectedCells.some((cell) => cell.row === row && cell.col === col);
+                        let isSelected = false;
                         let colDate;
 
                         if (col === 0) {
                             content = (
-                                <div className="cursor-pointer" onClick={() => deleteAssignee(row)}>
+                                <button disabled={timesheet_exists} className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-60" onClick={() => deleteAssignee(row)}>
                                     <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" />
-                                </div>
+                                </button>
                             );
                         } else if (col === 1) {
-
-                            const isEmpty = assignee.discipline == "Select..."
+                            const isEmpty = assignee.discipline === "Select...";
                             content = (
                                 <div className="flex flex-col items-center">
                                     <select
                                         id={`select-${row}-${col}`}
                                         value={assignee.discipline || 1}
                                         onChange={(e) => handleSelectChange(e, row, col)}
-                                        className={`native-select border ${!isEmpty ? "border-gray-300" : "border-pric"} rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer  w-full  focus:border-none`}
+                                        className={`disabled:cursor-not-allowed native-select border ${!isEmpty ? "border-gray-300" : "border-pric"} rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer  w-full  focus:border-none`}
+                                        disabled={timesheet_exists}
                                     >
                                         <option key={crypto.randomUUID()} value="Select...">Select...</option>
                                         {memoizedDisciplineData.map((option) => (
@@ -972,16 +885,15 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 </div>
                             );
                         } else if (col === 2) {
-
-                            const isEmpty = assignee.assignee == "Select..."
-
+                            const isEmpty = assignee.assignee === "Select...";
                             content = (
                                 <>
                                     <select
                                         id={`select-${row}-${col}`}
                                         value={assignee.assignee}
                                         onChange={(e) => handleSelectChange(e, row, col)}
-                                        className={`native-select border ${!isEmpty ? "border-gray-300" : "border-pric"} rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer  w-full  focus:border-none`}
+                                        className={`disabled:cursor-not-allowed native-select border ${!isEmpty ? "border-gray-300" : "border-pric"} rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer  w-full  focus:border-none`}
+                                        disabled={timesheet_exists}
                                     >
                                         <option key={crypto.randomUUID()} value="Select...">Select...</option>
                                         {memoizedEmployeeData
@@ -990,8 +902,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                                 <option key={crypto.randomUUID()} value={option.value}>
                                                     {option.label}
                                                 </option>
-                                            ))
-                                        }
+                                            ))}
                                     </select>
                                 </>
                             );
@@ -1025,13 +936,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                 }}
                                 className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : `min-w-12 max-w-12 cursor-cell focus:cursor-auto ${col >= 5 && col < 5 + uneditableCellCount ? "bg-gray-200 cursor-not-allowed" : ""}`} justify-center items-center p-1 box-border text-center z-0  ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
                                 style={getCellStyle(row, col)}
-                                onMouseDown={
-                                    col > 4 + uneditableCellCount ?
-                                        (e) => {
-                                            handleMouseDown(row, col);
-                                        }
-                                        : undefined
-                                }
+                                onMouseDown={col > 4 + uneditableCellCount ? (e) => { handleMouseDown(row, col); } : undefined}
                                 onMouseEnter={col > 4 + uneditableCellCount ? () => handleMouseEnter(row, col) : undefined}
                                 onMouseUp={col > 4 + uneditableCellCount ? handleMouseUp : undefined}
                                 data-date={col > 4 ? headerDates[col - 5] : ""}
@@ -1052,8 +957,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                         );
                     }
 
-
-
                     assigneeRows.push(
                         <>
                             <div className="assignee-label  text-center bg-gray-300 text-gray-600 p-1 mt-3 max-w-[100vw] sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
@@ -1064,14 +967,12 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                             </div>
                         </>
                     );
-
-
                 });
 
-                if (phase?.assignees?.length == 0) {
+                if (phase?.assignees?.length === 0) {
                     assigneeRows.push(
                         <div key={crypto.randomUUID()} className="text-center max-w-[100vw] p-3 text-pric sticky left-0"> No assignees found </div>
-                    )
+                    );
                 }
                 assigneeRows.push(
                     <div
@@ -1085,11 +986,10 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
             }
 
             rows.push(
-                <div key={`assignee-wrapper-${crypto.randomUUID()}`} className={`assignee-wrapper min-w-max relative ${phase_display == "collapsed" ? "hidden" : ""}`}>
+                <div key={`assignee-wrapper-${crypto.randomUUID()}`} className={`assignee-wrapper min-w-max relative ${phase_display === "collapsed" ? "hidden" : ""}`}>
                     {assigneeRows}
                 </div>
             );
-
         });
 
         return rows;
@@ -1097,7 +997,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
         headerDates,
         numCols,
         initialData,
-        selectedCells,
         cellContents,
         getCellStyle,
         handleMouseDown,
@@ -1138,7 +1037,6 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                         <Image src="/resources/icons/arrow.png" height="20" width="20" className="" alt="arrow" onClick={navigateRight} />
                                     </div>
                                 </div>
-
                             </div>
                             <div className="flex gap-4 items-center justify-center bg-white sticky left-0 bottom-0 max-w-[100vw] z-50 p-3 border-t border-gray-300 shadow-top-only">
                                 <Button
@@ -1149,7 +1047,7 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                     isDisabled={!edited || isLoading}
                                     loading={isLoading}
                                 />
-                                {project_data.isBaselined == 'No' &&
+                                {project_data.isBaselined === 'No' &&
                                     <Button
                                         onClick={async () => {
                                             setIsLoading(true);
@@ -1164,10 +1062,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                                         loading={isLoading}
                                     />
                                 }
-
                             </div>
                         </div>
-                        {getMonthNameFromDate(initialHeaderDates[initialHeaderDates.length - 1]) == getMonthNameFromDate(project_end_date) &&
+                        {getMonthNameFromDate(initialHeaderDates[initialHeaderDates.length - 1]) === getMonthNameFromDate(project_end_date) &&
                             <div className="space-y-1">
                                 <button
                                     key="add-week-button"
@@ -1189,11 +1086,9 @@ const Sheet = ({ employee_data, discipline_data, project_start_date, project_end
                     </div>
                 </div>
             </div>
-
             <p className="user-tracker-visible"></p>
         </>
     );
 };
 
 export default React.memo(Sheet);
-

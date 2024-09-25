@@ -319,7 +319,12 @@ export async function getProjectData(project_id) {
                     e.employee_id AS assignee,
                     pw.hours_expected, 
                     DATE_FORMAT(pw.week_start, '%d %M %Y') AS week_start,
-                    g.grade_code
+                    g.grade_code ,
+                    EXISTS (
+                    SELECT 1
+                    FROM employee_work_day ewd_sub
+                    WHERE ewd_sub.phase_assignee_id = pa.phase_assignee_id
+                    ) AS timesheet_exists
                 FROM phase_assignee pa
                 LEFT JOIN projected_work_week pw ON pa.phase_assignee_id = pw.phase_assignee_id
                 JOIN employee e ON pa.assignee_id = e.employee_id
@@ -340,6 +345,7 @@ export async function getProjectData(project_id) {
                         phase_assignee_id: row.phase_assignee_id,
                         discipline: row.discipline,
                         assignee: row.assignee,
+                        timesheet_exists: row.timesheet_exists == 1 ? true : false,
                         initial_projected_work_weeks: {},
                         projected_work_weeks: {},
                         hasInitialData: false // Initialize the property as false

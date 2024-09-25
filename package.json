@@ -21,7 +21,7 @@
     "framer-motion": "^11.3.24",
     "jquery": "^3.7.1",
     "mysql2": "^3.9.7",
-    "next": "14.2.3",
+    "next": "^14.2.13",
     "next-auth": "^4.24.7",
     "react": "^18.3.1",
     "react-dom": "^18",
@@ -31,7 +31,9 @@
     "react-table": "^7.8.0",
     "react-toastify": "^10.0.5",
     "use-breakpoint": "^4.0.1",
-    "yup": "^1.4.0"
+    "workerize": "^0.1.8",
+    "yup": "^1.4.0",
+    "zustand": "^5.0.0-rc.2"
   },
   "devDependencies": {
     "eslint": "^8",
