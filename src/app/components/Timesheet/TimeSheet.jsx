@@ -58,6 +58,10 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
     const router = useRouter();
 
     useEffect(() => {
+        console.log("Batch Rejection Reason: " + batchRejectionReason)
+    }, [batchRejectionReason])
+
+    useEffect(() => {
         // Perform your heavy processing here asynchronously
         const processData = async () => {
             // Simulate heavy computation
@@ -130,7 +134,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                         }
                         // Check if the updated value is different from the previous one
                         if (item.hours_worked !== updatedValue) {
-                            setEdited(true); // Call setIsEdited if the value has changed
+                            setIsEdited(); // Call setIsEdited if the value has changed
                         }
                         return {
                             ...item,
@@ -153,7 +157,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     rejection_reason: null,
                     type, // Set any default or null type
                 });
-                setEdited(true); // Set edited if a new entry is added
+                setIsEdited(); // Set edited if a new entry is added
             }
 
             setDevelopmentTimeSheet(newDevelopmentTimesheet);
@@ -172,7 +176,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                 } else {
                     // Check if the updated value is different from the previous one
                     if (currentAssignment.hours_worked !== updatedValue) {
-                        setEdited(true); // Call setIsEdited if the value has changed
+                        setIsEdited() // Call setIsEdited if the value has changed
                     }
                     // If assignment exists, update the hours worked
                     newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[
@@ -189,7 +193,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     status: status, // Default status for new entries
                     rejection_reason: null,
                 });
-                setEdited(true); // Set edited if a new entry is added
+                setIsEdited() // Set edited if a new entry is added
             }
 
             setProjectTimeSheet(newProjectTimeSheet);
@@ -437,6 +441,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                             variant: 'primary',
                             name: 'Approve',
                             onClick: () => {
+                                setIsEdited(true)
                                 approve_day(data)
                                 setModal(null)
                             },
@@ -478,6 +483,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                             variant: 'primary',
                             name: 'Reject',
                             onClick: () => {
+                                setIsEdited(true)
                                 reject_day(data, rejection_ref.current.value)
                                 setModal(null)
                             },
@@ -492,8 +498,6 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                 );
                 break;
             case 'Batch Action':
-                let batch_rejection = batch_rejection_ref?.current?.value
-
                 modalContent = renderModalContent(
                     data === "Approve" ?
                         `Are you sure you want to ${data.toLowerCase()} the complete week? This action will clear any previous actions you made.` :
@@ -512,7 +516,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                                         e.preventDefault(); // Prevents pressing the enter key
                                     }
                                 }}
-                                onChange={(e) => setBatchRejectionReason(e.target.value)} // Update the state with the new value
+                                onInput={(e) => setBatchRejectionReason(e.target.value)} // Update the state with the new value
                             ></textarea>
 
                             <div className="text-sm mob:text-xs text-gray-500">
@@ -524,7 +528,8 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                             variant: 'primary',
                             name: data,
                             onClick: () => {
-                                action_all_days(data, batch_rejection)
+                                setIsEdited(true)
+                                action_all_days(data, batchRejectionReason)
                                 setModal(null)
                             },
                         },
@@ -681,7 +686,9 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         });
     };
 
-    const action_all_days = (type, rejection_reason = "Inaccurate Data") => {
+    const action_all_days = (type, rejection_reason = batchRejectionReason) => {
+
+        console.log("BATCH REJECTION REASON", batchRejectionReason)
         // Determine the handler: use approve_day if type is "Approve", otherwise use reject_day
         const handler = type === "Approve" ? approve_day : reject_day;
 
@@ -736,8 +743,10 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
 
     const handleActionTimesheet = async () => {
         try {
+            setIsSaving(true);
             await actionTimesheet(timesheet_data, dateActions);
             showToast("success", "Timesheet actions successfully updated.");
+            setIsSaving(false);
             router.refresh()
         } catch (error) {
             showToast("failed", "Failed to update timesheet actions.");
@@ -890,7 +899,8 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     variant="primary"
                     name="Save"
                     className="self-center m-1"
-                    isDisabled={!is_readonly ? (isSaving || !currentInAllowedRange(start, end, allowed_range) || !edited) : false}
+                    loading={isSaving}
+                    isDisabled={!is_readonly ? (isSaving || !currentInAllowedRange(start, end, allowed_range) || !edited) : !edited}
                     onClick={() => {
 
                         if (!is_readonly) {

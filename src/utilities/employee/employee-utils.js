@@ -380,5 +380,30 @@ export async function checkIfHod(sub) {
     }
 }
 
+export async function checkEmployeeDiscipline(disciplines) {
+    try {
+        // Generate placeholders for the query based on the number of discipline IDs
+        const placeholders = disciplines.map(() => '?').join(', ');
 
+        const query = `
+            SELECT d.discipline_id, d.discipline_name
+            FROM discipline d 
+            JOIN employee e ON d.discipline_id = e.discipline_id
+            AND d.discipline_id IN (${placeholders})
+        `;
+
+        // Include the employee sub (Google sub) and the discipline IDs as parameters for the query
+        const params = [...disciplines.map((dep) => dep.discipline_id)];
+        const result = await execute(query, params);
+
+        const belongsToDiscipline = result.length > 0;
+
+        // Return true if the employee belongs to any of the given disciplines, otherwise false
+        return { belongsToDiscipline, disciplines: result };
+
+    } catch (error) {
+        await logError(error, "Error checking employee disciplines");
+        return { belongsToDiscipline: false, error: "Failed to check employee disciplines." };
+    }
+}
 

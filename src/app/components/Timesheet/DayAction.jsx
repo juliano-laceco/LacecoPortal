@@ -3,7 +3,7 @@ import { TimeSheetContext } from "./TimeSheetContext";
 import Image from "next/image";
 
 function DayAction({ openModal, checkDayAction, batchType, hasPendingDays }) {
-  const { weekDays, getStatusForDay } = useContext(TimeSheetContext);
+  const { weekDays, getStatusForDay, setEdited } = useContext(TimeSheetContext);
 
   const handleApprove = (date) => {
     openModal(date, "Confirm Day Approve");

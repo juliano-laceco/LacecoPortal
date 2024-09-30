@@ -1,0 +1,64 @@
+"use client"
+
+import Link from "next/link";
+import React from "react";
+
+function PendingActions({ approvals }) {
+    return (
+        <div className="bg-white rounded-lg shadow-2xl p-4 w-full max-w-sm mob:max-w-full lap:max-w-md desk:max-w-md select-none">
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">Timesheet Approvals</h2>
+            </div>
+            <div className="mt-4">
+                <h3 className="text-sm font-semibold mb-4">Most Relevant</h3>
+                <div>
+                    {approvals.map((approval) => (
+                        <Link href={`/hod/approvals?employee_id=${approval.employee_id}`} key={approval.employee_id}>
+                            <div className="flex items-center justify-between gap-3 mob:gap-1 border-b border-gray-200 pb-2 pt-2 px-1 hover:bg-gray-50 duration-300 ease">
+                                <div className="flex items-center gap-4 mob:gap-3 tablet:gap-3">
+                                    {/* Placeholder for employee avatar */}
+                                    <div className="w-12 h-12 rounded-full bg-gray-200 flex justify-center items-center">
+                                        <svg className="h-10 w-10 text-red-400 mob:h-8 mob:w-8" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-base mob:text-sm">{approval.first_name}</p>
+                                        <p className="text-sm text-gray-500 mob:text-xs">{approval.work_email}</p>
+                                    </div>
+                                </div>
+                                {/* Display approval status */}
+                                <div className="text-sm font-semibold mob:text-xs">
+                                    {approval.last_action_date ? (
+                                        <>
+                                            <span className={`text-xs mob:hidden tablet:hidden ${approval.last_action_status === 'Approved' ? 'text-green-500' : 'text-red-500'}`}>
+                                                {approval.last_action_status.toLowerCase()} {new Date(approval.last_action_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
+                                            </span>
+                                            <span className={`text-white p-1 text-[11px] rounded-md font-semibold desk:hidden lap:hidden ${approval.last_action_status === 'Approved' ? 'bg-green-500' : 'text-red-500'}`}>
+                                                {new Date(approval.last_action_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="text-xs mob:hidden tablet:hidden text-red-500">missing</span>
+                                            <span className="text-white p-1 text-[11px] bg-pric rounded-md font-semibold desk:hidden lap:hidden">N/A</span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+
+                {/* Load More Button */}
+                <div className="flex justify-center mt-4">
+                    <button className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
+                        View All
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default PendingActions;

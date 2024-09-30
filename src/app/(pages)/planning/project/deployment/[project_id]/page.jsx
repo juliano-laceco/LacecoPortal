@@ -1,4 +1,4 @@
-import ProjectDetails from '@/app/components/ProjectDetails';
+import ProjectDetails from '@/app/components/sheet/ProjectDetails';
 import Sheet from '@/app/components/sheet/Sheet';
 import { getAllEmployees } from '@/utilities/employee/employee-utils';
 import { getProjectData } from '@/utilities/project/project-utils';

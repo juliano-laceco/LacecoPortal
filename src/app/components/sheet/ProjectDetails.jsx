@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import EmployeeNameCard from './EmployeeNameCard';
-import StatTile from './StatTile';
+import StatTile from '../StatTile';
 
 const ProjectDetails = ({
     project_data,

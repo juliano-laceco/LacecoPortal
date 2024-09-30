@@ -1,12 +1,23 @@
+import { getSession } from "@/utilities/auth/auth-utils";
 
-import Image from "next/image";
+import { getApprovalData } from "@/utilities/timesheet-utils";
+import PendingActions from "./components/dashboard/PendingActions";
 
-export default function Home() {
+export default async function Home() {
+
+  const session = await getSession()
+  const isHoD = session?.user?.isHoD
+  if (isHoD) {
+
+  }
+  const disciplines = session?.user?.disciplines
+  const res = await getApprovalData(disciplines)
+
   return (
     <>
       <div className="flex flex-col">
-        <h1 className="font-bold text-lg">This is the Home Page</h1>
-        <p>Home Page Content Goes Here</p>
+        <h1 className="font-bold text-2xl mb-4">Dashboard</h1>
+        <PendingActions approvals={res} />
       </div>
 
     </>

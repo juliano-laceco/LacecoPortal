@@ -523,22 +523,6 @@ export async function saveDeployment(deployment_data, deletedAssignees) {
     }
 }
 
-function getMinMaxDate(dateSet) {
-
-    // Convert dates to Date objects for comparison
-    const dateObjects = Array.from(dateSet).map(dateStr => new Date(dateStr));
-
-    // Find min and max dates using Date objects
-    const minDate = new Date(Math.min(...dateObjects));
-    const maxDate = new Date(Math.max(...dateObjects));
-
-    // Format min and max dates back to strings
-    const minDateString = formatDate(minDate, "d-m-y")
-    const maxDateString = formatDate(maxDate, "d-m-y")
-
-    return { minDate: minDateString, maxDate: maxDateString, initialDeployment: false };
-}
-
 export async function baselineProject(project_id) {
 
     let transaction;
@@ -619,4 +603,20 @@ export async function getAllProjects(qs = {}) {
         await logError(error, 'Error fetching project details')
         return res.failed();
     }
+}
+
+function getMinMaxDate(dateSet) {
+
+    // Convert dates to Date objects for comparison
+    const dateObjects = Array.from(dateSet).map(dateStr => new Date(dateStr));
+
+    // Find min and max dates using Date objects
+    const minDate = new Date(Math.min(...dateObjects));
+    const maxDate = new Date(Math.max(...dateObjects));
+
+    // Format min and max dates back to strings
+    const minDateString = formatDate(minDate, "d-m-y")
+    const maxDateString = formatDate(maxDate, "d-m-y")
+
+    return { minDate: minDateString, maxDate: maxDateString, initialDeployment: false };
 }

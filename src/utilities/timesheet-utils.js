@@ -367,10 +367,10 @@ export async function saveTimeSheet(timesheet_data) {
 
             if (!newNonWorking) {
                 nwd_query = `
-                    INSERT INTO non_working_day (date , employee_id, status)  
-                    VALUES (? , ?, ?)
+                    INSERT INTO non_working_day (date , employee_id, status , actioned_by)  
+                    VALUES (? , ?, ? , ?)
                 `;
-                await executeTrans(nwd_query, [date, initiatorId, isHoD ? "Approved" : "Pending"], transaction);
+                await executeTrans(nwd_query, [date, initiatorId, isHoD ? "Approved" : "Pending", isHoD ? initiatorId : null], transaction);
                 clearedDates.push(date);
 
                 // Delete from employee_work_day
@@ -395,10 +395,10 @@ export async function saveTimeSheet(timesheet_data) {
             } else {
                 nwd_query = `
                     UPDATE non_working_day 
-                    SET status = 'Pending', actioned_by = ?, rejection_reason = ? 
+                    SET status = ?, actioned_by = ?, rejection_reason = ? 
                     WHERE non_working_day_id = ?
                 `;
-                await executeTrans(nwd_query, [initiatorId, non_working_day_id], transaction);
+                await executeTrans(nwd_query, [isHoD ? "Approved" : "Pending", initiatorId, "", non_working_day_id], transaction);
             }
         });
 
@@ -416,23 +416,24 @@ export async function saveTimeSheet(timesheet_data) {
 
                     if (isUUID(employee_work_day_id)) {
                         const query = `
-                            INSERT INTO employee_work_day (phase_assignee_id, work_day, hours_worked, status)
+                            INSERT INTO employee_work_day (phase_assignee_id, work_day, hours_worked, status, actioned_by)
                             VALUES (
                               (SELECT phase_assignee_id FROM phase_assignee WHERE phase_id = ? AND assignee_id = ?), 
                               ?, 
                               ?, 
+                              ?,
                               ?
                             )
                         `;
-                        await executeTrans(query, [phase_id, initiatorId, work_day, hours_worked, isHoD ? "Approved" : "Pending"], transaction);
+                        await executeTrans(query, [phase_id, initiatorId, work_day, hours_worked, isHoD ? "Approved" : "Pending", isHoD ? initiatorId : null], transaction);
                     } else {
                         if (hours_worked !== "") {
                             const query = `
                                 UPDATE employee_work_day 
-                                SET hours_worked = ? ${hasChanged ? ", status = 'Pending'" : ""}
+                                SET hours_worked = ?, status = ?, actioned_by = ?
                                 WHERE employee_work_day_id = ?
                             `;
-                            await executeTrans(query, [hours_worked, employee_work_day_id], transaction);
+                            await executeTrans(query, [hours_worked, hasChanged ? (isHoD ? "Approved" : "Pending") : "", isHoD ? initiatorId : null, employee_work_day_id], transaction);
                         } else {
                             const query = `
                                 DELETE FROM employee_work_day 
@@ -455,18 +456,18 @@ export async function saveTimeSheet(timesheet_data) {
 
             if (isUUID(development_hour_day_id)) {
                 const query = `
-                    INSERT INTO development_hour (employee_id, work_day, hours_worked, type, status)
-                    VALUES ( ?, ?, ?, ?, ?)
+                    INSERT INTO development_hour (employee_id, work_day, hours_worked, type, status, actioned_by)
+                    VALUES ( ?, ?, ?, ?, ?, ?)
                 `;
-                await executeTrans(query, [initiatorId, work_day, hours_worked, type, isHoD ? "Approved" : "Pending"], transaction);
+                await executeTrans(query, [initiatorId, work_day, hours_worked, type, isHoD ? "Approved" : "Pending", isHoD ? initiatorId : null], transaction);
             } else {
                 if (hours_worked !== "") {
                     const query = `
                         UPDATE development_hour 
-                        SET hours_worked = ? ${hasChanged ? ", status = 'Pending'" : ""}
+                        SET hours_worked = ?, status = ?, actioned_by = ?
                         WHERE development_hour_day_id = ?
                     `;
-                    await executeTrans(query, [hours_worked, development_hour_day_id], transaction);
+                    await executeTrans(query, [hours_worked, hasChanged ? (isHoD ? "Approved" : "Pending") : "", isHoD ? initiatorId : null, development_hour_day_id], transaction);
                 } else {
                     const query = `
                         DELETE FROM development_hour 
@@ -567,7 +568,7 @@ export async function actionTimesheet(timesheet_data, dateActions) {
                         SET status = 'Rejected', rejection_reason = ? , actioned_by = ?
                         WHERE development_hour_day_id = ? 
                     `;
-                    await executeTrans(query, [initiatorId, rejection_reason, development_hour_day_id], transaction);
+                    await executeTrans(query, [rejection_reason ?? "", initiatorId, development_hour_day_id], transaction);
                 }
             }
         }
@@ -668,16 +669,83 @@ const checkIfDataChangedPerRejectedDate = (timesheet_data) => {
     return Object.entries(rejected_dates).map(([date, changed]) => ({ [date]: changed }));
 };
 
+export async function getApprovalData(departments, limit = 4) {
 
-export async function getApprovalData(departments,limit) {
-    const query =`
-    SELECT DISTINCT(e.employee_id)
+    // Ensure we have unique department IDs to avoid duplicates
+    const uniqueDepartments = [...new Set(departments)];
+
+    // Dynamically create placeholders based on the number of departments
+    const departmentPlaceholders = uniqueDepartments.map(() => '?').join(', ');
+
+    const query = `
+    SELECT DISTINCT e.employee_id, e.first_name, e.last_name , e.work_email ,
+    DATE_FORMAT(
+      COALESCE(
+        GREATEST(
+          (SELECT MAX(ewd.work_day) 
+           FROM employee_work_day ewd
+           JOIN phase_assignee pa 
+           ON ewd.phase_assignee_id = pa.phase_assignee_id
+           WHERE pa.assignee_id = e.employee_id
+           AND (ewd.status = 'Rejected' OR ewd.status = 'Approved')
+          ),
+          (SELECT MAX(nwd.date) 
+           FROM non_working_day nwd
+           WHERE nwd.employee_id = e.employee_id
+           AND (nwd.status = 'Rejected' OR nwd.status = 'Approved')
+          ),
+          (SELECT MAX(dh.work_day) 
+           FROM development_hour dh
+           WHERE dh.employee_id = e.employee_id
+           AND (dh.status = 'Rejected' OR dh.status = 'Approved')
+          )
+        ), 
+        NULL
+      ),'%Y-%m-%d') AS last_action_date,
+
+    -- Fetch the status of the last action taken
+
+    (SELECT status FROM (
+        SELECT ewd.status, ewd.work_day AS actioned_on
+        FROM employee_work_day ewd
+        JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+        WHERE pa.assignee_id = e.employee_id
+        AND (ewd.status = 'Rejected' OR ewd.status = 'Approved')
+        UNION ALL
+        SELECT nwd.status, nwd.date AS actioned_on
+        FROM non_working_day nwd
+        WHERE nwd.employee_id = e.employee_id
+        AND (nwd.status = 'Rejected' OR nwd.status = 'Approved')
+        UNION ALL
+        SELECT dh.status, dh.work_day AS actioned_on
+        FROM development_hour dh
+        WHERE dh.employee_id = e.employee_id
+        AND (dh.status = 'Rejected' OR dh.status = 'Approved')
+    ) AS all_actions
+    ORDER BY actioned_on DESC
+    LIMIT 1) AS last_action_status
+
     FROM employee e
-    JOIN discipline d on e.discipline_id = d.discipline_id
+    JOIN discipline d ON e.discipline_id = d.discipline_id
     JOIN phase_assignee pa ON pa.assignee_id = e.employee_id
-    AND d.discipline_id IN [ ? , ? , ? as much as there are departments ]
-    
+    WHERE d.discipline_id IN (${departmentPlaceholders})
+    LIMIT ${limit};
+  `;
 
-    `
+    // Ensure the params match the number of placeholders in the query
+    const params = [...uniqueDepartments.map((dep) => dep.discipline_id)];
+
+    console.log('Query:', query);
+    console.log('Params:', params);
+
+
+    try {
+        const results = await execute(query, params); // Execute the query with parameters
+        console.log(JSON.stringify(results))
+        return results;
+    } catch (error) {
+        console.error("Error fetching approval data:", error);
+        throw new Error("Unable to fetch approval data");
+    }
 }
 

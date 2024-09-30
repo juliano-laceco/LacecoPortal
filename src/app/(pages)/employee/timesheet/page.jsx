@@ -1,11 +1,10 @@
-
 import RangePickerCalendar from "@/app/components/custom/Other/RangePickerCalendar";
 import { getEmployeeAssignments, getRejectedAndFinalizedDates } from "@/utilities/timesheet-utils";
 import { endOfWeek, startOfWeek, eachDayOfInterval, format } from "date-fns";
 import React from "react";
 import { getLoggedInId } from "@/utilities/auth/auth-utils";
 import { formatDate } from "@/utilities/date/date-utils";
-import { redirect } from 'next/navigation';
+import { redirect, headers } from 'next/navigation';
 import TimeSheet from "@/app/components/timesheet/TimeSheet"; 
 
 function getWeekStartEnd(date) {
@@ -31,6 +30,23 @@ function determineAllowedRange(min_rejected_date, max_finalized_date, is_week_fi
     return null;
 }
 
+function redirectToWeek(start_date, end_date) {
+    // Get the current headers to extract the host and protocol
+    const currentHeaders = headers();
+    const host = currentHeaders.get('host');
+    const protocol = currentHeaders.get('x-forwarded-proto') || 'http'; // Fallback to 'http' if protocol is not provided
+
+    // Manually specify the desired path (e.g., /employee/timesheet)
+    const baseUrl = `${protocol}://${host}/employee/timesheet`;
+
+    // Build the redirect URL with query parameters
+    const redirectUrl = new URL(baseUrl);
+    redirectUrl.searchParams.set("start", formatDate(start_date));
+    redirectUrl.searchParams.set("end", formatDate(end_date));
+
+    redirect(redirectUrl.toString()); // Perform the redirection
+}
+
 async function TimeSheetPage({ searchParams }) {
     const initiatorId = await getLoggedInId();
     const today = new Date();
@@ -46,10 +62,7 @@ async function TimeSheetPage({ searchParams }) {
     const end_date = end ? new Date(end) : endOfWeek(start_date, { weekStartsOn: 1 });
 
     if (!start || !end) {
-        const redirectUrl = new URL("http://localhost:3000/employee/timesheet");
-        redirectUrl.searchParams.set("start", formatDate(start_date));
-        redirectUrl.searchParams.set("end", formatDate(end_date));
-        redirect(redirectUrl.toString());
+        redirectToWeek(start_date, end_date); // Dynamically redirect
     }
 
     const timesheet_data = await getEmployeeAssignments(
