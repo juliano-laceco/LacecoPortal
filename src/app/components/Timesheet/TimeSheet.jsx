@@ -12,7 +12,7 @@ import Button from '../custom/Other/Button';
 import DropdownRegular from '../custom/Dropdowns/DropdownRegular';
 import Image from 'next/image';
 import { isUUID } from '../sheet/SheetUtils';
-import { saveTimeSheet } from '@/utilities/timesheet/timesheet-utils';
+import { saveTimeSheet, actionTimesheet } from '@/utilities/timesheet-utils';
 import Modal from '../custom/Modals/Modal';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/utilities/toast-utils';
@@ -31,7 +31,7 @@ import {
 } from './TimeSheetUtils';
 import DayAction from './DayAction';
 import DayType from './DayType';
-import { actionTimesheet } from '@/utilities/timesheet-utils';
+
 
 
 function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = false }) {
@@ -51,6 +51,9 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
     const [isSaving, setIsSaving] = useState(false);
     const [dateActions, setDateActions] = useState([])
     const rejection_ref = useRef()
+    const batch_rejection_ref = useRef()
+    const [batchRejectionReason, setBatchRejectionReason] = useState("");
+    const [batchType, setBatchType] = useState(null)
 
     const router = useRouter();
 
@@ -488,6 +491,52 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     'Confirm'
                 );
                 break;
+            case 'Batch Action':
+                let batch_rejection = batch_rejection_ref?.current?.value
+
+                modalContent = renderModalContent(
+                    data === "Approve" ?
+                        `Are you sure you want to ${data.toLowerCase()} the complete week? This action will clear any previous actions you made.` :
+                        <div>
+                            <div className="mb-2">
+                                Rejecting this week will clear any previous actions you made.
+                            </div>
+                            <textarea
+                                className="rounded-md resize-none border border-gray-300 text-sm w-full desk:h-24 lap:h-24 focus:border-pric focus:outline-none focus:ring-0"
+                                ref={batch_rejection_ref}
+                                defaultValue={batchRejectionReason} // Set the textarea's value from the state
+                                maxLength={150} // Limits the input to 150 characters
+                                onPaste={(e) => e.preventDefault()} // Prevents pasting
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault(); // Prevents pressing the enter key
+                                    }
+                                }}
+                                onChange={(e) => setBatchRejectionReason(e.target.value)} // Update the state with the new value
+                            ></textarea>
+
+                            <div className="text-sm mob:text-xs text-gray-500">
+                                Max 150 characters
+                            </div>
+                        </div>,
+                    [
+                        {
+                            variant: 'primary',
+                            name: data,
+                            onClick: () => {
+                                action_all_days(data, batch_rejection)
+                                setModal(null)
+                            },
+                        },
+                        {
+                            variant: 'secondary',
+                            name: 'Close',
+                            onClick: () => { setModal(null) },
+                        }
+                    ],
+                    'Confirm'
+                );
+                break;
         }
         setModal(modalContent);
     };
@@ -631,6 +680,40 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
             }
         });
     };
+
+    const action_all_days = (type, rejection_reason = "Inaccurate Data") => {
+        // Determine the handler: use approve_day if type is "Approve", otherwise use reject_day
+        const handler = type === "Approve" ? approve_day : reject_day;
+
+        // Loop through all the days in the week
+        weekDays.forEach((day) => {
+            // Get the status for each day
+            const { status } = getStatusForDayWrapper(day.fullDate);
+
+            // If the status is "Pending", apply the handler
+            if (status === "Pending") {
+                if (type === "Approve") {
+                    // Call the approve_day handler
+                    handler(day.fullDate);
+                } else if (type === "Reject") {
+                    handler(day.fullDate, rejection_reason);
+                }
+            }
+        });
+
+        setBatchType(type)
+    };
+
+    const hasPendingDays = () => {
+        for (const day of weekDays) {
+            const { status } = getStatusForDayWrapper(day.fullDate);
+            if (status === "Pending") {
+                return true;  // Return true immediately when a pending day is found
+            }
+        }
+        return false; // Return false if no pending days are found
+    };
+
 
     const checkDayAction = (date) => {
         // Assuming dateActions is a state or an array containing day actions
@@ -795,6 +878,8 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                         approve_day={approve_day}
                         reject_day={reject_day}
                         checkDayAction={checkDayAction}
+                        batchType={batchType}
+                        hasPendingDays={hasPendingDays()}
                     />
                 }
                 <TimeSheetFooter

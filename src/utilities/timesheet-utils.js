@@ -1,7 +1,7 @@
 "use server"
 
 import { isUUID } from "@/app/components/sheet/SheetUtils";
-import { getLoggedInId } from "./auth/auth-utils";
+import { getLoggedInId, getSession } from "./auth/auth-utils";
 import { commitTransaction, execute, executeTrans, rollbackTransaction, startTransaction } from "../utilities/db/db-utils"
 import { logError } from "../utilities/misc-utils"
 import * as res from "../utilities/response-utils"
@@ -206,7 +206,7 @@ export async function getEmployeeAssignments(start, end, employee_id) {
                                          JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
                                          WHERE pa_inner.phase_id = p.phase_id
                                      ) AND (
-                                         SELECT MAX(pww_inner.week_start)
+                                         SELECT DATE_ADD(MAX(pww_inner.week_start), INTERVAL 1 WEEK)
                                          FROM projected_work_week pww_inner
                                          JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
                                          WHERE pa_inner.phase_id = p.phase_id
@@ -332,6 +332,8 @@ export async function getEmployeeAssignments(start, end, employee_id) {
 export async function saveTimeSheet(timesheet_data) {
     let transaction;
     let clearedDates = [];
+    const session = await getSession();
+    const isHoD = session?.user?.isHoD; // Check if the user is a HoD
 
     try {
         transaction = await startTransaction();
@@ -349,7 +351,6 @@ export async function saveTimeSheet(timesheet_data) {
             const hasChanged = dateChangeInfo[date];
 
             if (hasChanged) {
-                // If data for this day has changed, remove it from non_working_day
                 const deleteNonWorkingDayQuery = `
                     DELETE FROM non_working_day
                     WHERE employee_id = ? 
@@ -362,12 +363,14 @@ export async function saveTimeSheet(timesheet_data) {
         // Process non-working days
         non_working.map(async (non_working_day) => {
             const { date, newNonWorking, non_working_day_id } = non_working_day;
-
             let nwd_query;
 
             if (!newNonWorking) {
-                nwd_query = `INSERT INTO non_working_day (date , employee_id)  VALUES (? , ?)`;
-                await executeTrans(nwd_query, [date, initiatorId], transaction);
+                nwd_query = `
+                    INSERT INTO non_working_day (date , employee_id, status)  
+                    VALUES (? , ?, ?)
+                `;
+                await executeTrans(nwd_query, [date, initiatorId, isHoD ? "Approved" : "Pending"], transaction);
                 clearedDates.push(date);
 
                 // Delete from employee_work_day
@@ -390,7 +393,11 @@ export async function saveTimeSheet(timesheet_data) {
                 `;
                 await executeTrans(deleteDevelopmentHourQuery, [date, initiatorId], transaction);
             } else {
-                nwd_query = `UPDATE non_working_day SET status = 'Pending' , actioned_by = ? , rejection_reason = ? WHERE non_working_day_id = ? `;
+                nwd_query = `
+                    UPDATE non_working_day 
+                    SET status = 'Pending', actioned_by = ?, rejection_reason = ? 
+                    WHERE non_working_day_id = ?
+                `;
                 await executeTrans(nwd_query, [initiatorId, non_working_day_id], transaction);
             }
         });
@@ -409,13 +416,15 @@ export async function saveTimeSheet(timesheet_data) {
 
                     if (isUUID(employee_work_day_id)) {
                         const query = `
-                            INSERT INTO employee_work_day (phase_assignee_id, work_day, hours_worked)
+                            INSERT INTO employee_work_day (phase_assignee_id, work_day, hours_worked, status)
                             VALUES (
                               (SELECT phase_assignee_id FROM phase_assignee WHERE phase_id = ? AND assignee_id = ?), 
                               ?, 
+                              ?, 
                               ?
-                            )`;
-                        await executeTrans(query, [phase_id, initiatorId, work_day, hours_worked], transaction);
+                            )
+                        `;
+                        await executeTrans(query, [phase_id, initiatorId, work_day, hours_worked, isHoD ? "Approved" : "Pending"], transaction);
                     } else {
                         if (hours_worked !== "") {
                             const query = `
@@ -446,10 +455,10 @@ export async function saveTimeSheet(timesheet_data) {
 
             if (isUUID(development_hour_day_id)) {
                 const query = `
-                    INSERT INTO development_hour(employee_id , work_day , hours_worked , type)
-                    VALUES ( ? , ? , ? , ?)
+                    INSERT INTO development_hour (employee_id, work_day, hours_worked, type, status)
+                    VALUES ( ?, ?, ?, ?, ?)
                 `;
-                await executeTrans(query, [initiatorId, work_day, hours_worked, type], transaction);
+                await executeTrans(query, [initiatorId, work_day, hours_worked, type, isHoD ? "Approved" : "Pending"], transaction);
             } else {
                 if (hours_worked !== "") {
                     const query = `
@@ -479,6 +488,7 @@ export async function saveTimeSheet(timesheet_data) {
         }
     }
 }
+
 
 export async function actionTimesheet(timesheet_data, dateActions) {
     let transaction;
@@ -512,6 +522,8 @@ export async function actionTimesheet(timesheet_data, dateActions) {
                             await executeTrans(query, [initiatorId, employee_work_day_id], transaction);
 
                         } else if (action_status === "Rejected") {
+
+                            console.log("Rejecting")
                             // Update employee_work_day status to "Rejected" with rejection reason
                             const query = `
                                 UPDATE employee_work_day 
@@ -568,9 +580,9 @@ export async function actionTimesheet(timesheet_data, dateActions) {
             const dayAction = dateActions.find(action => action.date === date);
 
             if (dayAction) {
-                const { status, rejection_reason } = dayAction;
+                const { action_status, rejection_reason } = dayAction;
 
-                if (status === "Approved") {
+                if (action_status === "Approved") {
                     // Update non_working_day status to "Approved"
                     const query = `
                         UPDATE non_working_day 
@@ -579,14 +591,14 @@ export async function actionTimesheet(timesheet_data, dateActions) {
                     `;
                     await executeTrans(query, [initiatorId, non_working_day_id], transaction);
 
-                } else if (status === "Rejected") {
+                } else if (action_status === "Rejected") {
                     // Update non_working_day status to "Rejected" with rejection reason
                     const query = `
                         UPDATE non_working_day 
                         SET status = 'Rejected', rejection_reason = ? , actioned_by = ?
                         WHERE non_working_day_id = ? 
                     `;
-                    await executeTrans(query, [initiatorId, rejection_reason, non_working_day_id], transaction);
+                    await executeTrans(query, [rejection_reason, initiatorId, non_working_day_id], transaction);
                 }
             }
         }
@@ -606,7 +618,6 @@ export async function actionTimesheet(timesheet_data, dateActions) {
         }
     }
 }
-
 
 const checkIfDataChangedPerRejectedDate = (timesheet_data) => {
     const { project_timesheet, development_timesheet } = timesheet_data;
@@ -657,4 +668,16 @@ const checkIfDataChangedPerRejectedDate = (timesheet_data) => {
     return Object.entries(rejected_dates).map(([date, changed]) => ({ [date]: changed }));
 };
 
+
+export async function getApprovalData(departments,limit) {
+    const query =`
+    SELECT DISTINCT(e.employee_id)
+    FROM employee e
+    JOIN discipline d on e.discipline_id = d.discipline_id
+    JOIN phase_assignee pa ON pa.assignee_id = e.employee_id
+    AND d.discipline_id IN [ ? , ? , ? as much as there are departments ]
+    
+
+    `
+}
 

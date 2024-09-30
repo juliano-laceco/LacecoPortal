@@ -1,24 +1,28 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { HotTable } from "@handsontable/react";
-import Handsontable from "handsontable";
-import "handsontable/dist/handsontable.full.css";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import useSheet from "./useSheet";
 import Image from "next/image";
+import { add } from "date-fns";
 import DateRangePicker from "../custom/Pickers/DateRangePicker";
 import {
     getThisMondayDate,
     generateHeaderDates,
+    getMonthNameFromDate,
+    initializeCellContents,
+    calculateTotalAssignees,
     isUUID,
     getGradeName,
     getEmployeeName,
-    scrollToFirstWarning,
-} from "./SheetUtils";
+    navigateRight,
+    getColorForMonth,
+    getPhaseStateFromLocalStorage,
+    handleCollapseClick,
+    handleExpandClick,
+    scrollToFirstWarning
+} from "./SheetUtils"
 
-import {
-    baselineProject,
-    saveDeployment,
-} from "@/utilities/project/project-utils";
+import { baselineProject, saveDeployment } from "@/utilities/project/project-utils";
 import Modal from "../custom/Modals/Modal";
 import Button from "../custom/Other/Button";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,380 +30,1065 @@ import { formatDate } from "@/utilities/date/date-utils";
 import { showToast } from "@/utilities/toast-utils";
 import { logError } from "@/utilities/misc-utils";
 
-const Sheet = ({
-    employee_data,
-    discipline_data,
-    project_start_date,
-    project_end_date,
-    start_date,
-    end_date,
-    deployment_data,
-    project_data,
-}) => {
-    // State variables
+const Sheet = ({ employee_data, discipline_data, project_start_date, project_end_date, start_date, end_date, deployment_data, project_data }) => {
+
+    // Memoized Employee and Discipline Data
+    const memoizedEmployeeData = useMemo(() => employee_data, [employee_data]);
+    const memoizedDisciplineData = useMemo(() => discipline_data, [discipline_data]);
     const [isLoading, setIsLoading] = useState(false);
-    const [modal, setModal] = useState(null);
+    const [populated, setPopulated] = useState(false);
 
     // Router Utils
     const router = useRouter();
     const pathname = usePathname();
 
+    // Combined state for modal visibility and content
+    const [modal, setModal] = useState(null);
+
     // Header Dates Variables
-    const [headerDates, setHeaderDates] = useState(() =>
-        generateHeaderDates(start_date, end_date, project_end_date)
-    );
-    const [initialHeaderDates, setInitialHeaderDates] = useState([]);
+    const [headerDates, setHeaderDates] = useState(() => generateHeaderDates(start_date, end_date, project_end_date));
+    const [headerDatesUpdated, setHeaderDatesUpdated] = useState(false); // Flags if the headers are changed
+    const [initialHeaderDates, setInitialHeaderDates] = useState([]);    // Initial Persisting Copy of initialHeader dates
+    const [isFirstRender, setIsFirstRender] = useState(true);
 
     // Deleted phase assignee tracking
     const [deletedPhaseAssignees, setDeletedPhaseAssignees] = useState([]);
 
     // Initial Data
+    const numCols = useMemo(() => headerDates.length + 5, [headerDates]);
     const [initialData, setInitialData] = useState(() => deployment_data);
+    const initial_assignee_count = useMemo(() => calculateTotalAssignees(initialData), [initialData]);
+    const initialCellContents = useMemo(() => initializeCellContents(initialData, headerDates), [initialData, headerDates]);
 
-    // Handsontable data
-    const [hotData, setHotData] = useState([]);
+    // Date Variables
+    const currentMonday = useMemo(() => getThisMondayDate(), []);
+    const [currentEndDate, setCurrentEndDate] = useState(end_date);
 
+    // Flag that indicates whether the page has been edited 
+    const [edited, setEdited] = useState(false);
+    const uneditableCellCount = 0;
+
+    // Setting up using useSheet
+    const {
+        cellRefs,
+        cellContents,
+        editableCell,
+        handleMouseDown,
+        handleMouseEnter,
+        handleMouseUp,
+        handleClick,
+        handleDoubleClick,
+        handleCellBlur,
+        getCellStyle,
+        setCellContents,
+        setHistory
+    } = useSheet(
+        useMemo(() => initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0), [initialData]),
+        numCols,
+        initialCellContents,
+        uneditableCellCount,
+        edited,
+        setEdited
+    );
+
+    useEffect(() => {
+        setIsFirstRender(false);
+    }, []);
+
+    // Sets the cell contents whenever the data is updated
+    useEffect(() => {
+        const newCellContents = initializeCellContents(initialData, headerDates);
+        setCellContents(newCellContents);
+        setHistory([newCellContents]);
+    }, [initialData, headerDates, setCellContents, setHistory]);
+
+    // Sets the initial unmutated data of the cells once on load
+    useEffect(() => {
+        cellRefs.current.forEach((rowRefs) => {
+            rowRefs.forEach((cell) => {
+                if (cell) { // Check if the cell is defined
+                    cell.setAttribute("data-initial", cell.textContent);
+                }
+            });
+        });
+    }, []);
+
+    // Saves a copy of the initial headerDates
     useEffect(() => {
         setInitialHeaderDates(headerDates);
     }, [headerDates]);
 
-    // Generate Handsontable data
+    // Triggers a change event as soon as the page loads
     useEffect(() => {
-        const data = [];
-        initialData.forEach((phase, phaseIndex) => {
-            phase.assignees.forEach((assignee, assigneeIndex) => {
-                const row = {};
+        const selectElements = document.querySelectorAll('select');
+        selectElements.forEach(select => {
+            const event = new Event('change', { bubbles: true });
+            select.dispatchEvent(event);
+        });
+        setPopulated(true);
+    }, []);
 
-                row["phaseIndex"] = phaseIndex;
-                row["assigneeIndex"] = assigneeIndex;
-                row["phase_assignee_id"] = assignee.phase_assignee_id;
-
-                // Action column
-                row["action"] = ""; // Placeholder
-
-                // Discipline column
-                row["discipline"] = assignee.discipline || "Select...";
-
-                // Employee column
-                row["employee"] = assignee.assignee || "Select...";
-
-                // Grade column
-                const assignee_grade = getGradeName(
-                    assignee.assignee,
-                    employee_data
-                );
-                row["grade"] = assignee_grade;
-
-                // Budget Hours column
-                const budgetHours = headerDates.reduce((sum, date, index) => {
-                    const value = assignee.projected_work_weeks[date] || "";
-                    return sum + (parseInt(value) || 0);
-                }, 0);
-                row["budgetHours"] = budgetHours;
-
-                // Now add the weekly data
-                headerDates.forEach((date, index) => {
-                    const value = assignee.projected_work_weeks[date] || "";
-                    row[`date_${index}`] = value;
-                });
-
-                data.push(row);
+    // Scroll to the end when headerDates is updated
+    useEffect(() => {
+        if (headerDatesUpdated) {
+            const el = document.querySelector(".sheet-container");
+            el.scrollTo({
+                left: el.scrollWidth,
+                behavior: "smooth"
             });
-        });
+            setHeaderDatesUpdated(false); // Reset the flag
+        }
+    }, [headerDatesUpdated]);
 
-        setHotData(data);
-    }, [initialData, headerDates, employee_data]);
-
-    // Define columns for Handsontable
-    const columns = useMemo(() => {
-        const cols = [];
-
-        // Action column
-        cols.push({
-            data: "action",
-            renderer: actionRenderer,
-            readOnly: true,
-            width: 40,
-        });
-
-        // Discipline column
-        cols.push({
-            data: "discipline",
-            type: "dropdown",
-            source: discipline_data.map((d) => d.value),
-            renderer: selectRenderer,
-            editor: "select",
-            width: 160,
-        });
-
-        // Employee column
-        cols.push({
-            data: "employee",
-            type: "dropdown",
-            source: function (query, process) {
-                const disciplineId = this.instance.getDataAtRowProp(
-                    this.row,
-                    "discipline"
-                );
-                const employees = employee_data.filter(
-                    (e) => e.discipline_id == disciplineId
-                );
-                process(employees.map((e) => e.value));
+    // Checks whether the assignee labels should appear (meaning the user is out of the viewport)
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    const isVisibleHorizontally = entry.isIntersecting;
+                    if (isVisibleHorizontally) {
+                        document.querySelector(".sheet-container")?.classList?.add("out-of-view");
+                    } else {
+                        document.querySelector(".sheet-container")?.classList?.remove("out-of-view");
+                    }
+                });
             },
-            strict: true,
-            renderer: selectRenderer,
-            width: 160,
+            { threshold: [0, 1] } // Trigger when completely out of view horizontally
+        );
+
+        const elements = document.querySelectorAll('.user-header');
+        elements.forEach((element) => {
+            observer.observe(element);
         });
 
-        // Grade column
-        cols.push({
-            data: "grade",
-            readOnly: true,
-            width: 60,
-        });
-
-        // Budget Hours column
-        cols.push({
-            data: "budgetHours",
-            readOnly: true,
-            width: 100,
-        });
-
-        // Weekly data columns
-        headerDates.forEach((date, index) => {
-            cols.push({
-                data: `date_${index}`,
-                type: "numeric",
-                numericFormat: {
-                    pattern: "0",
-                },
-                width: 60,
+        return () => {
+            elements.forEach((element) => {
+                observer.unobserve(element);
             });
-        });
-
-        return cols;
-    }, [headerDates, discipline_data, employee_data]);
-
-    // Define settings for Handsontable
-    const hotSettings = {
-        data: hotData,
-        columns: columns,
-        colHeaders: [
-            "Action",
-            "Discipline",
-            "Employee",
-            "Grade",
-            "Budget Hours",
-            ...headerDates,
-        ],
-        rowHeaders: false,
-        width: "100%",
-        height: 500,
-        licenseKey: "non-commercial-and-evaluation",
-        afterChange: (changes, source) => {
-            if (changes) {
-                const newHotData = [...hotData];
-                changes.forEach(([row, prop, oldValue, newValue]) => {
-                    if (prop === "employee") {
-                        // Update the 'grade' column
-                        const employee = employee_data.find((e) => e.value == newValue);
-                        const grade = employee ? employee.grade_code : "N/A";
-                        newHotData[row]["grade"] = grade;
-                        setHotData(newHotData); // Trigger re-render
-                    }
-                    if (prop.startsWith("date_")) {
-                        // Update the 'budgetHours' column
-                        const budgetHours = headerDates.reduce((sum, date, index) => {
-                            const value = newHotData[row][`date_${index}`];
-                            return sum + (parseInt(value) || 0);
-                        }, 0);
-                        newHotData[row]["budgetHours"] = budgetHours;
-                        setHotData(newHotData);
-                    }
-                });
-            }
-        },
-    };
-
-    // Define renderers
-    function actionRenderer(instance, td, row, col, prop, value, cellProperties) {
-        td.innerHTML = "";
-        const button = document.createElement("button");
-        button.className = "delete-button";
-
-        const img = document.createElement("img");
-        img.src = "/resources/icons/delete.png";
-        img.width = 20;
-        img.height = 20;
-        button.appendChild(img);
-
-        button.addEventListener("click", () => {
-            deleteAssignee(row);
-        });
-
-        td.appendChild(button);
-
-        return td;
-    }
-
-    function selectRenderer(
-        instance,
-        td,
-        row,
-        col,
-        prop,
-        value,
-        cellProperties
-    ) {
-        let displayValue = value;
-
-        if (prop === "discipline") {
-            const discipline = discipline_data.find((d) => d.value == value);
-            displayValue = discipline ? discipline.label : "Select...";
-        } else if (prop === "employee") {
-            const employee = employee_data.find((e) => e.value == value);
-            displayValue = employee ? employee.label : "Select...";
-        }
-
-        Handsontable.renderers.TextRenderer.apply(this, [
-            instance,
-            td,
-            row,
-            col,
-            prop,
-            displayValue,
-            cellProperties,
-        ]);
-    }
-
-    // Implement deleteAssignee function
-    const deleteAssignee = (rowIndex) => {
-        const rowData = hotData[rowIndex];
-        const { phaseIndex, assigneeIndex } = rowData;
-
-        const assigneeId =
-            initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
-
-        if (!isUUID(assigneeId)) {
-            setDeletedPhaseAssignees((prev) => [...prev, assigneeId]);
-        }
-
-        // Remove assignee from initialData
-        const newInitialData = [...initialData];
-        newInitialData[phaseIndex] = {
-            ...newInitialData[phaseIndex],
-            assignees: newInitialData[phaseIndex].assignees.filter(
-                (_, index) => index !== assigneeIndex
-            ),
         };
+    }, [initial_assignee_count]);
 
-        setInitialData(newInitialData);
+    const getUpdatedData = useCallback(() => {
+        const updatedData = initialData.map((phase) => ({
+            phase_id: phase.phase_id,
+            expected_work_hours: phase.expected_work_hours,
+            phase_name: phase.phase_name,
+            assignees: phase.assignees.map((assignee) => ({
+                phase_assignee_id: assignee.phase_assignee_id,
+                discipline: assignee.discipline,
+                assignee: assignee.assignee,
+                timesheet_exists: assignee.timesheet_exists,
+                initial_projected_work_weeks: assignee.initial_projected_work_weeks,
+                projected_work_weeks: {},
+                updated_projected_work_weeks: {}
+            })),
+        }));
 
-        // Remove the row from 'hotData'
-        const newHotData = [...hotData];
-        newHotData.splice(rowIndex, 1);
-        setHotData(newHotData);
-    };
+        cellRefs.current.forEach((rowRefs, rowIndex) => {
+            rowRefs.forEach((cell, colIndex) => {
+                if (cell) {
+                    const phaseIndex = findPhaseIndex(rowIndex);
+                    const assigneeIndex = findAssigneeIndex(rowIndex, phaseIndex);
+                    const phaseAssigneeId = initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
+                    const date = cell.getAttribute("data-date");
+                    const selectElement = cell.querySelector("select");
+                    const newValue = selectElement ? selectElement.value : cell.textContent;
 
-    // Implement handleSave function
-    const handleSave = async () => {
-        // Collect data from 'hotData' and map back to 'initialData' format
-        const updatedData = [...initialData];
-        hotData.forEach((rowData) => {
-            const { phaseIndex, assigneeIndex } = rowData;
-            const assignee = updatedData[phaseIndex].assignees[assigneeIndex];
-
-            assignee.discipline = rowData["discipline"];
-            assignee.assignee = rowData["employee"];
-
-            // Update projected_work_weeks
-            const projected_work_weeks = {};
-            headerDates.forEach((date, index) => {
-                const value = rowData[`date_${index}`];
-                if (value !== "") {
-                    projected_work_weeks[date] = value;
+                    if (isUUID(phaseAssigneeId)) {
+                        if (colIndex === 1) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].discipline = newValue;
+                        } else if (colIndex === 2) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
+                        } else if (colIndex > 4) {
+                            if (newValue != "") {
+                                updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
+                            }
+                        }
+                    } else {
+                        const dataChanged = cell.getAttribute("data-initial") != cell.textContent;
+                        if (colIndex === 1) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].discipline = newValue;
+                        } else if (colIndex === 2) {
+                            updatedData[phaseIndex].assignees[assigneeIndex].assignee = newValue;
+                        } else if (colIndex > 4) {
+                            if (newValue != "") {
+                                updatedData[phaseIndex].assignees[assigneeIndex].projected_work_weeks[date] = newValue;
+                            }
+                            if (dataChanged) {
+                                updatedData[phaseIndex].assignees[assigneeIndex].updated_projected_work_weeks[date] = newValue;
+                            }
+                        }
+                    }
                 }
             });
-            assignee.projected_work_weeks = projected_work_weeks;
         });
 
-        try {
-            await saveDeployment(updatedData, deletedPhaseAssignees);
-            showToast("success", "Successfully Saved Deployment");
-        } catch (error) {
-            await logError(error, "Error In Saving Deployment");
-            showToast("failed", "Failed To Save Deployment");
-        }
-    };
+        return updatedData;
+    }, [cellRefs, initialData]);
 
-    // Implement handleAddAssignee function
-    const handleAddAssignee = () => {
-        // Add a new assignee to the last phase
-        const phaseIndex = initialData.length - 1; // Or determine which phase to add to
+    const addNewMonth = useCallback(() => {
+        setHeaderDates(() => {
+            const lastDateHeader = headerDates[headerDates.length - 1];
+            const newEndDate = formatDate(add(new Date(lastDateHeader), { months: 1 }), "m-y");
+            const newDates = generateHeaderDates(start_date, newEndDate, project_end_date);
+            setCurrentEndDate(newEndDate);
+            const newInitialData = [...getUpdatedData()];
+            setInitialData(newInitialData);
+            return newDates;
+        });
+        setHeaderDatesUpdated(true);
+        !edited && setEdited(true);
+    }, [headerDates, start_date, project_end_date, getUpdatedData, setEdited, edited]);
+
+    const removeLastWeek = useCallback(() => {
+        let weekContainsData = false;
+        const lastColumnIndex = headerDates.length + 4;
+        const lastColumnCells = document.querySelectorAll(`[data-col="${lastColumnIndex}"]`);
+        lastColumnCells.forEach((lastColumnCell) => {
+            if (lastColumnCell.textContent?.trim() !== "") {
+                weekContainsData = true;
+            }
+        });
+
+        const updateState = () => {
+            setHeaderDates((prevDates) => {
+                if (prevDates.length > 1) {
+                    return prevDates.slice(0, -1);
+                }
+                return prevDates;
+            });
+
+            setCellContents((prevContents) => {
+                const newContents = { ...prevContents };
+                const lastColIndex = lastColumnIndex;
+
+                for (let row = 0; row < initialData.reduce((acc, phase) => acc + phase.assignees?.length, 0); row++) {
+                    delete newContents[`${row}-${lastColIndex}`];
+                }
+
+                return newContents;
+            });
+
+            !edited && setEdited(true);
+        };
+
+        if (weekContainsData) {
+            openModal(updateState, "Cannot Delete Week");
+        } else {
+            updateState();
+        }
+    }, [headerDates, initialData, setCellContents, setEdited, edited]);
+
+    const getBudgetHoursCells = useCallback((row) => {
+        let total = 0;
+        for (let i = 5; i < numCols; i++) {
+            let content =
+                cellContents[`${row}-${i}`] === "" || cellContents[`${row}-${i}`] === undefined || cellContents[`${row}-${i}`] === null
+                    ? 0
+                    : cellContents[`${row}-${i}`];
+            total += parseInt(content);
+        }
+        return total;
+    }, [cellContents, numCols]);
+
+    const getPhaseBudgetHours = useMemo(() => {
+        return initialData.map((phase, phaseIndex) => {
+            let total = 0;
+            let rowCounter = 0;
+
+            for (let i = 0; i < phaseIndex; i++) {
+                rowCounter += initialData[i].assignees.length;
+            }
+
+            for (let row = rowCounter; row < rowCounter + phase.assignees?.length; row++) {
+                total += getBudgetHoursCells(row);
+            }
+
+            return total;
+        });
+    }, [initialData, getBudgetHoursCells]);
+
+    const handleAddAssignee = useCallback((phaseIndex) => {
         const newAssignee = {
             phase_assignee_id: crypto.randomUUID(),
             discipline: "",
             assignee: "",
             initial_projected_work_weeks: null,
-            projected_work_weeks: {},
+            projected_work_weeks: {}
         };
 
         headerDates.forEach((date) => {
             newAssignee.projected_work_weeks[date] = "";
         });
 
-        const newInitialData = [...initialData];
-        newInitialData[phaseIndex] = {
-            ...newInitialData[phaseIndex],
-            assignees: [...newInitialData[phaseIndex].assignees, newAssignee],
+        const updatedData = [...getUpdatedData()];
+        updatedData[phaseIndex] = {
+            ...updatedData[phaseIndex],
+            assignees: [...updatedData[phaseIndex]?.assignees, newAssignee],
         };
 
-        setInitialData(newInitialData);
+        setInitialData(updatedData);
 
-        // Also, need to update the Handsontable data
-        // Add new row to 'hotData'
-        const newRow = {
-            phaseIndex: phaseIndex,
-            assigneeIndex: newInitialData[phaseIndex].assignees.length - 1,
-            phase_assignee_id: newAssignee.phase_assignee_id,
-            action: "",
-            discipline: "Select...",
-            employee: "Select...",
-            grade: "N/A",
-            budgetHours: 0,
-        };
+        const newRowIndex = updatedData.reduce((acc, phase, idx) => {
+            return idx < phaseIndex ? acc + phase.assignees?.length : acc;
+        }, 0) + updatedData[phaseIndex].assignees.length - 1;
 
-        headerDates.forEach((date, index) => {
-            newRow[`date_${index}`] = "";
+        setCellContents((prevContents) => {
+            const newContents = {};
+            Object.keys(prevContents).forEach(key => {
+                const [row, col] = key.split('-').map(Number);
+                if (row >= newRowIndex) {
+                    newContents[`${row + 1}-${col}`] = prevContents[key];
+                } else {
+                    newContents[key] = prevContents[key];
+                }
+            });
+
+            for (let col = 5; col < numCols; col++) {
+                newContents[`${newRowIndex}-${col}`] = "";
+            }
+            return newContents;
         });
 
-        setHotData([...hotData, newRow]);
-    };
+        setHistory([cellContents]);
 
-    // Render the component
+        setTimeout(() => {
+            const selectElement = document.getElementById(`select-${newRowIndex}-1`);
+            if (selectElement) {
+                const event = new Event('change', { bubbles: true });
+                selectElement.dispatchEvent(event);
+            }
+        }, 0);
+    }, [headerDates, numCols, getUpdatedData, setCellContents, setHistory, cellContents]);
+
+    const deleteAssignee = useCallback((row) => {
+        const phaseIndex = findPhaseIndex(row, initialData);
+        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+        const assigneeId = initialData[phaseIndex].assignees[assigneeIndex].phase_assignee_id;
+
+        if (!isUUID(assigneeId)) {
+            setDeletedPhaseAssignees((prev) => [...prev, assigneeId]);
+        }
+
+        const newInitialData = [...getUpdatedData()];
+        openModal({ newInitialData, phaseIndex, assigneeIndex }, "Assignee Delete");
+        setEdited(true);
+    }, [initialData, getUpdatedData]);
+
+    const handleSave = useCallback(async (refresh = true) => {
+        const updatedData = getUpdatedData();
+        let isValid = true;
+        let hasDuplicateAssignees = false;
+        let empty_rows = false;
+        const invalidAssignees = [];
+
+        updatedData.forEach((phase) => {
+            const assigneeNames = new Set();
+            const flaggedAssignees = new Set();
+            const flaggedEmptyAssignees = new Set();
+
+            phase?.assignees?.forEach((assignee) => {
+                let issues = [];
+
+                if (assignee.discipline == "Select...") {
+                    isValid = false;
+                    issues.push("Discipline not selected");
+                }
+
+                if (assignee.assignee == "Select...") {
+                    isValid = false;
+                    issues.push("Assignee not selected");
+                }
+
+                const assigneeName = getEmployeeName(assignee.assignee, employee_data);
+                let is_empty = true;
+
+                for (const date in assignee.projected_work_weeks) {
+                    if (assignee.projected_work_weeks[date] != "") {
+                        is_empty = false;
+                        break;
+                    }
+                }
+
+                if (is_empty) {
+                    const relevantKeys = Object.keys(assignee.initial_projected_work_weeks ?? {}).filter(date => !headerDates.includes(date));
+
+                    if (relevantKeys.length === 0) {
+                        empty_rows = true;
+
+                        if (!flaggedEmptyAssignees.has(assigneeName)) {
+                            flaggedEmptyAssignees.add(assigneeName);
+                            issues.push("No hours filled");
+                        }
+                    }
+                }
+
+                if (issues.length > 0) {
+                    invalidAssignees.push({
+                        phaseName: phase.phase_name,
+                        assigneeName,
+                        issues,
+                    });
+                }
+
+                if (assigneeNames.has(assigneeName)) {
+                    hasDuplicateAssignees = true;
+                    isValid = false;
+
+                    if (!flaggedAssignees.has(assigneeName)) {
+                        flaggedAssignees.add(assigneeName);
+                        invalidAssignees.push({
+                            phaseName: phase.phase_name,
+                            assigneeName,
+                            issues: ["Duplicate employee"]
+                        });
+                    }
+                } else {
+                    assigneeNames.add(assigneeName);
+                }
+            });
+        });
+
+        const noticeMessage = (
+            <ul>
+                {invalidAssignees.map(({ phaseName, assigneeName, issues }, index) => (
+                    <li key={index} className={`w-full p-2 ${invalidAssignees.length !== 1 ? "border-b border-gray-300" : ""}`}>
+                        <p><strong>Phase:</strong> {phaseName}</p>
+                        <p><strong>Assignee:</strong> {assigneeName}</p>
+                        <ul className="mt-2">
+                            {issues.map((issue, i) => (
+                                <li key={i} className="text-pric">{issue}</li>
+                            ))}
+                        </ul>
+                    </li>
+                ))}
+            </ul>
+        );
+
+        if (empty_rows) {
+            openModal(noticeMessage, "Blank Employee Assignment");
+            setIsLoading(false);
+            return;
+        }
+
+        if (hasDuplicateAssignees) {
+            openModal(noticeMessage, "Duplicate Employees");
+            setIsLoading(false);
+            return;
+        }
+
+        if (!isValid) {
+            openModal(noticeMessage, "Missing Data");
+            setIsLoading(false);
+            return;
+        }
+
+        openModal({
+            handlerFunction: async () => {
+                try {
+                    await saveDeployment(updatedData, deletedPhaseAssignees);
+                    showToast("success", "Successfully Saved Deployment");
+                } catch (error) {
+                    await logError(error, "Error In Saving Deployment");
+                    showToast("failed", "Failed To Save Deployment");
+                }
+            },
+            refresh
+        }, "Save");
+    }, [getUpdatedData, deletedPhaseAssignees, employee_data, headerDates]);
+
+    const clearPath = useCallback(() => {
+        if (initialHeaderDates.length !== headerDates.length) {
+            router.push(`${pathname}`);
+            router.refresh();
+        } else {
+            router.refresh();
+        }
+    }, [initialHeaderDates.length, headerDates.length, pathname, router]);
+
+    const findPhaseIndex = useCallback((row) => {
+        let phaseIndex = 0;
+        let currentRow = 0;
+
+        while (phaseIndex < initialData.length && currentRow + initialData[phaseIndex].assignees.length <= row) {
+            currentRow += initialData[phaseIndex].assignees.length;
+            phaseIndex += 1;
+        }
+
+        return phaseIndex;
+    }, [initialData]);
+
+    const findAssigneeIndex = useCallback((row, phaseIndex) => {
+        let assigneeIndex = row;
+        for (let i = 0; i < phaseIndex; i++) {
+            assigneeIndex -= initialData[i].assignees.length;
+        }
+        return assigneeIndex;
+    }, [initialData]);
+
+    const updateAssigneeDiscipline = useCallback((row, value) => {
+        const newInitialData = [...getUpdatedData()];
+        const phaseIndex = findPhaseIndex(row);
+        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+        newInitialData[phaseIndex].assignees[assigneeIndex].discipline = value;
+        setInitialData(newInitialData);
+        document.querySelector(`#select-${row}-2`).value = "Select...";
+        const event = new Event('change', { bubbles: true });
+        document.querySelector(`#select-${row}-2`).dispatchEvent(event);
+    }, [findPhaseIndex, findAssigneeIndex, getUpdatedData]);
+
+    const updateAssigneeUser = useCallback((row, value) => {
+        const newInitialData = [...getUpdatedData()];
+        const phaseIndex = findPhaseIndex(row);
+        const assigneeIndex = findAssigneeIndex(row, phaseIndex);
+        newInitialData[phaseIndex].assignees[assigneeIndex].assignee = value;
+        setInitialData(newInitialData);
+    }, [findPhaseIndex, findAssigneeIndex, getUpdatedData]);
+
+    const handleSelectChange = useCallback((e, row, col) => {
+        const value = e.target.value;
+        if (col === 1) {
+            updateAssigneeDiscipline(row, value);
+        } else if (col === 2) {
+            updateAssigneeUser(row, value);
+        }
+        !edited && populated && setEdited(true);
+    }, [updateAssigneeDiscipline, updateAssigneeUser, edited, populated]);
+
+    const renderModalContent = useCallback((message, buttons, title = "") => (
+        <Modal open={true}
+            onClose={() => {
+                setModal(null);
+                if (isLoading) {
+                    setIsLoading(false);
+                }
+            }}
+            title={title}
+        >
+            <div className="flex items-center gap-4">
+                <Image src="/resources/icons/warning.png" height="50" width="50" alt="warning-icon" className="mob:w-12 mob:h-12" />
+                <div className="mob:text-xs">
+                    <div>{message}</div>
+                </div>
+            </div>
+            <div className="flex justify-center gap-4 mb-4 mt-5">
+                {buttons.map((button, index) => (
+                    <Button
+                        key={crypto.randomUUID()}
+                        {...button}
+                    />
+                ))}
+            </div>
+        </Modal>
+    ), [isLoading]);
+
+    const openModal = useCallback((data = null, type) => {
+        let modalContent;
+        switch (type) {
+            case "Assignee Delete":
+                const { newInitialData, phaseIndex, assigneeIndex } = data;
+                modalContent = renderModalContent(
+                    "Are you sure you would like to delete this assignee and all assigned weeks?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Proceed",
+                            onClick: () => {
+                                newInitialData[phaseIndex].assignees.splice(assigneeIndex, 1);
+                                setInitialData(newInitialData);
+                                setModal(null);
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Confirmation"
+                );
+                break;
+            case "Cannot Delete Assignee":
+                modalContent = renderModalContent(
+                    "Unable to delete. Phase must contain at least one assignee.",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Cannot Delete Assignee"
+                );
+                break;
+            case "Cannot Delete Week":
+                modalContent = renderModalContent(
+                    "The week you are deleting contains data. Are you sure you would like to proceed?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Proceed",
+                            onClick: () => {
+                                data();
+                                setModal(null);
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Cannot Delete Week"
+                );
+                break;
+            case "Missing Data":
+                modalContent = renderModalContent(
+                    data,
+                    [
+                        {
+                            variant: "primary",
+                            name: "Close",
+                            onClick: () => {
+                                setModal(null);
+                                scrollToFirstWarning();
+                            },
+                        },
+                    ],
+                    "Missing Selection(s)"
+                );
+                break;
+            case "Duplicate Employees":
+                modalContent = renderModalContent(
+                    data,
+                    [
+                        {
+                            variant: "primary",
+                            name: "Close",
+                            onClick: () => {
+                                setModal(null);
+                                scrollToFirstWarning();
+                            },
+                        },
+                    ],
+                    "Assignment Error"
+                );
+                break;
+            case "Date Clear":
+                modalContent = renderModalContent(
+                    "Clearing date filters will discard all your updated data. Are you sure you wish to proceed?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Save & Proceed",
+                            onClick: () => {
+                                handleSave(false);
+                                data();
+                                setModal(null);
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Warning"
+                );
+                break;
+            case "Date Change":
+                modalContent = renderModalContent(
+                    "Changing the date range will discard all your updated data. Are you sure you wish to proceed?",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Save & Proceed",
+                            onClick: () => {
+                                handleSave(false);
+                                data();
+                                setModal(null);
+                            },
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Warning"
+                );
+                break;
+            case "Invalid Dates":
+                modalContent = renderModalContent(
+                    "Start date must be less than or equal to the end date.",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ]
+                );
+                break;
+            case "Save":
+                modalContent = renderModalContent(
+                    "Are you sure you want to save the current deployment data? This is operation is not reversible.",
+                    [
+                        {
+                            variant: "primary",
+                            name: "Save",
+                            onClick: async () => {
+                                setIsLoading(true);
+                                await data.handlerFunction();
+                                if (data.refresh) {
+                                    clearPath();
+                                }
+                                setIsLoading(false);
+                            },
+                            loading: isLoading,
+                            isDisabled: isLoading
+                        },
+                        {
+                            variant: "secondary",
+                            name: "Close",
+                            onClick: () => { setModal(null); setIsLoading(false); },
+                        },
+                    ],
+                    "Confirmation"
+                );
+                break;
+            case "Blank Employee Assignment":
+                modalContent = renderModalContent(
+                    data,
+                    [
+                        {
+                            variant: "primary",
+                            name: "Close",
+                            onClick: () => setModal(null),
+                        },
+                    ],
+                    "Assignment Error"
+                );
+                break;
+        }
+        setModal(modalContent);
+    }, [renderModalContent, clearPath, handleSave]);
+
+    const renderGrid = useCallback(() => {
+        const rows = [];
+
+        // Add header row
+        const headerCols = [
+            <div
+                key={`action`}
+                className="border border-gray-300 flex justify-center  min-w-16 max-w-16 items-center p-1 box-border bg-gray-200 text-gray-600 font-bold"
+                style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+            >
+                Action
+            </div>,
+            <div key="discipline-header" className="discipline-header border border-gray-300 p-1 flex justify-center items-center bg-gray-200 text-gray-600 font-semibold min-w-[160pt] max-w-[160pt]">
+                Discipline
+            </div>,
+            <div key="user-header" className="user-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 text-gray-600 font-semibold min-w-[160pt] max-w-[160pt]">
+                Employee
+            </div>,
+            <div key="grade-header" className="grade-header border border-gray-300 p-1  flex justify-center items-center bg-gray-200 text-gray-600 font-semibold min-w-24 max-w-24">
+                Grade
+            </div>,
+            <div key="bh-header" className="bh-header border border-gray-300 p-1  flex justify-center items-center text-center bg-gray-200 text-gray-600 font-semibold min-w-24 max-w-24">
+                Budget Hours
+            </div>,
+            ...headerDates.map((date, index) => {
+                const color = getColorForMonth(date);
+                return <div
+                    key={`header-${index}-${date}`}
+                    className={"border border-gray-300 min-w-12 max-w-12 flex justify-center items-center px-1 py-4 text-gray-600 font-semibold"}
+                    style={{
+                        writingMode: "vertical-rl",
+                        transform: "rotate(180deg)",
+                        background: color,
+                        "--tw-bg-opacity": 1,
+                    }}
+                >
+                    {date}
+                </div>;
+            }),
+        ];
+        rows.push(
+            <div key="header" className="flex rounded-lg sticky top-0 z-30 w-fit bg-gray-300">
+                {headerCols}
+            </div>
+        );
+
+        let rowCounter = 0;
+
+        initialData.forEach((phase, phaseIndex) => {
+            const phase_display = getPhaseStateFromLocalStorage(phase.phase_id);
+
+            rows.push(
+                <div key={`phase-${phaseIndex}-${crypto.randomUUID()}`} className={`phase-header flex justify-between border-b border-white items-center sticky left-0 flex-1 font-bold bg-gray-400 text-left text-xl px-2 py-5 ${phase_display}`}>
+                    <div>
+                        <span className="text-white">{phase.phase_name} - </span> {" "} &nbsp;
+                        <span className="text-lg mr-4 font-semibold text-white">
+                            {phase.expected_work_hours} hrs
+                        </span>
+                    </div>
+                    <p className="collapsePhase cursor-pointer bg-pric px-3 py-2 rounded-lg border border-red-300" onClick={(e) => handleCollapseClick(e, phase.phase_id)}>
+                        <Image src="/resources/icons/arrow-up.svg" height="12" width="12" alt="collapse" />
+                    </p>
+                    <p className="expandPhase cursor-pointer bg-pric px-3 py-2 rounded-lg border border-red-300" onClick={(e) => handleExpandClick(e, phase.phase_id)}>
+                        <Image src="/resources/icons/arrow-down.svg" height="12" width="12" alt="expand" />
+                    </p>
+                </div>
+            );
+
+            const assigneeRows = [];
+
+            if (phase?.assignees) {
+                phase?.assignees?.forEach((assignee, assigneeIndex) => {
+                    const assignee_grade = getGradeName(assignee.assignee, employee_data);
+                    const assignee_name = getEmployeeName(assignee.assignee, employee_data);
+                    const { timesheet_exists } = assignee;
+                    const row = rowCounter;
+                    rowCounter += 1;
+                    const cols = [];
+
+                    for (let col = 0; col < numCols; col++) {
+                        let content, initialContent;
+                        let isSelected = false;
+                        let colDate;
+
+                        if (col === 0) {
+                            content = (
+                                <button disabled={timesheet_exists} className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-60" onClick={() => deleteAssignee(row)}>
+                                    <Image src="/resources/icons/delete.png" height="20" width="20" alt="x" />
+                                </button>
+                            );
+                        } else if (col === 1) {
+                            const isEmpty = assignee.discipline === "Select...";
+                            content = (
+                                <div className="flex flex-col items-center">
+                                    <select
+                                        id={`select-${row}-${col}`}
+                                        value={assignee.discipline || 1}
+                                        onChange={(e) => handleSelectChange(e, row, col)}
+                                        className={`disabled:cursor-not-allowed native-select border ${!isEmpty ? "border-gray-300" : "border-pric"} rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer  w-full  focus:border-none`}
+                                        disabled={timesheet_exists}
+                                    >
+                                        <option key={crypto.randomUUID()} value="Select...">Select...</option>
+                                        {memoizedDisciplineData.map((option) => (
+                                            <option key={crypto.randomUUID()} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            );
+                        } else if (col === 2) {
+                            const isEmpty = assignee.assignee === "Select...";
+                            content = (
+                                <>
+                                    <select
+                                        id={`select-${row}-${col}`}
+                                        value={assignee.assignee}
+                                        onChange={(e) => handleSelectChange(e, row, col)}
+                                        className={`disabled:cursor-not-allowed native-select border ${!isEmpty ? "border-gray-300" : "border-pric"} rounded-sm px-3 py-1 box-border text-center text-ellipsis focus:ring-gray-500 focus:ring-[1.5px] cursor-pointer  w-full  focus:border-none`}
+                                        disabled={timesheet_exists}
+                                    >
+                                        <option key={crypto.randomUUID()} value="Select...">Select...</option>
+                                        {memoizedEmployeeData
+                                            .filter(option => option.discipline_id === parseInt(assignee.discipline))
+                                            .map(option => (
+                                                <option key={crypto.randomUUID()} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </>
+                            );
+                        } else if (col === 3) {
+                            content = <div className=" font-semibold min-w-24">{assignee_grade}</div>;
+                        } else if (col === 4) {
+                            content = (
+                                <>
+                                    <div className=" font-semibold min-w-24 budget-hour-cell">
+                                        {getBudgetHoursCells(row)}
+                                    </div>
+                                </>
+                            );
+                        } else {
+                            colDate = headerDates[col - 5];
+                            initialContent = assignee.projected_work_weeks[colDate] || "";
+                            content = cellContents[`${row}-${col}`] !== undefined ? cellContents[`${row}-${col}`] : assignee.projected_work_weeks[colDate] || null;
+                        }
+
+                        if (!cellRefs.current[row]) {
+                            cellRefs.current[row] = [];
+                        }
+
+                        const isContentEditable = col > 4 + uneditableCellCount && editableCell?.row === row && editableCell?.col === col;
+
+                        cols.push(
+                            <div
+                                key={`${row}-${col}`}
+                                ref={(el) => {
+                                    cellRefs.current[row][col] = el;
+                                }}
+                                className={`border border-gray-300 flex h-12 ${col === 0 ? "min-w-16 max-w-16" : col < 3 ? "min-w-[160pt] max-w-[160pt]" : col < 5 ? " min-w-24 max-w-24" : `min-w-12 max-w-12 cursor-cell focus:cursor-auto ${col >= 5 && col < 5 + uneditableCellCount ? "bg-gray-200 cursor-not-allowed" : ""}`} justify-center items-center p-1 box-border text-center z-0  ${isSelected ? "outline-none border-red-500 border-1" : ""}`}
+                                style={getCellStyle(row, col)}
+                                onMouseDown={col > 4 + uneditableCellCount ? (e) => { handleMouseDown(row, col); } : undefined}
+                                onMouseEnter={col > 4 + uneditableCellCount ? () => handleMouseEnter(row, col) : undefined}
+                                onMouseUp={col > 4 + uneditableCellCount ? handleMouseUp : undefined}
+                                data-date={col > 4 ? headerDates[col - 5] : ""}
+                                data-col={col}
+                                data-row={row}
+                                data-phase-id={phase.phase_id}
+                                data-initial={isFirstRender ? content : cellRefs.current[row][col]?.getAttribute("data-initial")}
+                                data-phase-assignee-id={assignee.phase_assignee_id}
+                                onClick={col > 4 + uneditableCellCount ? () => handleClick(row, col) : undefined}
+                                onDoubleClick={col > 4 + uneditableCellCount ? () => handleDoubleClick(row, col) : undefined}
+                                onBlur={col > 4 + uneditableCellCount ? (e) => handleCellBlur(row, col, e) : undefined}
+                                onKeyUp={col > 4 + uneditableCellCount ? (e) => !edited && setEdited(true) : undefined}
+                                contentEditable={isContentEditable}
+                                suppressContentEditableWarning
+                            >
+                                {content}
+                            </div>
+                        );
+                    }
+
+                    assigneeRows.push(
+                        <>
+                            <div className="assignee-label  text-center bg-gray-300 text-gray-600 p-1 mt-3 max-w-[100vw] sticky left-0" key={`assignee-label-${phaseIndex}-${assigneeIndex}`}>
+                                {assignee.assignee === "Select..." ? "Unassigned" : assignee_name} - {assignee_grade} - {getBudgetHoursCells(row)} hrs
+                            </div>
+                            <div key={`assignee-${phaseIndex}-${assigneeIndex}`} className={`flex relative bg-white`}>
+                                {cols}
+                            </div>
+                        </>
+                    );
+                });
+
+                if (phase?.assignees?.length === 0) {
+                    assigneeRows.push(
+                        <div key={crypto.randomUUID()} className="text-center max-w-[100vw] p-3 text-pric sticky left-0"> No assignees found </div>
+                    );
+                }
+                assigneeRows.push(
+                    <div
+                        key={`add-assignee-${crypto.randomUUID()}`}
+                        className={`p-2 text-white flex-1 text-lg text-center max-w-[100vw] cursor-pointer  bg-pric hover:bg-pri-hovc transition duration-200 ease sticky left-0`}
+                        onClick={() => handleAddAssignee(phaseIndex)}
+                    >
+                        + Add New
+                    </div>
+                );
+            }
+
+            rows.push(
+                <div key={`assignee-wrapper-${crypto.randomUUID()}`} className={`assignee-wrapper min-w-max relative ${phase_display === "collapsed" ? "hidden" : ""}`}>
+                    {assigneeRows}
+                </div>
+            );
+        });
+
+        return rows;
+    }, [
+        headerDates,
+        numCols,
+        initialData,
+        cellContents,
+        getCellStyle,
+        handleMouseDown,
+        handleMouseEnter,
+        handleMouseUp,
+        handleClick,
+        handleDoubleClick,
+        handleCellBlur,
+        editableCell,
+        getBudgetHoursCells,
+        getPhaseBudgetHours,
+        deleteAssignee,
+        handleSelectChange,
+        handleAddAssignee,
+        cellRefs,
+        memoizedDisciplineData,
+        memoizedEmployeeData,
+        edited,
+        employee_data,
+        isFirstRender
+    ]);
+
     return (
         <>
             {modal}
-            <div className="flex items-start w-screen">
-                <div className="space-y-5 w-screen">
-                    <DateRangePicker
-                        project_start_date={project_start_date}
-                        project_end_date={project_end_date}
-                        start={start_date}
-                        end={end_date}
-                    />
+            <div className="flex items-start max-w-full w-fit">
+                <div className="space-y-5">
+                    <DateRangePicker project_start_date={project_start_date} project_end_date={project_end_date} start={start_date} end={end_date} edited={edited} openModal={openModal} handleSave={handleSave} />
                     <div className="flex gap-2">
-                        <div
-                            className="sheet-container flex-1 outline-none border h-[900px] border-gray-300 rounded-lg select-none relative overflow-scroll w-screen bg-white z-0"
-                            tabIndex={0}
-                        >
-                            <HotTable settings={hotSettings} />
+                        <div className="sheet-container flex-1 outline-none border h-[900px] border-gray-300 rounded-lg  select-none relative overflow-scroll w-fit bg-white z-0" tabIndex={0}>
+                            {renderGrid()}
+                            <div className="arrow-left sticky bottom-[50%] z-50 left-8 p-3 flex justify-center items-center w-fit cursor-pointer">
+                                <div className="relative flex justify-center items-center">
+                                    <div className="absolute w-12 h-12 rounded-full bg-lightRed animate-pulseRing"></div>
+                                    <div className="absolute w-16 h-16 rounded-full bg-red-400 animate-pulseRing"></div>
+                                    <div className="absolute w-20 h-20 rounded-full animate-pulseRing"></div>
+                                    <div className="relative z-10 flex justify-center items-center bg-transparent rounded-full p-2">
+                                        <Image src="/resources/icons/arrow.png" height="20" width="20" className="" alt="arrow" onClick={navigateRight} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 items-center justify-center bg-white sticky left-0 bottom-0 max-w-[100vw] z-50 p-3 border-t border-gray-300 shadow-top-only">
+                                <Button
+                                    onClick={handleSave}
+                                    medium
+                                    variant="primary"
+                                    name="Save"
+                                    isDisabled={!edited || isLoading}
+                                    loading={isLoading}
+                                />
+                                {project_data.isBaselined === 'No' &&
+                                    <Button
+                                        onClick={async () => {
+                                            setIsLoading(true);
+                                            await baselineProject(project_data.project_id);
+                                            router.refresh();
+                                            setIsLoading(false);
+                                        }}
+                                        medium
+                                        variant="primary"
+                                        name="Baseline Project"
+                                        isDisabled={isLoading}
+                                        loading={isLoading}
+                                    />
+                                }
+                            </div>
                         </div>
+                        {getMonthNameFromDate(initialHeaderDates[initialHeaderDates.length - 1]) === getMonthNameFromDate(project_end_date) &&
+                            <div className="space-y-1">
+                                <button
+                                    key="add-week-button"
+                                    className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-green-500 font-bold"
+                                    onClick={addNewMonth}
+                                >
+                                    +
+                                </button>
+                                {initialHeaderDates.length < headerDates.length && <button
+                                    key="remove-week-button"
+                                    className="rounded-lg p-1 w-8 h-8 flex text-white justify-center items-center bg-red-500 font-bold"
+                                    onClick={removeLastWeek}
+                                >
+                                    -
+                                </button>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
+            <p className="user-tracker-visible"></p>
         </>
-    )
-}
+    );
+};
 
-export default Sheet
+export default React.memo(Sheet); 

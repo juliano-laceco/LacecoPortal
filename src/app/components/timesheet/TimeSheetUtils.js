@@ -35,7 +35,6 @@ export function organizeTimesheetByType(timesheet) {
 }
 
 // Get status for a specific day
-// Get status for a specific day
 export function getStatusForDay(date, nonWorkingDays, projectTimeSheet, developmentTimeSheet) {
     let status = null;
     let rejectionReason = null;
@@ -43,7 +42,7 @@ export function getStatusForDay(date, nonWorkingDays, projectTimeSheet, developm
     let non_working = false; // Initialize non_working as false
 
     // Check if the date is a non-working day
-    const nonWorkingDay = nonWorkingDays.find((nwd) => nwd.date === date);
+    const nonWorkingDay = nonWorkingDays?.find((nwd) => nwd.date === date);
 
     if (nonWorkingDay && (isUUID(nonWorkingDay.non_working_day_id) || nonWorkingDay.newNonWorking)) {
         status = 'New Non Working';

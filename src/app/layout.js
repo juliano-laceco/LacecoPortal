@@ -5,7 +5,7 @@ import Sidebar from "./components/sidebar/Sidebar";
 import { getSession } from "../utilities/auth/auth-utils";
 import Image from "next/image";
 import { ToastContainer } from 'react-toastify';
-import { getEmployeeAssignments, getEmployeeLinkOptions } from "@/utilities/employee/employee-utils";
+import { getEmployeeLinkOptions } from "@/utilities/employee/employee-utils";
 import { NextUIProvider } from "@nextui-org/react";
 
 export const metadata = {

@@ -336,8 +336,6 @@ export async function getAllEmployees(qs = {}) {
 
 
 export async function getEmployeeLinkOptions(role_id) {
-
-
     try {
         const commonLinksQuery = `SELECT *
                               FROM sidebar_link
@@ -358,6 +356,28 @@ export async function getEmployeeLinkOptions(role_id) {
         return res.failed()
     }
 
+}
+
+export async function checkIfHod(sub) {
+
+    try {
+        const query =
+            `SELECT d.discipline_id , d.discipline_name
+                 FROM discipline d 
+                 JOIN employee e ON d.head_of_department_id = e.employee_id
+                 WHERE e.google_sub = ?`
+        const result = await execute(query, [sub])
+        const isHoD = result.length > 0
+
+        if (!isHoD) {
+            return { isHoD: false }
+        }
+        return { isHoD, disciplines: result }
+
+    } catch (error) {
+        await logError(error, "Error checking if HoD")
+        return res.failed()
+    }
 }
 
 
