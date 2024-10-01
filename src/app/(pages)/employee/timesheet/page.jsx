@@ -4,8 +4,9 @@ import { endOfWeek, startOfWeek, eachDayOfInterval, format } from "date-fns";
 import React from "react";
 import { getLoggedInId } from "@/utilities/auth/auth-utils";
 import { formatDate } from "@/utilities/date/date-utils";
-import { redirect, headers } from 'next/navigation';
+import { redirect} from 'next/navigation';
 import TimeSheet from "@/app/components/timesheet/TimeSheet"; 
+import { headers } from "next/headers";
 
 function getWeekStartEnd(date) {
     return {

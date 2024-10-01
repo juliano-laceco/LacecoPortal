@@ -333,8 +333,8 @@ export async function saveTimeSheet(timesheet_data) {
     let transaction;
     let clearedDates = [];
     const session = await getSession();
-    const isHoD = session?.user?.isHoD; // Check if the user is a HoD
-
+    // const isHoD = session?.user?.isHoD;
+    const isHoD = false
     try {
         transaction = await startTransaction();
 
@@ -418,7 +418,7 @@ export async function saveTimeSheet(timesheet_data) {
                         const query = `
                             INSERT INTO employee_work_day (phase_assignee_id, work_day, hours_worked, status, actioned_by)
                             VALUES (
-                              (SELECT phase_assignee_id FROM phase_assignee WHERE phase_id = ? AND assignee_id = ?), 
+                              (SELECT phase_assignee_id FROM phase_assignee WHERE phase_id = ? AND assignee_id = ? LIMIT 1), 
                               ?, 
                               ?, 
                               ?,
@@ -433,7 +433,7 @@ export async function saveTimeSheet(timesheet_data) {
                                 SET hours_worked = ?, status = ?, actioned_by = ?
                                 WHERE employee_work_day_id = ?
                             `;
-                            await executeTrans(query, [hours_worked, hasChanged ? (isHoD ? "Approved" : "Pending") : "", isHoD ? initiatorId : null, employee_work_day_id], transaction);
+                            await executeTrans(query, [hours_worked, hasChanged ? (isHoD ? "Approved" : "Pending") : assignment.status, isHoD ? initiatorId : null, employee_work_day_id], transaction);
                         } else {
                             const query = `
                                 DELETE FROM employee_work_day 
@@ -467,7 +467,7 @@ export async function saveTimeSheet(timesheet_data) {
                         SET hours_worked = ?, status = ?, actioned_by = ?
                         WHERE development_hour_day_id = ?
                     `;
-                    await executeTrans(query, [hours_worked, hasChanged ? (isHoD ? "Approved" : "Pending") : "", isHoD ? initiatorId : null, development_hour_day_id], transaction);
+                    await executeTrans(query, [hours_worked, hasChanged ? (isHoD ? "Approved" : "Pending") : development_item.status, isHoD ? initiatorId : null, development_hour_day_id], transaction);
                 } else {
                     const query = `
                         DELETE FROM development_hour 
@@ -489,6 +489,7 @@ export async function saveTimeSheet(timesheet_data) {
         }
     }
 }
+
 
 
 export async function actionTimesheet(timesheet_data, dateActions) {
@@ -678,45 +679,71 @@ export async function getApprovalData(departments, limit = 4) {
     const departmentPlaceholders = uniqueDepartments.map(() => '?').join(', ');
 
     const query = `
-    SELECT DISTINCT e.employee_id, e.first_name, e.last_name , e.work_email ,
+    SELECT DISTINCT e.employee_id, e.first_name, e.last_name, e.work_email,
+    
+    -- Fetch the last action date (Approved or Rejected)
     DATE_FORMAT(
       COALESCE(
         GREATEST(
-          (SELECT MAX(ewd.work_day) 
+          (SELECT MAX(ewd.work_day)
            FROM employee_work_day ewd
-           JOIN phase_assignee pa 
+           JOIN phase_assignee pa
            ON ewd.phase_assignee_id = pa.phase_assignee_id
            WHERE pa.assignee_id = e.employee_id
            AND (ewd.status = 'Rejected' OR ewd.status = 'Approved')
           ),
-          (SELECT MAX(nwd.date) 
+          (SELECT MAX(nwd.date)
            FROM non_working_day nwd
            WHERE nwd.employee_id = e.employee_id
            AND (nwd.status = 'Rejected' OR nwd.status = 'Approved')
           ),
-          (SELECT MAX(dh.work_day) 
+          (SELECT MAX(dh.work_day)
            FROM development_hour dh
            WHERE dh.employee_id = e.employee_id
            AND (dh.status = 'Rejected' OR dh.status = 'Approved')
           )
         ), 
         NULL
-      ),'%Y-%m-%d') AS last_action_date,
-
+      ), '%Y-%m-%d'
+    ) AS last_action_date,
+  
+    -- Fetch the first pending date across all tables
+   DATE_FORMAT(
+        COALESCE(
+          (SELECT MIN(ewd.work_day)
+           FROM employee_work_day ewd
+           JOIN phase_assignee pa 
+           ON ewd.phase_assignee_id = pa.phase_assignee_id
+           WHERE pa.assignee_id = e.employee_id
+           AND ewd.status = 'Pending'),
+          (SELECT MIN(nwd.date)
+           FROM non_working_day nwd
+           WHERE nwd.employee_id = e.employee_id
+           AND nwd.status = 'Pending'),
+          (SELECT MIN(dh.work_day)
+           FROM development_hour dh
+           WHERE dh.employee_id = e.employee_id
+           AND dh.status = 'Pending')
+        ), '%Y-%m-%d'
+      ) AS first_pending_date,
+  
     -- Fetch the status of the last action taken
-
     (SELECT status FROM (
         SELECT ewd.status, ewd.work_day AS actioned_on
         FROM employee_work_day ewd
         JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
         WHERE pa.assignee_id = e.employee_id
         AND (ewd.status = 'Rejected' OR ewd.status = 'Approved')
+        
         UNION ALL
+        
         SELECT nwd.status, nwd.date AS actioned_on
         FROM non_working_day nwd
         WHERE nwd.employee_id = e.employee_id
         AND (nwd.status = 'Rejected' OR nwd.status = 'Approved')
+        
         UNION ALL
+        
         SELECT dh.status, dh.work_day AS actioned_on
         FROM development_hour dh
         WHERE dh.employee_id = e.employee_id
@@ -724,7 +751,7 @@ export async function getApprovalData(departments, limit = 4) {
     ) AS all_actions
     ORDER BY actioned_on DESC
     LIMIT 1) AS last_action_status
-
+  
     FROM employee e
     JOIN discipline d ON e.discipline_id = d.discipline_id
     JOIN phase_assignee pa ON pa.assignee_id = e.employee_id

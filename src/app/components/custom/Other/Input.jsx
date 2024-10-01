@@ -28,7 +28,7 @@ const Input = forwardRef(
         ref
     ) => {
         const baseClasses = 'border-1 rounded-md p-2 w-full border-input-b bg-input-bg';
-        const inputClasses = `focus:ring-0 focus:border-pric p-1 rounded-md ${!!Icon ? `p${ltr ? "r" : "l"}-12` : ""}`;
+        const inputClasses = `focus:ring-0 focus:border-pric focus:outline-none p-1 rounded-md ${!!Icon ? `p${ltr ? "r" : "l"}-12` : ""}`;
         const labelClasses = `pr-3 mob:mt-1 ${!!labelStyle ? labelStyle : ""}`;
         const errorClasses = 'text-pric text-[1.5ex] ml-1 min-h-5';
 

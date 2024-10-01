@@ -20,11 +20,11 @@ function Button({
     const baseClasses = `rounded-[4px] ${(loading || isDisabled) && "opacity-60 cursor-not-allowed"} transition-all h-fit duration-200 flex justify-center items-center`
     const sizeClasses = {
         small: `
-            min-w-[9ex] p-1 text-xs 
-            mob:min-w-[9ex] mob:p-1
+            min-w-[9ex] p-2 text-xs 
+            mob:min-w-[9.5ex] mob:p-2
             tablet:min-w-[10ex] ${!!Icon && "tablet:p-1"}
-            lap:min-w-[10ex] lap:p-1 
-            desk:min-w-[12ex] ${!!Icon && "desk:p-1"}
+            lap:min-w-[10ex] lap:p-2 
+            desk:min-w-[12ex] ${!!Icon && "desk:p-2"}
         `,
         medium: `
             min-w-[12ex] ${loading ? "p-3" : "p-2"} text-base 
