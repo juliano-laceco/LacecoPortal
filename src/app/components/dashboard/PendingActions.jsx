@@ -1,8 +1,9 @@
-"use client"
+"use client";
 
 import Link from "next/link";
 import React from "react";
 import Button from "../custom/Other/Button";
+import { differenceInDays } from "date-fns";
 
 function PendingActions({ approvals }) {
     return (
@@ -13,12 +14,53 @@ function PendingActions({ approvals }) {
             <div className="mt-4">
                 <h3 className="text-sm font-semibold mb-4">Most Relevant</h3>
                 <div>
-                    {approvals.map(({ employee_id, first_name, work_email, last_action_status, last_action_date, first_pending_date }) => {
-                        // Determine the start date for the query string
-                        const startDate = first_pending_date || last_action_date;
-                        const formattedStartDate = startDate
-                            ? new Date(startDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    {approvals.map(({
+                        employee_id,
+                        first_name,
+                        last_name,
+                        discipline_name,
+                        has_pending,
+                        min_pending_date,
+                        last_approved_before_rejected,
+                        last_approved_date,
+                        min_rejected_date
+                    }) => {
+                        // Determine the final date based on the conditions
+                        const final_date = min_rejected_date && !last_approved_before_rejected
+                            ? min_rejected_date
+                            : last_approved_before_rejected || last_approved_date || min_pending_date;
+
+                        const formattedStartDate = final_date
+                            ? new Date(final_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                             : null;
+
+                        // Color logic based on date and conditions
+                        let colorClass = "bg-orange-500"; // Default color for 'No action yet' or 'N/A'
+
+                        if (final_date) {
+                            const daysDifference = differenceInDays(new Date(), new Date(final_date));
+
+                            if (final_date === last_approved_before_rejected || final_date === min_rejected_date) {
+                                // Color based on elapsed time for last_approved_before_rejected or min_rejected_date
+                                if (daysDifference <= 2) {
+                                    colorClass = "bg-green-500"; // Green for 0-2 days old
+                                } else if (daysDifference >= 3) {
+                                    colorClass = "bg-red-500"; // Red for 3+ days old
+                                }
+                            } else if (final_date === last_approved_date) {
+                                // Color based on pending state
+                                if (has_pending) {
+                                    colorClass = "bg-orange-400"; // Orange if there is pending
+                                } else {
+                                    // Standard color logic for last_approved_date
+                                    if (daysDifference <= 2) {
+                                        colorClass = "bg-green-500"; // Green for 0-2 days old
+                                    } else if (daysDifference >= 3) {
+                                        colorClass = "bg-red-500"; // Red for 3+ days old
+                                    }
+                                }
+                            }
+                        }
 
                         return (
                             <Link href={`/hod/approvals?employee_id=${employee_id}&start=${formattedStartDate}`} key={employee_id}>
@@ -31,36 +73,15 @@ function PendingActions({ approvals }) {
                                             </svg>
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-base mob:text-sm">{first_name}</p>
-                                            <p className="text-sm text-gray-500 mob:text-xs">{work_email}</p>
+                                            <p className="font-semibold text-base mob:text-sm">{first_name} {last_name}</p>
+                                            <p className="text-sm text-gray-500 mob:text-xs">{discipline_name}</p>
                                         </div>
                                     </div>
-                                    {/* Display approval status with priority for pending */}
+                                    {/* Display approval status with color coding */}
                                     <div className="text-sm font-semibold mob:text-xs">
-                                        {first_pending_date ? (
-                                            <>
-                                                <span className="text-xs mob:hidden tablet:hidden text-orange-400">
-                                                    pending {new Date(first_pending_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
-                                                </span>
-                                                <span className="text-white p-1 text-[11px] rounded-md font-semibold desk:hidden lap:hidden bg-orange-500">
-                                                    {new Date(first_pending_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
-                                                </span>
-                                            </>
-                                        ) : last_action_date ? (
-                                            <>
-                                                <span className={`text-xs mob:hidden tablet:hidden ${last_action_status === 'Approved' ? 'text-green-500' : 'text-red-500'}`}>
-                                                    {last_action_status.toLowerCase()} {new Date(last_action_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
-                                                </span>
-                                                <span className={`text-white p-1 text-[11px] rounded-md font-semibold desk:hidden lap:hidden ${last_action_status === 'Approved' ? 'bg-green-500' : 'bg-red-500'}`}>
-                                                    {new Date(last_action_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
-                                                </span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="text-xs mob:hidden tablet:hidden text-red-500">missing</span>
-                                                <span className="text-white p-1 text-[11px] bg-gray-400 rounded-md font-semibold desk:hidden lap:hidden">N/A</span>
-                                            </>
-                                        )}
+                                        <span className={`text-xs p-1 text-white rounded-md font-semibold ${colorClass}`}>
+                                            {new Date(final_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
+                                        </span>
                                     </div>
                                 </div>
                             </Link>
@@ -73,10 +94,9 @@ function PendingActions({ approvals }) {
                     <Link href="/hod/approvals/all">
                         <Button name="View All" size="small" />
                     </Link>
-
                 </div>
             </div>
-        </div >
+        </div>
     );
 }
 

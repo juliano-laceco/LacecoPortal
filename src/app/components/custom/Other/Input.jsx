@@ -62,7 +62,7 @@ const Input = forwardRef(
                         </div>
                     )}
                 </div>
-                <div className={errorClasses}>{!!error && error}</div>
+                {!!error && <div className={errorClasses}>{error}</div>}
             </div>
         );
     }

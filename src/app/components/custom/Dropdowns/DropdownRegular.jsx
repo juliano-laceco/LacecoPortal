@@ -16,15 +16,14 @@ function DropdownRegular({
     const colors = theme.extend.colors;
 
     return (
-        <div className="flex flex-col items-start justify-start gap-[3px] w-full">
+        <div className="flex flex-col items-start justify-start gap-[3px] w-fit">
             {!!label && (
                 <label className="mob:text-base tablet:text-base lap:text-base desk:text-base pr-3">
                     {label}
                 </label>
             )}
             <div
-                className={`w-fit items-center justify-center flex mob:text-sm mob:p-0 relative ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'
-                    }`}
+                className={`w-fit items-center justify-center flex mob:text-sm mob:p-0 relative ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'  }`}    
             >
                 <Select
                     classNamePrefix="react-select"

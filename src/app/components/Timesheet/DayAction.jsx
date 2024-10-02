@@ -78,7 +78,7 @@ function DayAction({ openModal, checkDayAction, batchType, hasPendingDays }) {
                     <Image
                       height="20"
                       width="20"
-                      src="resources/icons/edit-underlined.svg"
+                      src="/resources/icons/edit-underlined.svg"
                       className="cursor-pointer"
                       onClick={() => handleReject(day.fullDate)}
                     />
@@ -182,7 +182,7 @@ function DayAction({ openModal, checkDayAction, batchType, hasPendingDays }) {
             <Image
               height="20"
               width="20"
-              src="resources/icons/edit-underlined.svg"
+              src="/resources/icons/edit-underlined.svg"
               className="cursor-pointer"
               onClick={() => handleBatchUpdate("Reject")}
             />

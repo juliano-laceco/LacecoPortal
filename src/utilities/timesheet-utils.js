@@ -679,85 +679,196 @@ export async function getApprovalData(departments, limit = 4) {
     const departmentPlaceholders = uniqueDepartments.map(() => '?').join(', ');
 
     const query = `
-    SELECT DISTINCT e.employee_id, e.first_name, e.last_name, e.work_email,
-    
-    -- Fetch the last action date (Approved or Rejected)
-    DATE_FORMAT(
-      COALESCE(
-        GREATEST(
-          (SELECT MAX(ewd.work_day)
-           FROM employee_work_day ewd
-           JOIN phase_assignee pa
-           ON ewd.phase_assignee_id = pa.phase_assignee_id
-           WHERE pa.assignee_id = e.employee_id
-           AND (ewd.status = 'Rejected' OR ewd.status = 'Approved')
-          ),
-          (SELECT MAX(nwd.date)
-           FROM non_working_day nwd
-           WHERE nwd.employee_id = e.employee_id
-           AND (nwd.status = 'Rejected' OR nwd.status = 'Approved')
-          ),
-          (SELECT MAX(dh.work_day)
-           FROM development_hour dh
-           WHERE dh.employee_id = e.employee_id
-           AND (dh.status = 'Rejected' OR dh.status = 'Approved')
-          )
-        ), 
-        NULL
-      ), '%Y-%m-%d'
-    ) AS last_action_date,
-  
-    -- Fetch the first pending date across all tables
-   DATE_FORMAT(
-        COALESCE(
-          (SELECT MIN(ewd.work_day)
-           FROM employee_work_day ewd
-           JOIN phase_assignee pa 
-           ON ewd.phase_assignee_id = pa.phase_assignee_id
-           WHERE pa.assignee_id = e.employee_id
-           AND ewd.status = 'Pending'),
-          (SELECT MIN(nwd.date)
-           FROM non_working_day nwd
-           WHERE nwd.employee_id = e.employee_id
-           AND nwd.status = 'Pending'),
-          (SELECT MIN(dh.work_day)
-           FROM development_hour dh
-           WHERE dh.employee_id = e.employee_id
-           AND dh.status = 'Pending')
-        ), '%Y-%m-%d'
-      ) AS first_pending_date,
-  
-    -- Fetch the status of the last action taken
-    (SELECT status FROM (
-        SELECT ewd.status, ewd.work_day AS actioned_on
-        FROM employee_work_day ewd
-        JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-        WHERE pa.assignee_id = e.employee_id
-        AND (ewd.status = 'Rejected' OR ewd.status = 'Approved')
-        
-        UNION ALL
-        
-        SELECT nwd.status, nwd.date AS actioned_on
-        FROM non_working_day nwd
-        WHERE nwd.employee_id = e.employee_id
-        AND (nwd.status = 'Rejected' OR nwd.status = 'Approved')
-        
-        UNION ALL
-        
-        SELECT dh.status, dh.work_day AS actioned_on
-        FROM development_hour dh
-        WHERE dh.employee_id = e.employee_id
-        AND (dh.status = 'Rejected' OR dh.status = 'Approved')
-    ) AS all_actions
-    ORDER BY actioned_on DESC
-    LIMIT 1) AS last_action_status
-  
+    SELECT DISTINCT 
+        e.employee_id, 
+        e.first_name, 
+        e.last_name, 
+        e.work_email,
+        d.discipline_name,
+        d.discipline_id,
+
+        -- Check if there are any pending entries across all tables
+        IF(
+            EXISTS(
+                SELECT 1 
+                FROM employee_work_day ewd 
+                JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id 
+                WHERE pa.assignee_id = e.employee_id 
+                AND ewd.status = 'Pending'
+            ) OR EXISTS(
+                SELECT 1 
+                FROM non_working_day nwd 
+                WHERE nwd.employee_id = e.employee_id 
+                AND nwd.status = 'Pending'
+            ) OR EXISTS(
+                SELECT 1 
+                FROM development_hour dh 
+                WHERE dh.employee_id = e.employee_id 
+                AND dh.status = 'Pending'
+            ), 1, 0
+        ) AS has_pending,
+
+        -- Fetch the last approved date overall across all tables
+        CASE
+            WHEN GREATEST(
+                IFNULL((SELECT MAX(ewd.work_day)
+                        FROM employee_work_day ewd
+                        JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                        WHERE pa.assignee_id = e.employee_id
+                        AND ewd.status = 'Approved'), '1000-01-01'),
+                IFNULL((SELECT MAX(nwd.date)
+                        FROM non_working_day nwd
+                        WHERE nwd.employee_id = e.employee_id
+                        AND nwd.status = 'Approved'), '1000-01-01'),
+                IFNULL((SELECT MAX(dh.work_day)
+                        FROM development_hour dh
+                        WHERE dh.employee_id = e.employee_id
+                        AND dh.status = 'Approved'), '1000-01-01')
+            ) = '1000-01-01' THEN NULL
+            ELSE DATE_FORMAT(
+                    GREATEST(
+                        IFNULL((SELECT MAX(ewd.work_day)
+                                FROM employee_work_day ewd
+                                JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                                WHERE pa.assignee_id = e.employee_id
+                                AND ewd.status = 'Approved'), '1000-01-01'),
+                        IFNULL((SELECT MAX(nwd.date)
+                                FROM non_working_day nwd
+                                WHERE nwd.employee_id = e.employee_id
+                                AND nwd.status = 'Approved'), '1000-01-01'),
+                        IFNULL((SELECT MAX(dh.work_day)
+                                FROM development_hour dh
+                                WHERE dh.employee_id = e.employee_id
+                                AND dh.status = 'Approved'), '1000-01-01')
+                    ), '%Y-%m-%d'
+                )
+        END AS last_approved_date,
+
+        -- Fetch the minimum rejected date across all tables
+        DATE_FORMAT(
+            COALESCE(
+                (SELECT LEAST(
+                    (SELECT MIN(ewd.work_day) 
+                     FROM employee_work_day ewd
+                     JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                     WHERE pa.assignee_id = e.employee_id
+                     AND ewd.status = 'Rejected'),
+                    (SELECT MIN(dh.work_day) 
+                     FROM development_hour dh
+                     WHERE dh.employee_id = e.employee_id
+                     AND dh.status = 'Rejected'),
+                    (SELECT MIN(nwd.date) 
+                     FROM non_working_day nwd
+                     WHERE nwd.employee_id = e.employee_id
+                     AND nwd.status = 'Rejected')
+                )),
+                (SELECT MIN(ewd.work_day) 
+                 FROM employee_work_day ewd
+                 JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                 WHERE pa.assignee_id = e.employee_id
+                 AND ewd.status = 'Rejected'),
+                (SELECT MIN(dh.work_day) 
+                 FROM development_hour dh
+                 WHERE dh.employee_id = e.employee_id
+                 AND dh.status = 'Rejected'),
+                (SELECT MIN(nwd.date) 
+                 FROM non_working_day nwd
+                 WHERE nwd.employee_id = e.employee_id
+                 AND nwd.status = 'Rejected')
+            ), '%Y-%m-%d'
+        ) AS min_rejected_date,
+
+          -- Fetch the minimum pending date across all tables
+        DATE_FORMAT(
+            COALESCE(
+                (SELECT LEAST(
+                    (SELECT MIN(ewd.work_day) 
+                     FROM employee_work_day ewd
+                     JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                     WHERE pa.assignee_id = e.employee_id
+                     AND ewd.status = 'Pending'),
+                    (SELECT MIN(dh.work_day) 
+                     FROM development_hour dh
+                     WHERE dh.employee_id = e.employee_id
+                     AND dh.status = 'Pending'),
+                    (SELECT MIN(nwd.date) 
+                     FROM non_working_day nwd
+                     WHERE nwd.employee_id = e.employee_id
+                     AND nwd.status = 'Pending')
+                )),
+                (SELECT MIN(ewd.work_day) 
+                 FROM employee_work_day ewd
+                 JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                 WHERE pa.assignee_id = e.employee_id
+                 AND ewd.status = 'Pending'),
+                (SELECT MIN(dh.work_day) 
+                 FROM development_hour dh
+                 WHERE dh.employee_id = e.employee_id
+                 AND dh.status = 'Pending'),
+                (SELECT MIN(nwd.date) 
+                 FROM non_working_day nwd
+                 WHERE nwd.employee_id = e.employee_id
+                 AND nwd.status = 'Pending')
+            ), '%Y-%m-%d'
+        ) AS min_pending_date,
+
+        -- Fetch the last approved date before the first rejected date
+        DATE_FORMAT(
+            COALESCE(
+                GREATEST(
+                    (SELECT MAX(ewd.work_day) 
+                     FROM employee_work_day ewd
+                     JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                     WHERE pa.assignee_id = e.employee_id
+                     AND ewd.status = 'Approved' 
+                     AND ewd.work_day < min_rejected_date),
+                    (SELECT MAX(nwd.date) 
+                     FROM non_working_day nwd
+                     WHERE nwd.employee_id = e.employee_id
+                     AND nwd.status = 'Approved' 
+                     AND nwd.date < min_rejected_date),
+                    (SELECT MAX(dh.work_day) 
+                     FROM development_hour dh
+                     WHERE dh.employee_id = e.employee_id
+                     AND dh.status = 'Approved' 
+                     AND dh.work_day < min_rejected_date)
+                ),
+                (SELECT MAX(ewd.work_day) 
+                 FROM employee_work_day ewd
+                 JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
+                 WHERE pa.assignee_id = e.employee_id
+                 AND ewd.status = 'Approved' 
+                 AND ewd.work_day < min_rejected_date),
+                (SELECT MAX(nwd.date) 
+                 FROM non_working_day nwd
+                 WHERE nwd.employee_id = e.employee_id
+                 AND nwd.status = 'Approved' 
+                 AND nwd.date < min_rejected_date),
+                (SELECT MAX(dh.work_day) 
+                 FROM development_hour dh
+                 WHERE dh.employee_id = e.employee_id
+                 AND dh.status = 'Approved' 
+                 AND dh.work_day < min_rejected_date)
+            ), '%Y-%m-%d'
+        ) AS last_approved_before_rejected
+
     FROM employee e
     JOIN discipline d ON e.discipline_id = d.discipline_id
     JOIN phase_assignee pa ON pa.assignee_id = e.employee_id
-    WHERE d.discipline_id IN (${departmentPlaceholders})
+
+    -- Only return employees with records in either employee_work_day, development_hour, or non_working_day
+    LEFT JOIN employee_work_day ewd ON ewd.phase_assignee_id = pa.phase_assignee_id
+    LEFT JOIN non_working_day nwd ON nwd.employee_id = e.employee_id
+    LEFT JOIN development_hour dh ON dh.employee_id = e.employee_id
+
+    -- Ensure they have records in one of these tables
+    WHERE (ewd.phase_assignee_id IS NOT NULL 
+           OR nwd.employee_id IS NOT NULL 
+           OR dh.employee_id IS NOT NULL)
+    AND d.discipline_id IN (${departmentPlaceholders})
     LIMIT ${limit};
-  `;
+`;
+
 
     // Ensure the params match the number of placeholders in the query
     const params = [...uniqueDepartments.map((dep) => dep.discipline_id)];

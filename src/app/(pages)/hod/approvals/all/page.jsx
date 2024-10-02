@@ -12,7 +12,7 @@ export default async function AllApprovalsPage() {
 
     return (
         <div className="p-4">
-            <h1 className="font-bold text-3xl mb-6">All Timesheet Approvals</h1>
+            <h1 className="font-bold text-2xl mb-6">All Timesheet Approvals</h1>
             {/* Pass data to the client component */}
             <AllApprovals approvals={approvals} />
         </div>
