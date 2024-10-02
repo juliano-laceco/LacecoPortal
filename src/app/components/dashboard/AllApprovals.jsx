@@ -82,8 +82,8 @@ function AllApprovals({ approvals }) {
     const canPreviousPage = currentPage > 1;
     const canNextPage = currentPage < Math.ceil(filteredApprovals.length / pageSize);
 
-    const handlePagination = (pageNumber) => {
-        setCurrentPage(pageNumber);
+    const handlePagination = (pageNumber , type) => {
+        type === "navigation" ? setCurrentPage(pageNumber) :setCurrentPage(pageNumber + 1) 
     };
 
     // Clear search and filter
@@ -211,8 +211,8 @@ function AllApprovals({ approvals }) {
             <TablePagination
                 canNextPage={canNextPage}
                 canPreviousPage={canPreviousPage}
-                previousPage={() => handlePagination(currentPage - 1)}
-                nextPage={() => handlePagination(currentPage + 1)}
+                previousPage={() => handlePagination(currentPage - 1, "navigation")}
+                nextPage={() => handlePagination(currentPage + 1, "navigation")}
                 pageCount={Math.ceil(filteredApprovals.length / pageSize)}
                 pageOptions={Array.from({ length: Math.ceil(filteredApprovals.length / pageSize) }, (_, i) => i)}
                 pageSizeOptions={[
