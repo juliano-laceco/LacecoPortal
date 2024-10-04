@@ -4,7 +4,7 @@ function TimeSheetHeader({ weekDays }) {
             <div className="p-2  flex justify-center items-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36">Project</div>
             <div className="p-2  flex justify-center items-center desk:min-w-52 desk:max-w-52 lap:min-w-36 lap:max-w-36">Phase</div>
             {weekDays.map((day, i) => (
-                <div key={i} className="text-center p-2 flex justify-center items-center flex-1">
+                <div key={i} className="text-center p-2 flex justify-center items-center flex-1 min-w-20">
                     {day.dayOfWeek}
                 </div>
             ))}

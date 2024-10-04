@@ -4,7 +4,7 @@
 import * as res from '../response-utils';
 import { getLoggedInId } from "../auth/auth-utils";
 import { logError, nullifyEmpty } from '../misc-utils';
-import { commitTransaction, dynamicQuery, execute, executeTrans, getTableFields, rollbackTransaction, startTransaction } from '../db/db-utils';
+import { dynamicQuery, execute,  getTableFields } from '../db/db-utils';
 import { formatDate } from '../date/date-utils';
 
 export async function handleEmployeeLogin(email, sub) {
@@ -333,7 +333,6 @@ export async function getAllEmployees(qs = {}) {
         return res.failed();
     }
 }
-
 
 export async function getEmployeeLinkOptions(role_id) {
     try {

@@ -1,35 +1,35 @@
-import { withAuth } from "next-auth/middleware"
+import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-
 
 export default withAuth(
     async function middleware(req) {
+        const page = req.nextUrl.pathname;
+        const role = req.nextauth.token?.role_name;
 
-        const page = req.nextUrl.pathname
-        const role = req.nextauth.token?.role_name
-
-        // console.log("THIS IS THE ROLE :", role)
-        // console.log("THIS IS THE PATHNAME :", page)
-
+        // Middleware checks based on the path and role
         switch (true) {
             case /^\/hr(\/|$)/.test(page):
-                // if (role != "HR") return NextResponse.redirect(new URL("/forbidden", req.url))
-                //     break;
+                if (role !== "HR") return NextResponse.redirect(new URL("/forbidden", req.url));
+                break;
+            
             case /^\/planning(\/|$)/.test(page):
-                if (role != "Planning Administrator") return NextResponse.redirect(new URL("/forbidden", req.url))
-                    break;
+                if (role !== "Planning Administrator") return NextResponse.redirect(new URL("/forbidden", req.url));
+                break;
+            
+            case /^\/timesheet(\/|$)/.test(page):
+                if (role !== "Planning Administrator" && role !== "HoD") {
+                    return NextResponse.redirect(new URL("/forbidden", req.url));
+                }
+                break;
         }
     },
     {
         pages: {
             signIn: "/login",
-        }
-
+        },
     }
-
-)
+);
 
 export const config = {
-    matcher: ['/((?!resources|_next/static|_next/image|favicon.ico).*)']
-}
-
+    matcher: ['/((?!resources|_next/static|_next/image|favicon.ico).*)'],
+};

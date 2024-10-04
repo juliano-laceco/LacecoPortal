@@ -63,7 +63,7 @@ function PendingActions({ approvals }) {
                         }
 
                         return (
-                            <Link href={`/hod/approvals?employee_id=${employee_id}&start=${formattedStartDate}`} key={employee_id}>
+                            <Link href={`/timesheet/approvals?employee_id=${employee_id}&start=${formattedStartDate}`} key={employee_id}>
                                 <div className="flex items-center justify-between gap-3 mob:gap-1 border-b border-gray-200 pb-2 pt-2 px-1 hover:bg-gray-50 duration-300 ease">
                                     <div className="flex items-center gap-4 mob:gap-3 tablet:gap-3">
                                         {/* Placeholder for employee avatar */}
@@ -91,7 +91,7 @@ function PendingActions({ approvals }) {
 
                 {/* Load More Button */}
                 <div className="flex justify-center mt-4">
-                    <Link href="/hod/approvals/all">
+                    <Link href="/timesheet/approvals/all">
                         <Button name="View All" size="small" />
                     </Link>
                 </div>

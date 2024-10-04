@@ -4,9 +4,10 @@ import { endOfWeek, startOfWeek, eachDayOfInterval, format } from "date-fns";
 import React from "react";
 import { getLoggedInId } from "@/utilities/auth/auth-utils";
 import { formatDate } from "@/utilities/date/date-utils";
-import { redirect} from 'next/navigation';
-import TimeSheet from "@/app/components/timesheet/TimeSheet"; 
+import { redirect } from 'next/navigation';
+import TimeSheet from "@/app/components/timesheet/TimeSheet";
 import { headers } from "next/headers";
+import TitleComponent from "@/app/components/custom/Other/TitleComponent";
 
 function getWeekStartEnd(date) {
     return {
@@ -78,9 +79,9 @@ async function TimeSheetPage({ searchParams }) {
 
     return (
         <div className="space-y-4">
-            <div className="w-full flex items-center bg-gray-400 text-white shadow-xl p-5 text-3xl font-semibold rounded-md mob:text-xl mob:p-3 tablet:text-xl tablet:p-3">
-                Timesheet
-            </div>
+            <TitleComponent>
+                Timesheet - {timesheet_data.employee.first_name} {timesheet_data.employee.last_name}
+            </TitleComponent>
             <div className="flex w-full gap-4 h-fit select-none mob:flex-col mob:items-center tab:flex-col tab:items-center">
                 <div className="flex gap-x-4">
                     <RangePickerCalendar
@@ -90,12 +91,12 @@ async function TimeSheetPage({ searchParams }) {
                         appendToQS
                     />
                 </div>
-                    <TimeSheet
-                        timesheet_data={timesheet_data}
-                        start={start_date}
-                        end={end_date}
-                        allowed_range={allowed_range}
-                    />
+                <TimeSheet
+                    timesheet_data={timesheet_data}
+                    start={start_date}
+                    end={end_date}
+                    allowed_range={allowed_range}
+                />
             </div>
         </div>
     );

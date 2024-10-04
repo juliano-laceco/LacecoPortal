@@ -542,6 +542,51 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     'Confirm'
                 );
                 break;
+
+            case "Reset Day":
+                modalContent = renderModalContent(
+                    "Are you sure you want to reset this day? This action will clear any previous actions you made on this day.",
+                    [
+                        {
+                            variant: 'primary',
+                            name: 'Reset',
+                            onClick: () => {
+                                setIsEdited(true)
+                                resetDay(data)
+                                setModal(null)
+                            },
+                        },
+                        {
+                            variant: 'secondary',
+                            name: 'Close',
+                            onClick: () => { setModal(null) },
+                        }
+                    ],
+                    'Confirm'
+                );
+                break;
+            case "Undo Reset":
+                modalContent = renderModalContent(
+                    "Are you sure you want to undo the reset for this day? This action will clear any previous actions you made on this day.",
+                    [
+                        {
+                            variant: 'primary',
+                            name: 'Undo',
+                            onClick: () => {
+                                setIsEdited(true)
+                                undoReset(data)
+                                setModal(null)
+                            },
+                        },
+                        {
+                            variant: 'secondary',
+                            name: 'Close',
+                            onClick: () => { setModal(null) },
+                        }
+                    ],
+                    'Confirm'
+                );
+                break;
         }
         setModal(modalContent);
     };
@@ -711,6 +756,43 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         setBatchType(type)
     };
 
+    const resetDay = (date) => {
+        // Update the dateActions state to mark the day's status as "Reset" and clear the rejection reason
+        setDateActions((prevActions) => {
+            // Check if the date already exists in the dateActions array
+            const existingDayIndex = prevActions.findIndex(day => day.date === date);
+
+            // If the date exists, update its status and rejection_reason
+            if (existingDayIndex !== -1) {
+                const updatedActions = [...prevActions];
+                updatedActions[existingDayIndex] = {
+                    ...updatedActions[existingDayIndex],
+                    action_status: "Reset",  // Change status to "Reset"
+                    rejection_reason: null   // Clear the rejection reason
+                };
+                return updatedActions;  // Return the updated array
+            }
+
+            // If the date doesn't exist, create a new entry
+            return [
+                ...prevActions,
+                {
+                    date: date,               // New entry with the given date
+                    action_status: "Reset",    // Set status to "Reset"
+                    rejection_reason: null     // Clear rejection reason
+                }
+            ];
+        });
+    };
+
+    const undoReset = (date) => {
+        // Remove the day from dateActions state if the status is "Reset"
+        setDateActions((prevActions) => {
+            // Filter out the day with the status "Reset"
+            return prevActions.filter(day => day.date !== date || day.action_status !== "Reset");
+        });
+    };
+
     const hasPendingDays = () => {
         for (const day of weekDays) {
             const { status } = getStatusForDayWrapper(day.fullDate);
@@ -747,6 +829,8 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
             await actionTimesheet(timesheet_data, dateActions);
             showToast("success", "Timesheet actions successfully updated.");
             setIsSaving(false);
+            setDateActions([])
+            setBatchType(null)
             router.refresh()
         } catch (error) {
             showToast("failed", "Failed to update timesheet actions.");

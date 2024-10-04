@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import SignOutListItem from './SignOutListItem'
 
-function Avatar({ name, email, sub }) {
+function Avatar({ name, email }) {
 
     return (
         <>

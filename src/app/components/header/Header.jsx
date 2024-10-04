@@ -12,20 +12,28 @@ async function Header({ burgerNavItems }) {
     return (
         <nav className="fixed top-0 z-10 w-screen bg-nav-c shadow-md mob:bg-pric tablet:bg-pric">
             <div className="flex flex-wrap items-center justify-between mx-auto p-5 mob:p-2">
+                <div className="desk:hidden lap:hidden flex flex-col justify-center text-white">
+                    <p className="font-bold text-sm">{session?.user?.name}</p>
+                    <p className="text-xs font-normal" >{session?.user?.role_name}</p>
+                </div>
                 <Link href="/" className="flex items-center space-x-3">
                     <Image src="/resources/logos/laceco-gray.png" width="160" height="20" className="mob:hidden tablet:hidden" alt="laceco-logo" />
                     {!session && <Image src="/resources/logos/laceco-white.png" width="120" height="20" className="desk:hidden lap:hidden p-3" alt="laceco-logo" />}
                 </Link>
+
                 {session &&
                     <>
-                        <div className="flex items-center space-x-3 md:space-x-0">
+                        <div className="flex items-center space-x-2">
                             <ProfileDropdown name={session?.user?.name} email={session?.user?.email} sub={session?.user?.sub} />
                             <button data-collapse-toggle="navbar-user" type="button" className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-white rounded-lg lap:hidden desk:hidden focus:text-pri-txtc focus:bg-white" aria-controls="navbar-user" aria-expanded="false">
-                                <span className="sr-only">Open main menu</span>
                                 <svg className="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
                                     <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M1 1h15M1 7h15M1 13h15" />
                                 </svg>
                             </button>
+                            <div className="mob:hidden tablet:hidden">
+                                <p className="font-bold">{session?.user?.name}</p>
+                                <p className="text-sm" >{session?.user?.role_name}</p>
+                            </div>
                         </div>
                         <BurgerNav burgerNavItems={burgerNavItems} />
                     </>

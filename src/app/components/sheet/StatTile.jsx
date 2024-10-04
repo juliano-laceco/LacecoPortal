@@ -4,7 +4,7 @@ function StatTile({ type = "single", data, image_url, shadow = false }) {
     return (
         type == "single" ?
             (
-                <div className={`py-2 px-5 w-fit h-fit flex-nowrap bg-white rounded-xl space-y-2 mob:flex mob:items-center mob:space-y-0 mob:space-x-6 mob:py-2 mob:px-3 ${shadow ? "shadow-2xl" : ""}`}>
+                <div className={`py-2 px-5 w-fit mt-1 h-full flex-nowrap bg-white rounded-xl space-y-2 mob:flex mob:items-center mob:space-y-0 mob:space-x-6 mob:py-2 mob:px-3 ${shadow ? "shadow-2xl" : ""}`}>
                     {image_url && <Image src={image_url} height="40" width="40" alt="icon" />}
                     <div className="text-center mt-[8px]" >
                         <div className="flex flex-col justify-between">
@@ -14,7 +14,7 @@ function StatTile({ type = "single", data, image_url, shadow = false }) {
                     </div>
                 </div >
             ) : (
-                <div className={`py-2 px-5 w-fit h-fit bg-white  flex-nowrap rounded-xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6 ${shadow ? "shadow-2xl" : ""}`}>
+                <div className={`py-2 px-5 w-fit mt-1 h-full bg-white  flex-nowrap rounded-xl space-y-2 sm:py-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6 ${shadow ? "shadow-2xl" : ""}`}>
                     <div className="text-center flex gap-4 justify-center items-center sm:text-left">
                         {data.map((item, index) => {
                             return <>

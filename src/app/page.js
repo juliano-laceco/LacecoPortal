@@ -5,19 +5,21 @@ import PendingActions from "./components/dashboard/PendingActions";
 
 export default async function Home() {
 
-  const session = await getSession()
-  const isHoD = session?.user?.isHoD
-  if (isHoD) {
+  let disciplines;
 
+  const session = await getSession()
+  const role = session?.user?.role_name
+
+  if (role === "HoD") {
+    disciplines = session?.user?.disciplines
   }
-  const disciplines = session?.user?.disciplines
-  const res = await getApprovalData(disciplines)
+  const approval_data = await getApprovalData(disciplines ?? [])
 
   return (
     <>
       <div className="flex flex-col">
         <h1 className="font-bold text-2xl mb-4">Dashboard</h1>
-        <PendingActions approvals={res} />
+        {(role === "HoD" || role === "Planning Administrator") && <PendingActions approvals={approval_data} />}
       </div>
 
     </>

@@ -10,9 +10,10 @@ import TablePagination from "../custom/Table/TablePagination";
 
 const statusOptions = [
     { value: "All", label: "All" },
-    { value: "Pending", label: "Pending" },
-    { value: "Approved", label: "Approved" },
-    { value: "Rejected", label: "Rejected" },
+    { value: "upToDate", label: "Approved Up To Date" },
+    { value: "outdatedPending", label: "Approved Outdated" },
+    { value: "missingDays", label: "Missing Days" },
+    { value: "pending", label: "Pending Approval" }, // New scenario for pending items
 ];
 
 function AllApprovals({ approvals }) {
@@ -62,10 +63,36 @@ function AllApprovals({ approvals }) {
             const matchesName =
                 approval.first_name.toLowerCase().includes(lowerCaseTerm) ||
                 approval.last_name.toLowerCase().includes(lowerCaseTerm);
-            const matchesStatus =
-                filter === "All" ||
-                (approval.last_action_status &&
-                    approval.last_action_status.toLowerCase() === filter.toLowerCase());
+
+            const final_date = approval.min_rejected_date && !approval.last_approved_before_rejected
+                ? approval.min_rejected_date
+                : approval.last_approved_before_rejected || approval.last_approved_date || approval.min_pending_date;
+
+            const daysDifference = final_date ? differenceInDays(new Date(), new Date(final_date)) : null;
+
+            let matchesStatus = false;
+
+            // Logic to check the status based on the color logic
+            switch (filter) {
+                case "upToDate":
+                    matchesStatus = approval.last_approved_date && daysDifference <= 2 && !approval.has_pending;
+                    break;
+                case "outdatedPending":
+                    matchesStatus = approval.last_approved_date && daysDifference > 2 && approval.has_pending;
+                    break;
+                case "missingDays":
+                    matchesStatus = approval.min_rejected_date && !approval.last_approved_before_rejected;
+                    break;
+                case "pending":
+                    matchesStatus = approval.has_pending; // Scenario for pending status
+                    break;
+                case "All":
+                    matchesStatus = true;
+                    break;
+                default:
+                    matchesStatus = true;
+            }
+
             const matchesDiscipline =
                 discipline === "All" || approval.discipline_id === discipline;
 
@@ -82,8 +109,8 @@ function AllApprovals({ approvals }) {
     const canPreviousPage = currentPage > 1;
     const canNextPage = currentPage < Math.ceil(filteredApprovals.length / pageSize);
 
-    const handlePagination = (pageNumber , type) => {
-        type === "navigation" ? setCurrentPage(pageNumber) :setCurrentPage(pageNumber + 1) 
+    const handlePagination = (pageNumber, type) => {
+        type === "navigation" ? setCurrentPage(pageNumber) : setCurrentPage(pageNumber + 1);
     };
 
     // Clear search and filter
@@ -98,12 +125,12 @@ function AllApprovals({ approvals }) {
     return (
         <div className="space-y-6">
             {/* Search and Filter Section */}
-            <div className="flex gap-3 justify-start w-fit mob:flex-col mob:flex-wrap  tablet:flex-wrap">
+            <div className="flex gap-3 justify-start w-fit mob:flex-col mob:flex-wrap tablet:flex-wrap">
                 <Input
                     value={searchTerm}
                     onChange={handleSearch}
                     placeholder="Search by name..."
-                    className="flex-1  p-0 border rounded-md"
+                    className="flex-1 p-0 border rounded-md"
                     label="Search"
                 />
                 <DropdownRegular
@@ -177,7 +204,7 @@ function AllApprovals({ approvals }) {
                         }
 
                         return (
-                            <Link href={`/hod/approvals?employee_id=${employee_id}&start=${formattedStartDate}`} key={employee_id}>
+                            <Link href={`/timesheet/approvals?employee_id=${employee_id}&start=${formattedStartDate}`} key={employee_id}>
                                 <div className="p-4 border-b border-gray-200 hover:bg-gray-50 transition duration-300 ease-in-out">
                                     <div className="flex justify-between items-center">
                                         <div className="flex items-center gap-4 mob:gap-3 tablet:gap-3">

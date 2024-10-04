@@ -156,20 +156,31 @@ export async function getEmployeeAssignments(start, end, employee_id) {
 
     let transaction;
 
-    const initiatorId = await getLoggedInId()
-
-    let assignee = employee_id ?? initiatorId
+    const initiatorId = await getLoggedInId();
+    let assignee = employee_id ?? initiatorId;
 
     try {
         transaction = await startTransaction();
 
-        //  ------------------ Fetch Project Timesheet Data ------------------- //
+        // Fetch employee details (first_name and last_name)
+        const employeeQuery = `
+            SELECT first_name, last_name
+            FROM employee
+            WHERE employee_id = ?
+        `;
+        const employeeDetails = await executeTrans(employeeQuery, [assignee], transaction);
+
+        // If no employee details found, return an error
+        if (!employeeDetails || employeeDetails.length === 0) {
+            throw new Error("Employee not found");
+        }
+        const employee = employeeDetails[0]; // Assuming employee exists
+
+        // ------------------ Fetch Project Timesheet Data ------------------- //
         const projectQuery = `
             SELECT DISTINCT proj.project_id, 
                    proj.code, 
                    proj.title, 
-                   e.first_name, 
-                   e.last_name, 
                    pos.position_name
             FROM project proj
             JOIN phase ph ON ph.project_id = proj.project_id
@@ -192,54 +203,54 @@ export async function getEmployeeAssignments(start, end, employee_id) {
             const { project_id } = project;
 
             const phasesQuery = `
-                             SELECT 
-                                 p.phase_id, 
-                                 p.phase_name,
-                                 (
-                                     SELECT COUNT(*)
-                                     FROM projected_work_week pww_sub
-                                     JOIN phase_assignee pa_sub ON pww_sub.phase_assignee_id = pa_sub.phase_assignee_id
-                                     WHERE pa_sub.phase_id = p.phase_id
-                                     AND NOW() BETWEEN (
-                                         SELECT MIN(pww_inner.week_start)
-                                         FROM projected_work_week pww_inner
-                                         JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
-                                         WHERE pa_inner.phase_id = p.phase_id
-                                     ) AND (
-                                         SELECT DATE_ADD(MAX(pww_inner.week_start), INTERVAL 1 WEEK)
-                                         FROM projected_work_week pww_inner
-                                         JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
-                                         WHERE pa_inner.phase_id = p.phase_id
-                                     )
-                                 ) > 0 AS isActive,
-                                 (
-                                     EXISTS (
-                                         SELECT 1
-                                         FROM employee_work_day ewd
-                                         JOIN phase_assignee pa_ewd ON ewd.phase_assignee_id = pa_ewd.phase_assignee_id
-                                         WHERE pa_ewd.phase_id = p.phase_id
-                                         AND ewd.work_day BETWEEN ? AND ?
-                                     ) OR 
-                                      EXISTS (
-                                      SELECT 1 
-                                      FROM non_working_day 
-                                      WHERE employee_id = ?
-                                      AND date BETWEEN ? AND ?
-                                     )
-                                 ) AS timesheet_exists
-                             FROM 
-                                 phase p
-                             JOIN 
-                                 phase_assignee pa ON pa.phase_id = p.phase_id
-                             WHERE 
-                                 project_id = ? 
-                                 AND pa.assignee_id = ?
-                                 AND EXISTS (
-                                     SELECT 1
-                                     FROM projected_work_week pww
-                                     WHERE pww.phase_assignee_id = pa.phase_assignee_id
-                                 ) `;
-
+                SELECT 
+                    p.phase_id, 
+                    p.phase_name,
+                    (
+                        SELECT COUNT(*)
+                        FROM projected_work_week pww_sub
+                        JOIN phase_assignee pa_sub ON pww_sub.phase_assignee_id = pa_sub.phase_assignee_id
+                        WHERE pa_sub.phase_id = p.phase_id
+                        AND NOW() BETWEEN (
+                            SELECT MIN(pww_inner.week_start)
+                            FROM projected_work_week pww_inner
+                            JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
+                            WHERE pa_inner.phase_id = p.phase_id
+                        ) AND (
+                            SELECT DATE_ADD(MAX(pww_inner.week_start), INTERVAL 1 WEEK)
+                            FROM projected_work_week pww_inner
+                            JOIN phase_assignee pa_inner ON pww_inner.phase_assignee_id = pa_inner.phase_assignee_id
+                            WHERE pa_inner.phase_id = p.phase_id
+                        )
+                    ) > 0 AS isActive,
+                    (
+                        EXISTS (
+                            SELECT 1
+                            FROM employee_work_day ewd
+                            JOIN phase_assignee pa_ewd ON ewd.phase_assignee_id = pa_ewd.phase_assignee_id
+                            WHERE pa_ewd.phase_id = p.phase_id
+                            AND ewd.work_day BETWEEN ? AND ?
+                        ) OR 
+                        EXISTS (
+                            SELECT 1 
+                            FROM non_working_day 
+                            WHERE employee_id = ?
+                            AND date BETWEEN ? AND ?
+                        )
+                    ) AS timesheet_exists
+                FROM 
+                    phase p
+                JOIN 
+                    phase_assignee pa ON pa.phase_id = p.phase_id
+                WHERE 
+                    project_id = ? 
+                    AND pa.assignee_id = ?
+                    AND EXISTS (
+                        SELECT 1
+                        FROM projected_work_week pww
+                        WHERE pww.phase_assignee_id = pa.phase_assignee_id
+                    )
+            `;
 
             const phases = await executeTrans(phasesQuery, [start, end, initiatorId, start, end, project_id, assignee], transaction);
 
@@ -283,9 +294,7 @@ export async function getEmployeeAssignments(start, end, employee_id) {
             }
         }
 
-
-
-        //  ------------------ Fetch Development Timesheet Data ------------------- //
+        // ------------------ Fetch Development Timesheet Data ------------------- //
         const developmentQuery = `
             SELECT development_hour_day_id, DATE_FORMAT(work_day, '%Y-%m-%d') AS work_day,  
                    DATE_FORMAT(work_day, '%d %M %Y') AS display_date, hours_worked, 
@@ -297,21 +306,20 @@ export async function getEmployeeAssignments(start, end, employee_id) {
 
         const developmentTimesheet = await executeTrans(developmentQuery, [assignee, start, end], transaction);
 
-
-        //  ------------------ Non Working Days ------------------------------------ //
+        // ------------------ Non Working Days ------------------------------------ //
         const nonWorkingQuery = `
-         SELECT non_working_day_id , DATE_FORMAT(date, '%Y-%m-%d') AS date , status , rejection_reason
-         FROM non_working_day
-         WHERE employee_id = ?
-         AND date BETWEEN ? and ?
-     `;
+            SELECT non_working_day_id , DATE_FORMAT(date, '%Y-%m-%d') AS date , status , rejection_reason
+            FROM non_working_day
+            WHERE employee_id = ?
+            AND date BETWEEN ? and ?
+        `;
         const non_working = await executeTrans(nonWorkingQuery, [assignee, start, end], transaction);
-
 
         // Commit transaction and return both project and development timesheet data
         await commitTransaction(transaction);
 
         return {
+            employee, // Return the employee's first and last name here
             project_timesheet: validProjects, // Return only the valid projects
             development_timesheet: developmentTimesheet,
             non_working
@@ -329,12 +337,14 @@ export async function getEmployeeAssignments(start, end, employee_id) {
     }
 }
 
+
 export async function saveTimeSheet(timesheet_data) {
     let transaction;
     let clearedDates = [];
     const session = await getSession();
-    // const isHoD = session?.user?.isHoD;
-    const isHoD = false
+    const role = session?.user?.role_name;
+    const isHoD = role === "HoD"
+
     try {
         transaction = await startTransaction();
 
@@ -494,7 +504,7 @@ export async function saveTimeSheet(timesheet_data) {
 
 export async function actionTimesheet(timesheet_data, dateActions) {
     let transaction;
-    const initiatorId = await getLoggedInId()
+    const initiatorId = await getLoggedInId();
 
     try {
         // Start a new transaction
@@ -518,21 +528,27 @@ export async function actionTimesheet(timesheet_data, dateActions) {
                             // Update employee_work_day status to "Approved"
                             const query = `
                                 UPDATE employee_work_day 
-                                SET status = 'Approved', rejection_reason = NULL , actioned_by = ?
+                                SET status = 'Approved', rejection_reason = NULL, actioned_by = ?
                                 WHERE employee_work_day_id = ?
                             `;
                             await executeTrans(query, [initiatorId, employee_work_day_id], transaction);
 
                         } else if (action_status === "Rejected") {
-
-                            console.log("Rejecting")
                             // Update employee_work_day status to "Rejected" with rejection reason
                             const query = `
                                 UPDATE employee_work_day 
-                                SET status = 'Rejected', rejection_reason = ? , actioned_by = ?
-                                WHERE employee_work_day_id = ? 
+                                SET status = 'Rejected', rejection_reason = ?, actioned_by = ?
+                                WHERE employee_work_day_id = ?
                             `;
                             await executeTrans(query, [rejection_reason ?? "", initiatorId, employee_work_day_id], transaction);
+                        } else if (action_status === "Reset") {
+                            // Update employee_work_day status to "Pending"
+                            const query = `
+                                UPDATE employee_work_day 
+                                SET status = 'Pending', rejection_reason = NULL, actioned_by = ?
+                                WHERE employee_work_day_id = ?
+                            `;
+                            await executeTrans(query, [initiatorId, employee_work_day_id], transaction);
                         }
                     }
                 }
@@ -541,7 +557,6 @@ export async function actionTimesheet(timesheet_data, dateActions) {
 
         // Commit the transaction after all updates are successful
         await commitTransaction(transaction);
-
 
         // Process development_timesheet records
         for (const development of development_timesheet) {
@@ -557,8 +572,8 @@ export async function actionTimesheet(timesheet_data, dateActions) {
                     // Update development_hour status to "Approved"
                     const query = `
                         UPDATE development_hour 
-                        SET status = 'Approved', rejection_reason = NULL , actioned_by = ?
-                        WHERE development_hour_day_id = ? 
+                        SET status = 'Approved', rejection_reason = NULL, actioned_by = ?
+                        WHERE development_hour_day_id = ?
                     `;
                     await executeTrans(query, [initiatorId, development_hour_day_id], transaction);
 
@@ -566,10 +581,18 @@ export async function actionTimesheet(timesheet_data, dateActions) {
                     // Update development_hour status to "Rejected" with rejection reason
                     const query = `
                         UPDATE development_hour 
-                        SET status = 'Rejected', rejection_reason = ? , actioned_by = ?
-                        WHERE development_hour_day_id = ? 
+                        SET status = 'Rejected', rejection_reason = ?, actioned_by = ?
+                        WHERE development_hour_day_id = ?
                     `;
                     await executeTrans(query, [rejection_reason ?? "", initiatorId, development_hour_day_id], transaction);
+                } else if (action_status === "Reset") {
+                    // Update development_hour status to "Pending"
+                    const query = `
+                        UPDATE development_hour 
+                        SET status = 'Pending', rejection_reason = NULL, actioned_by = ?
+                        WHERE development_hour_day_id = ?
+                    `;
+                    await executeTrans(query, [initiatorId, development_hour_day_id], transaction);
                 }
             }
         }
@@ -588,7 +611,7 @@ export async function actionTimesheet(timesheet_data, dateActions) {
                     // Update non_working_day status to "Approved"
                     const query = `
                         UPDATE non_working_day 
-                        SET status = 'Approved', rejection_reason = NULL , actioned_by = ?
+                        SET status = 'Approved', rejection_reason = NULL, actioned_by = ?
                         WHERE non_working_day_id = ?
                     `;
                     await executeTrans(query, [initiatorId, non_working_day_id], transaction);
@@ -597,10 +620,18 @@ export async function actionTimesheet(timesheet_data, dateActions) {
                     // Update non_working_day status to "Rejected" with rejection reason
                     const query = `
                         UPDATE non_working_day 
-                        SET status = 'Rejected', rejection_reason = ? , actioned_by = ?
-                        WHERE non_working_day_id = ? 
+                        SET status = 'Rejected', rejection_reason = ?, actioned_by = ?
+                        WHERE non_working_day_id = ?
                     `;
                     await executeTrans(query, [rejection_reason, initiatorId, non_working_day_id], transaction);
+                } else if (action_status === "Reset") {
+                    // Update non_working_day status to "Pending"
+                    const query = `
+                        UPDATE non_working_day 
+                        SET status = 'Pending', rejection_reason = NULL, actioned_by = ?
+                        WHERE non_working_day_id = ?
+                    `;
+                    await executeTrans(query, [initiatorId, non_working_day_id], transaction);
                 }
             }
         }
@@ -620,6 +651,7 @@ export async function actionTimesheet(timesheet_data, dateActions) {
         }
     }
 }
+
 
 const checkIfDataChangedPerRejectedDate = (timesheet_data) => {
     const { project_timesheet, development_timesheet } = timesheet_data;
@@ -670,13 +702,16 @@ const checkIfDataChangedPerRejectedDate = (timesheet_data) => {
     return Object.entries(rejected_dates).map(([date, changed]) => ({ [date]: changed }));
 };
 
-export async function getApprovalData(departments, limit = 4) {
+export async function getApprovalData(departments = [], limit = 4) {
 
     // Ensure we have unique department IDs to avoid duplicates
     const uniqueDepartments = [...new Set(departments)];
 
     // Dynamically create placeholders based on the number of departments
     const departmentPlaceholders = uniqueDepartments.map(() => '?').join(', ');
+
+    const session = await getSession()
+    const role = session?.user?.role_name
 
     const query = `
     SELECT DISTINCT 
@@ -692,8 +727,7 @@ export async function getApprovalData(departments, limit = 4) {
             EXISTS(
                 SELECT 1 
                 FROM employee_work_day ewd 
-                JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id 
-                WHERE pa.assignee_id = e.employee_id 
+                WHERE ewd.phase_assignee_id = pa.phase_assignee_id 
                 AND ewd.status = 'Pending'
             ) OR EXISTS(
                 SELECT 1 
@@ -713,8 +747,7 @@ export async function getApprovalData(departments, limit = 4) {
             WHEN GREATEST(
                 IFNULL((SELECT MAX(ewd.work_day)
                         FROM employee_work_day ewd
-                        JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                        WHERE pa.assignee_id = e.employee_id
+                        WHERE ewd.phase_assignee_id = pa.phase_assignee_id
                         AND ewd.status = 'Approved'), '1000-01-01'),
                 IFNULL((SELECT MAX(nwd.date)
                         FROM non_working_day nwd
@@ -729,8 +762,7 @@ export async function getApprovalData(departments, limit = 4) {
                     GREATEST(
                         IFNULL((SELECT MAX(ewd.work_day)
                                 FROM employee_work_day ewd
-                                JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                                WHERE pa.assignee_id = e.employee_id
+                                WHERE ewd.phase_assignee_id = pa.phase_assignee_id
                                 AND ewd.status = 'Approved'), '1000-01-01'),
                         IFNULL((SELECT MAX(nwd.date)
                                 FROM non_working_day nwd
@@ -750,8 +782,7 @@ export async function getApprovalData(departments, limit = 4) {
                 (SELECT LEAST(
                     (SELECT MIN(ewd.work_day) 
                      FROM employee_work_day ewd
-                     JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                     WHERE pa.assignee_id = e.employee_id
+                     WHERE ewd.phase_assignee_id = pa.phase_assignee_id
                      AND ewd.status = 'Rejected'),
                     (SELECT MIN(dh.work_day) 
                      FROM development_hour dh
@@ -764,8 +795,7 @@ export async function getApprovalData(departments, limit = 4) {
                 )),
                 (SELECT MIN(ewd.work_day) 
                  FROM employee_work_day ewd
-                 JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                 WHERE pa.assignee_id = e.employee_id
+                 WHERE ewd.phase_assignee_id = pa.phase_assignee_id
                  AND ewd.status = 'Rejected'),
                 (SELECT MIN(dh.work_day) 
                  FROM development_hour dh
@@ -778,14 +808,13 @@ export async function getApprovalData(departments, limit = 4) {
             ), '%Y-%m-%d'
         ) AS min_rejected_date,
 
-          -- Fetch the minimum pending date across all tables
+        -- Fetch the minimum pending date across all tables
         DATE_FORMAT(
             COALESCE(
                 (SELECT LEAST(
                     (SELECT MIN(ewd.work_day) 
                      FROM employee_work_day ewd
-                     JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                     WHERE pa.assignee_id = e.employee_id
+                     WHERE ewd.phase_assignee_id = pa.phase_assignee_id
                      AND ewd.status = 'Pending'),
                     (SELECT MIN(dh.work_day) 
                      FROM development_hour dh
@@ -798,8 +827,7 @@ export async function getApprovalData(departments, limit = 4) {
                 )),
                 (SELECT MIN(ewd.work_day) 
                  FROM employee_work_day ewd
-                 JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                 WHERE pa.assignee_id = e.employee_id
+                 WHERE ewd.phase_assignee_id = pa.phase_assignee_id
                  AND ewd.status = 'Pending'),
                 (SELECT MIN(dh.work_day) 
                  FROM development_hour dh
@@ -818,8 +846,7 @@ export async function getApprovalData(departments, limit = 4) {
                 GREATEST(
                     (SELECT MAX(ewd.work_day) 
                      FROM employee_work_day ewd
-                     JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                     WHERE pa.assignee_id = e.employee_id
+                     WHERE ewd.phase_assignee_id = pa.phase_assignee_id
                      AND ewd.status = 'Approved' 
                      AND ewd.work_day < min_rejected_date),
                     (SELECT MAX(nwd.date) 
@@ -835,8 +862,7 @@ export async function getApprovalData(departments, limit = 4) {
                 ),
                 (SELECT MAX(ewd.work_day) 
                  FROM employee_work_day ewd
-                 JOIN phase_assignee pa ON ewd.phase_assignee_id = pa.phase_assignee_id
-                 WHERE pa.assignee_id = e.employee_id
+                 WHERE ewd.phase_assignee_id = pa.phase_assignee_id
                  AND ewd.status = 'Approved' 
                  AND ewd.work_day < min_rejected_date),
                 (SELECT MAX(nwd.date) 
@@ -854,18 +880,18 @@ export async function getApprovalData(departments, limit = 4) {
 
     FROM employee e
     JOIN discipline d ON e.discipline_id = d.discipline_id
-    JOIN phase_assignee pa ON pa.assignee_id = e.employee_id
+    LEFT JOIN phase_assignee pa ON pa.assignee_id = e.employee_id
 
-    -- Only return employees with records in either employee_work_day, development_hour, or non_working_day
+    -- Use LEFT JOIN to include employees who have at least one record in any of these tables
     LEFT JOIN employee_work_day ewd ON ewd.phase_assignee_id = pa.phase_assignee_id
     LEFT JOIN non_working_day nwd ON nwd.employee_id = e.employee_id
     LEFT JOIN development_hour dh ON dh.employee_id = e.employee_id
 
-    -- Ensure they have records in one of these tables
+    -- Filter out employees who do not have any records in these tables
     WHERE (ewd.phase_assignee_id IS NOT NULL 
            OR nwd.employee_id IS NOT NULL 
            OR dh.employee_id IS NOT NULL)
-    AND d.discipline_id IN (${departmentPlaceholders})
+    ${role === "HoD" ? `AND d.discipline_id IN (${departmentPlaceholders})` : ""}
     LIMIT ${limit};
 `;
 

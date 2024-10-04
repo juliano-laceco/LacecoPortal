@@ -8,6 +8,7 @@ import TimeSheet from "@/app/components/timesheet/TimeSheet";
 import { getSession } from "@/utilities/auth/auth-utils";
 import { checkEmployeeDiscipline } from "@/utilities/employee/employee-utils";
 import { headers } from 'next/headers'; // Import headers from Next.js
+import TitleComponent from "@/app/components/custom/Other/TitleComponent";
 
 // Helper to get start and end dates of a week
 function getWeekStartEnd(date) {
@@ -36,8 +37,8 @@ function redirectToWeek(start_date, end_date, employee_id) {
     const host = currentHeaders.get('host');
     const protocol = currentHeaders.get('x-forwarded-proto') || 'http'; // Fallback to 'http' if protocol is not provided
 
-    // Build the base URL pointing directly to `/hod/approvals`
-    const baseUrl = `${protocol}://${host}/hod/approvals`; // Always redirect to /hod/approvals
+    // Build the base URL pointing directly to `/timesheet/approvals`
+    const baseUrl = `${protocol}://${host}/timesheet/approvals`; // Always redirect to /hod/approvals
 
     // Build the redirect URL with query parameters
     const redirectUrl = new URL(baseUrl);
@@ -70,13 +71,17 @@ async function TimeSheetViewPage({ searchParams }) {
 
     // Step 2: Get session and check if user is HoD with the correct discipline access
     const session = await getSession();
-    const isHoD = session?.user?.isHoD;
-    const disciplines = isHoD ? session?.user?.disciplines : [];
+    const role = session?.user?.role_name;
 
-    const { belongsToDiscipline } = await checkEmployeeDiscipline(disciplines);
-    if (!belongsToDiscipline) {
-        return renderError("You do not have the right to edit or view this employee's timesheet");
+
+    if (role === "HoD") {
+        const disciplines = role === "HoD" ? session?.user?.disciplines : [];
+        const { belongsToDiscipline } = await checkEmployeeDiscipline(disciplines);
+        if (!belongsToDiscipline) {
+            return renderError("You do not have the right to edit or view this employee's timesheet");
+        }
     }
+
 
     // Step 3: Handle start and end date based on query params or max_finalized_date
     let start_date, end_date;
@@ -99,9 +104,9 @@ async function TimeSheetViewPage({ searchParams }) {
     // Step 5: Render Timesheet Page
     return (
         <div className="space-y-4">
-            <div className="w-full flex items-center bg-gray-400 text-white shadow-xl p-5 text-3xl font-semibold rounded-md mob:text-xl mob:p-3 tablet:text-xl tablet:p-3">
-                Timesheet
-            </div>
+            <TitleComponent>
+                Timesheet - {timesheet_data.employee.first_name} {timesheet_data.employee.last_name}
+            </TitleComponent>
             <div className="flex w-full gap-4 h-fit select-none mob:flex-col mob:items-center tab:flex-col tab:items-center">
                 <div className="flex gap-x-4">
                     <RangePickerCalendar

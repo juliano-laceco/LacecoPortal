@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import EmployeeNameCard from './EmployeeNameCard';
-import StatTile from '../StatTile';
+import StatTile from './StatTile';
+import TitleComponent from '../custom/Other/TitleComponent';
 
 const ProjectDetails = ({
     project_data,
@@ -16,7 +17,7 @@ const ProjectDetails = ({
 
     return (
         <div className="space-y-6">
-            <div className="w-full flex flex-wrap items-center gap-5 bg-gray-400 shadow-xl p-5 rounded-md">
+            <TitleComponent>
                 <Link title="Edit Project" href={`/planning/project/${project_id}`}>
                     <Image
                         src="/resources/icons/edit.svg"
@@ -25,11 +26,11 @@ const ProjectDetails = ({
                         alt="edit"
                     />
                 </Link>
-                <h1 className="font-bold text-4xl text-white flex items-center gap-6 lap:text-3xl tablet:text-3xl mob:text-3xl">
+                <h1 className="ml-2 font-bold text-4xl text-white flex items-center gap-6 lap:text-3xl tablet:text-3xl mob:text-3xl">
                     {title}
                 </h1>
-                <i className="text-lg text-black font-semibold"> Code : {code} </i>
-            </div>
+                <i className="text-lg text-black font-semibold ml-2"> Code : {code} </i>
+            </TitleComponent>
             <div className="flex flex-wrap gap-6 select-none bg-white shadow-2xl rounded-lg">
                 <EmployeeNameCard name={first_name + " " + last_name} position={position_name} />
                 <StatTile data={{ val: total_budget_hours, label: "Budget Hours" }} />

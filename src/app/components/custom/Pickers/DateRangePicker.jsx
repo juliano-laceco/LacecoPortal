@@ -139,7 +139,7 @@ const DateRangePicker = ({ project_start_date, project_end_date, start, end, edi
 
     return (
         <div className="w-fit py-4 rounded-lg flex flex-col items-center justify center gap-2 ">
-            <div className="flex w-[450px] items-end">
+            <div className="flex w-[450px] gap-2 items-end">
                 <DropdownRegular
                     label="From"
                     options={startDateOptions}
