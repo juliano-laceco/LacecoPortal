@@ -47,14 +47,14 @@ function InputContainer({ day, assignment, projectIndex, phaseIndex, dayStatus, 
             title={shouldDisableInput ? (dayStatus === "Approved" ? "Submission for this day is approved. Unable to modify." : dayStatus === "Pending" ? "You have already made a submission for this day and you must await your HoD's response." : (dayStatus === "New Non Working") ? "This is a non working day." : "Not Allowed.") : ""}
         >
             <input
-                className={`arrowless-input text-center w-full h-full border-0 focus:border focus:border-pric focus:ring-0 ${!non_working ? "disabled:bg-zinc-100" : ""} disabled:cursor-not-allowed ${dayStatus === "Rejected" ? "bg-red-100" : non_working ? "bg-gray-300" : ""}`}
-            type="number"
-            disabled={shouldDisableInput || is_readonly}
-            min="0"
-            max="24"
-            value={hoursWorked}
-            onChange={handleChange}
-            data-date={day.fullDate}
+                className={`arrowless-input text-center w-full h-full border-0 focus:border focus:border-pric focus:ring-0 ${!non_working ? "disabled:bg-zinc-100" : ""} disabled:cursor-not-allowed ${dayStatus === "Rejected" ? !is_readonly ? "bg-red-100" : "bg-gray-300" : non_working ? "bg-gray-300" : ""}`}
+                type="number"
+                disabled={shouldDisableInput || is_readonly}
+                min="0"
+                max="24"
+                value={hoursWorked}
+                onChange={handleChange}
+                data-date={day.fullDate}
             />
         </div>
     );

@@ -51,7 +51,7 @@ function DayAction({ openModal, checkDayAction, batchType, hasPendingDays }) {
             return (
               <div
                 key={i}
-                className="w-full flex flex-1 flex-col items-center justify-center mb-1 gap-1"
+                className="w-full flex flex-1 flex-col items-center justify-center mb-1 gap-1 p-1"
               >
                 <div className="flex items-center">
                   {!batchType && (action_status === "Rejected" || !action_status) && (
@@ -110,10 +110,10 @@ function DayAction({ openModal, checkDayAction, batchType, hasPendingDays }) {
               return (
                 <div
                   key={i}
-                  className="text-center flex-1 p-1 flex flex-col justify-center items-center mob:justify-center tablet:justify-center min-w-max"
+                  className="text-center flex-1 p-1 flex flex-col justify-center items-center mob:justify-center tablet:justify-center min-w-fit"
                 >
                   <button
-                    className="bg-gray-300 text-gray-500 py-1  font-normal  flex-1 border w-[95%]  border-gray-400 text-xs rounded-md"
+                    className="bg-gray-300 text-gray-500 py-1 px-2 font-normal  flex-1 border w-[95%]  border-gray-400 text-xs rounded-md"
                     onClick={() => { action_status === "Reset" ? handleUndoReset(day.fullDate) : handleReset(day.fullDate) }}
                   >
                     {action_status === "Reset" ? "Undo" : "Reset"}

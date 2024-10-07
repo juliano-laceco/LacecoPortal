@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getAllProjects } from "@/utilities/project/project-utils";
 import project_statuses from "@/data/static/project-statuses";
+import TitleComponent from "@/app/components/custom/Other/TitleComponent";
 
 
 export const metadata = {
@@ -109,6 +110,7 @@ async function TablePage({ searchParams }) {
 
     return (
         <>
+            <TitleComponent>All Projects</TitleComponent>
             <TableWrapper
                 data={preprocessData(results.data)}
                 title="Project List"

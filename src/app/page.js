@@ -1,7 +1,8 @@
 import { getSession } from "@/utilities/auth/auth-utils";
 
 import { getApprovalData } from "@/utilities/timesheet-utils";
-import PendingActions from "./components/dashboard/PendingActions";
+import PendingActions from "./components/dashboard/Approvals/PendingActions";
+import TitleComponent from "./components/custom/Other/TitleComponent";
 
 export default async function Home() {
 
@@ -18,7 +19,9 @@ export default async function Home() {
   return (
     <>
       <div className="flex flex-col">
-        <h1 className="font-bold text-2xl mb-4">Dashboard</h1>
+        <TitleComponent>
+          Dashboard
+        </TitleComponent>
         {(role === "HoD" || role === "Planning Administrator") && <PendingActions approvals={approval_data} />}
       </div>
 

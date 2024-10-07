@@ -1,3 +1,4 @@
+import TitleComponent from "@/app/components/custom/Other/TitleComponent";
 import ProjectForm from "@/app/components/forms/Project/ProjectForm";
 import getDropdownData from "@/data/dynamic/NewProjectDDoptions";
 
@@ -10,7 +11,10 @@ async function ProjectPage() {
     const projectDropdowns = await getDropdownData();
 
     return (
-        <ProjectForm isEdit={false} projectDropdowns={projectDropdowns} />
+        <>
+            <TitleComponent>New Project</TitleComponent>
+            <ProjectForm isEdit={false} projectDropdowns={projectDropdowns} />
+        </>
     );
 }
 

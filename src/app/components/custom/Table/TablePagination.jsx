@@ -20,7 +20,7 @@ function TablePagination({ canNextPage, canPreviousPage, previousPage, nextPage,
 
     return (
         <div className="flex items-center justify-center my-8">
-            <div className="pagination flex gap-2 mob:flex-col-reverse ">
+            <div className="pagination flex gap-2 mob:flex-col items-center">
                 <div className="flex gap-2 items-center">
                     <button
                         onClick={() => gotoPage(0)}

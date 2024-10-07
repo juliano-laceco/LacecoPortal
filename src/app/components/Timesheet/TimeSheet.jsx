@@ -52,7 +52,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
     const [dateActions, setDateActions] = useState([])
     const rejection_ref = useRef()
     const batch_rejection_ref = useRef()
-    const [batchRejectionReason, setBatchRejectionReason] = useState("");
+    const [batchRejectionReason, setBatchRejectionReason] = useState();
     const [batchType, setBatchType] = useState(null)
 
     const router = useRouter();
@@ -516,7 +516,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                                         e.preventDefault(); // Prevents pressing the enter key
                                     }
                                 }}
-                                onInput={(e) => setBatchRejectionReason(e.target.value)} // Update the state with the new value
+                                onBlur={(e) => setBatchRejectionReason(e.target.value)} // Update the state with the new value
                             ></textarea>
 
                             <div className="text-sm mob:text-xs text-gray-500">
@@ -528,9 +528,12 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                             variant: 'primary',
                             name: data,
                             onClick: () => {
-                                setIsEdited(true)
-                                action_all_days(data, batchRejectionReason)
-                                setModal(null)
+                                // Ensure that state update happens before triggering batch action
+                                setTimeout(() => {
+                                    setIsEdited(true);
+                                    action_all_days(data); // Use updated batchRejectionReason
+                                    setModal(null);
+                                }, 0); // Slight delay to ensure state update completes
                             },
                         },
                         {
@@ -731,30 +734,41 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         });
     };
 
-    const action_all_days = (type, rejection_reason = batchRejectionReason) => {
+    const action_all_days = (type) => {
+        setDateActions((prevActions) => {
+            return weekDays.reduce((updatedActions, day) => {
+                const { status } = getStatusForDayWrapper(day.fullDate);
 
-        console.log("BATCH REJECTION REASON", batchRejectionReason)
-        // Determine the handler: use approve_day if type is "Approve", otherwise use reject_day
-        const handler = type === "Approve" ? approve_day : reject_day;
+                // If the status is "Pending", we need to approve/reject the day
+                if (status === "Pending") {
+                    const existingDayIndex = updatedActions.findIndex(
+                        (action) => action.date === day.fullDate
+                    );
 
-        // Loop through all the days in the week
-        weekDays.forEach((day) => {
-            // Get the status for each day
-            const { status } = getStatusForDayWrapper(day.fullDate);
-
-            // If the status is "Pending", apply the handler
-            if (status === "Pending") {
-                if (type === "Approve") {
-                    // Call the approve_day handler
-                    handler(day.fullDate);
-                } else if (type === "Reject") {
-                    handler(day.fullDate, rejection_reason);
+                    // If the day is already in dateActions, we update it
+                    if (existingDayIndex !== -1) {
+                        updatedActions[existingDayIndex] = {
+                            ...updatedActions[existingDayIndex],
+                            action_status: type === "Approve" ? "Approved" : "Rejected",
+                            rejection_reason: type === "Reject" ? batch_rejection_ref.current.value : null, // Use the ref
+                        };
+                    } else {
+                        // If the day is not in dateActions, we create a new entry
+                        updatedActions.push({
+                            date: day.fullDate,
+                            action_status: type === "Approve" ? "Approved" : "Rejected",
+                            rejection_reason: type === "Reject" ? batch_rejection_ref.current.value : null, // Use the ref
+                        });
+                    }
                 }
-            }
+                return updatedActions;
+            }, [...prevActions]); // Keep all other actions intact by spreading prevActions
         });
 
-        setBatchType(type)
+        setBatchType(type);
     };
+
+
 
     const resetDay = (date) => {
         // Update the dateActions state to mark the day's status as "Reset" and clear the rejection reason
@@ -825,13 +839,16 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
 
     const handleActionTimesheet = async () => {
         try {
+            router.refresh()
             setIsSaving(true);
             await actionTimesheet(timesheet_data, dateActions);
             showToast("success", "Timesheet actions successfully updated.");
             setIsSaving(false);
+
             setDateActions([])
             setBatchType(null)
-            router.refresh()
+            setBatchRejectionReason(null)
+
         } catch (error) {
             showToast("failed", "Failed to update timesheet actions.");
         }

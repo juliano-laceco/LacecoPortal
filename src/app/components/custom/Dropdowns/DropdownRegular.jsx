@@ -23,7 +23,7 @@ function DropdownRegular({
                 </label>
             )}
             <div
-                className={`w-fit items-center justify-center flex mob:text-sm mob:p-0 relative ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'  }`}    
+                className={`w-full items-center justify-center flex mob:text-sm mob:p-0 relative ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'  }`}    
             >
                 <Select
                     classNamePrefix="react-select"

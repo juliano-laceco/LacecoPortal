@@ -1,19 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Input from "../custom/Other/Input"; // Custom input component
-import DropdownRegular from "../custom/Dropdowns/DropdownRegular";
-import Button from "../custom/Other/Button";
+import Input from "../../custom/Other/Input"; // Custom input component
+import DropdownRegular from "../../custom/Dropdowns/DropdownRegular";
+import Button from "../../custom/Other/Button";
 import Link from "next/link";
-import { differenceInDays } from "date-fns";
-import TablePagination from "../custom/Table/TablePagination";
+import TablePagination from "../../custom/Table/TablePagination";
+import { determineDayStatus } from "./approval-utils";
 
 const statusOptions = [
     { value: "All", label: "All" },
-    { value: "upToDate", label: "Approved Up To Date" },
-    { value: "outdatedPending", label: "Approved Outdated" },
-    { value: "missingDays", label: "Missing Days" },
-    { value: "pending", label: "Pending Approval" }, // New scenario for pending items
+    { value: "upToDate", label: "Approved Up To Date" }, // Green
+    { value: "missingDays", label: "Missing Days" }, // Red
+    { value: "pending", label: "Pending Approval" }, // Orange
 ];
 
 function AllApprovals({ approvals }) {
@@ -59,45 +58,41 @@ function AllApprovals({ approvals }) {
     // Filtering logic by name, status, and discipline
     const filterApprovals = (term, filter, discipline) => {
         const lowerCaseTerm = term.toLowerCase();
+
         const filtered = approvals.filter((approval) => {
             const matchesName =
                 approval.first_name.toLowerCase().includes(lowerCaseTerm) ||
                 approval.last_name.toLowerCase().includes(lowerCaseTerm);
 
-            const final_date = approval.min_rejected_date && !approval.last_approved_before_rejected
-                ? approval.min_rejected_date
-                : approval.last_approved_before_rejected || approval.last_approved_date || approval.min_pending_date;
-
-            const daysDifference = final_date ? differenceInDays(new Date(), new Date(final_date)) : null;
+            const { status } = determineDayStatus(approval);
 
             let matchesStatus = false;
 
-            // Logic to check the status based on the color logic
+            // Check if the current filter matches the determined status
             switch (filter) {
                 case "upToDate":
-                    matchesStatus = approval.last_approved_date && daysDifference <= 2 && !approval.has_pending;
-                    break;
-                case "outdatedPending":
-                    matchesStatus = approval.last_approved_date && daysDifference > 2 && approval.has_pending;
+                    matchesStatus = status === "Approved Up To Date";
                     break;
                 case "missingDays":
-                    matchesStatus = approval.min_rejected_date && !approval.last_approved_before_rejected;
+                    matchesStatus = status === "Missing Days";
                     break;
                 case "pending":
-                    matchesStatus = approval.has_pending; // Scenario for pending status
+                    matchesStatus = status === "Pending Approval";
                     break;
                 case "All":
-                    matchesStatus = true;
+                    matchesStatus = true; // Show all statuses
                     break;
                 default:
                     matchesStatus = true;
+                    break;
             }
 
-            const matchesDiscipline =
-                discipline === "All" || approval.discipline_id === discipline;
+            const matchesDiscipline = discipline === "All" || approval.discipline_id === discipline;
 
+            // Return true if the name, status, and discipline all match
             return matchesName && matchesStatus && matchesDiscipline;
         });
+
         setFilteredApprovals(filtered);
     };
 
@@ -157,54 +152,25 @@ function AllApprovals({ approvals }) {
             {/* Approval List */}
             <div className="bg-white shadow-md rounded-md space-y-4 overflow-hidden">
                 {currentApprovals.length > 0 ? (
-                    currentApprovals.map(({
-                        employee_id,
-                        first_name,
-                        last_name,
-                        discipline_name,
-                        last_action_date,
-                        has_pending,
-                        last_approved_before_rejected,
-                        min_rejected_date,
-                        last_approved_date,
-                        min_pending_date
-                    }) => {
-                        // Determine the final date based on the conditions
-                        const final_date = min_rejected_date && !last_approved_before_rejected
-                            ? min_rejected_date
-                            : last_approved_before_rejected || last_approved_date || min_pending_date;
+                    currentApprovals.map((approval) => {
+                        const { status, final_date } = determineDayStatus(approval);
 
-                        const formattedStartDate = final_date
-                            ? new Date(final_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                            : null;
-
-                        // Color logic based on date and conditions
-                        let colorClass = "bg-orange-500"; // Default color for 'No action yet' or 'N/A'
-
-                        if (final_date) {
-                            const daysDifference = differenceInDays(new Date(), new Date(final_date));
-
-                            if (final_date === last_approved_before_rejected || final_date === min_rejected_date) {
-                                if (daysDifference <= 2) {
-                                    colorClass = "bg-green-500"; // Green for 0-2 days old
-                                } else if (daysDifference >= 3) {
-                                    colorClass = "bg-red-500"; // Red for 3+ days old
-                                }
-                            } else if (final_date === last_approved_date) {
-                                if (has_pending) {
-                                    colorClass = "bg-orange-400"; // Orange if there is pending
-                                } else {
-                                    if (daysDifference <= 2) {
-                                        colorClass = "bg-green-500"; // Green for 0-2 days old
-                                    } else if (daysDifference >= 3) {
-                                        colorClass = "bg-red-500"; // Red for 3+ days old
-                                    }
-                                }
-                            }
+                        // Assign color based on status
+                        let colorClass;
+                        if (status === "Approved Up To Date") {
+                            colorClass = "bg-green-500";
+                        } else if (status === "Missing Days") {
+                            colorClass = "bg-red-500";
+                        } else if (status === "Pending Approval") {
+                            colorClass = "bg-orange-400";
                         }
 
+                        const formattedFinalDate = final_date
+                            ? new Date(final_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })
+                            : "N/A";
+
                         return (
-                            <Link href={`/timesheet/approvals?employee_id=${employee_id}&start=${formattedStartDate}`} key={employee_id}>
+                            <Link href={`/timesheet/approvals?employee_id=${approval.employee_id}`} key={approval.employee_id}>
                                 <div className="p-4 border-b border-gray-200 hover:bg-gray-50 transition duration-300 ease-in-out">
                                     <div className="flex justify-between items-center">
                                         <div className="flex items-center gap-4 mob:gap-3 tablet:gap-3">
@@ -215,13 +181,13 @@ function AllApprovals({ approvals }) {
                                                 </svg>
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-base mob:text-sm">{first_name} {last_name}</p>
-                                                <p className="text-sm text-gray-500">{discipline_name}</p>
+                                                <p className="font-semibold text-base mob:text-sm">{approval.first_name} {approval.last_name}</p>
+                                                <p className="text-sm text-gray-500">{approval.discipline_name}</p>
                                             </div>
                                         </div>
                                         <div className="text-sm font-semibold mob:text-xs">
                                             <span className={`text-xs p-1 text-white rounded-md font-semibold ${colorClass}`}>
-                                                {new Date(final_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
+                                                {formattedFinalDate}
                                             </span>
                                         </div>
                                     </div>

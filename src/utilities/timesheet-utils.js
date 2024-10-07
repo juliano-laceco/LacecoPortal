@@ -745,54 +745,98 @@ export async function getApprovalData(departments = [], limit = 4) {
             // Query to get the minimum rejected date across all tables
             const minRejectedDateQuery = `
                 SELECT DATE_FORMAT(
-                    COALESCE(
+                    IF(
                         LEAST(
-                            (SELECT MIN(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Rejected')),
-                            (SELECT MIN(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Rejected'),
-                            (SELECT MIN(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Rejected')
-                        ),
-                        NULL
+                            COALESCE((SELECT MIN(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Rejected')), '9999-12-31'),
+                            COALESCE((SELECT MIN(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Rejected'), '9999-12-31'),
+                            COALESCE((SELECT MIN(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Rejected'), '9999-12-31')
+                        ) = '9999-12-31', 
+                        NULL, 
+                        LEAST(
+                            COALESCE((SELECT MIN(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Rejected')), '9999-12-31'),
+                            COALESCE((SELECT MIN(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Rejected'), '9999-12-31'),
+                            COALESCE((SELECT MIN(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Rejected'), '9999-12-31')
+                        )
                     ), '%Y-%m-%d'
                 ) AS min_rejected_date
             `;
-            const minRejectedDate = await execute(minRejectedDateQuery, [employee_id, employee_id, employee_id]);
+            const minRejectedDate = await execute(minRejectedDateQuery, [employee_id, employee_id, employee_id, employee_id, employee_id, employee_id]);
 
             // Query to get the minimum pending date across all tables
             const minPendingDateQuery = `
                 SELECT DATE_FORMAT(
-                    COALESCE(
+                    IF(
                         LEAST(
-                            (SELECT MIN(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Pending')),
-                            (SELECT MIN(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Pending'),
-                            (SELECT MIN(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Pending')
-                        ),
-                        NULL
+                            COALESCE((SELECT MIN(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Pending')), '9999-12-31'),
+                            COALESCE((SELECT MIN(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Pending'), '9999-12-31'),
+                            COALESCE((SELECT MIN(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Pending'), '9999-12-31')
+                        ) = '9999-12-31', 
+                        NULL, 
+                        LEAST(
+                            COALESCE((SELECT MIN(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Pending')), '9999-12-31'),
+                            COALESCE((SELECT MIN(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Pending'), '9999-12-31'),
+                            COALESCE((SELECT MIN(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Pending'), '9999-12-31')
+                        )
                     ), '%Y-%m-%d'
                 ) AS min_pending_date
             `;
-            const minPendingDate = await execute(minPendingDateQuery, [employee_id, employee_id, employee_id]);
+            const minPendingDate = await execute(minPendingDateQuery, [employee_id, employee_id, employee_id, employee_id, employee_id, employee_id]);
 
             // Query to get the last approved date across all tables
             const lastApprovedDateQuery = `
                 SELECT DATE_FORMAT(
-                    COALESCE(
+                    IF(
                         GREATEST(
-                            (SELECT MAX(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Approved')),
-                            (SELECT MAX(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Approved'),
-                            (SELECT MAX(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Approved')
-                        ),
-                        NULL
+                            COALESCE((SELECT MAX(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Approved')), '1000-01-01'),
+                            COALESCE((SELECT MAX(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Approved'), '1000-01-01'),
+                            COALESCE((SELECT MAX(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Approved'), '1000-01-01')
+                        ) = '1000-01-01', 
+                        NULL, 
+                        GREATEST(
+                            COALESCE((SELECT MAX(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Approved')), '1000-01-01'),
+                            COALESCE((SELECT MAX(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Approved'), '1000-01-01'),
+                            COALESCE((SELECT MAX(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Approved'), '1000-01-01')
+                        )
                     ), '%Y-%m-%d'
                 ) AS last_approved_date
             `;
-            const lastApprovedDate = await execute(lastApprovedDateQuery, [employee_id, employee_id, employee_id]);
+            const lastApprovedDate = await execute(lastApprovedDateQuery, [employee_id, employee_id, employee_id, employee_id, employee_id, employee_id]);
 
+            // Query to get the last approved date before the min rejected date
+            const lastApprovedBeforeRejectedQuery = `
+                SELECT DATE_FORMAT(
+                    IF(
+                        GREATEST(
+                            COALESCE((SELECT MAX(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Approved' AND ewd.work_day < ?)), '1000-01-01'),
+                            COALESCE((SELECT MAX(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Approved' AND dh.work_day < ?), '1000-01-01'),
+                            COALESCE((SELECT MAX(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Approved' AND nwd.date < ?), '1000-01-01')
+                        ) = '1000-01-01',
+                        NULL,
+                        GREATEST(
+                            COALESCE((SELECT MAX(ewd.work_day) FROM employee_work_day ewd WHERE ewd.phase_assignee_id IN (SELECT phase_assignee_id FROM phase_assignee pa WHERE pa.assignee_id = ? AND ewd.status = 'Approved' AND ewd.work_day < ?)), '1000-01-01'),
+                            COALESCE((SELECT MAX(dh.work_day) FROM development_hour dh WHERE dh.employee_id = ? AND dh.status = 'Approved' AND dh.work_day < ?), '1000-01-01'),
+                            COALESCE((SELECT MAX(nwd.date) FROM non_working_day nwd WHERE nwd.employee_id = ? AND nwd.status = 'Approved' AND nwd.date < ?), '1000-01-01')
+                        )
+                    ), '%Y-%m-%d'
+                ) AS last_approved_before_rejected
+            `;
+            const lastApprovedBeforeRejected = await execute(lastApprovedBeforeRejectedQuery, [employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date]);
+
+
+            console.log({
+                ...employee,
+                last_approved_date: lastApprovedDate[0]?.last_approved_date || null,
+                min_rejected_date: minRejectedDate[0]?.min_rejected_date || null,
+                min_pending_date: minPendingDate[0]?.min_pending_date || null,
+                last_approved_before_rejected: lastApprovedBeforeRejected[0]?.last_approved_before_rejected || null,
+            })
             // Combine the data into a final object
             return {
                 ...employee,
                 last_approved_date: lastApprovedDate[0]?.last_approved_date || null,
                 min_rejected_date: minRejectedDate[0]?.min_rejected_date || null,
                 min_pending_date: minPendingDate[0]?.min_pending_date || null,
+                last_approved_before_rejected: lastApprovedBeforeRejected[0]?.last_approved_before_rejected || null,
             };
         }));
 
@@ -802,3 +846,5 @@ export async function getApprovalData(departments = [], limit = 4) {
         throw new Error("Unable to fetch approval data");
     }
 }
+
+

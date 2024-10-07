@@ -33,7 +33,6 @@
   color: hsl(4, 79%, 58%) !important;
 }
 
-
 /* Styles for React Select */
 
 .react-select-dd__input:focus {
@@ -45,7 +44,6 @@
   padding: 1.5px !important;
 }
 
-
 .react-select__input:focus {
   box-shadow: none;
 }
@@ -53,7 +51,7 @@
 .react-select__control {
   border-radius: 6px !important;
   padding: 1.5px !important;
-  cursor: pointer !important ;
+  cursor: pointer !important;
 }
 
 div:has(.react-select-dd__control):not(.panel) {
