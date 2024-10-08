@@ -213,3 +213,9 @@ select {
 .select2-container--default .select2-results>.select2-results__options {
   max-height: 300px !important;
 }
+
+/* Disable pointer events for the custom spinbutton elements */
+div[role="spinbutton"] {
+  pointer-events: none; /* Disable interaction */
+  caret-color: transparent; /* Hide caret */
+}

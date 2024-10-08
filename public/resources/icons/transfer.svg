@@ -1,0 +1,7 @@
+<svg width="800" height="800" viewBox="0 0 48 48"
+    xmlns="http://www.w3.org/2000/svg" fill="#fff">
+    <g data-name="Layer 2">
+        <path fill="none" data-name="invisible box" d="M0 0h48v48H0z"/>
+        <path d="M19 26a2 2 0 0 0-2 2v12H7V28a2 2 0 0 0-4 0v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V28a2 2 0 0 0-2-2m24 0a2 2 0 0 0-2 2v12H31V28a2 2 0 0 0-4 0v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V28a2 2 0 0 0-2-2m-9-10v1.2l-2.6-2.6a1.9 1.9 0 0 0-3 .2 2.1 2.1 0 0 0 .2 2.7l6 5.9a1.9 1.9 0 0 0 2.8 0l6-5.9a2.1 2.1 0 0 0 .2-2.7 1.9 1.9 0 0 0-3-.2L38 17.2V16a14 14 0 0 0-28 0v6a2 2 0 0 0 4 0v-6a10 10 0 0 1 20 0" data-name="icons Q2"/>
+    </g>
+</svg>

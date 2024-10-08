@@ -848,3 +848,44 @@ export async function getApprovalData(departments = [], limit = 4) {
 }
 
 
+export async function getAssignmentsForTransfer(qs) {
+    // Initialize base query
+    let query = `
+        SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, proj.title, p.phase_name, ewd.work_day, ewd.hours_worked 
+        FROM project proj
+        JOIN phase p ON p.project_id = proj.project_id
+        JOIN phase_assignee pa ON pa.phase_id = p.phase_id
+        JOIN employee e ON pa.assignee_id = e.employee_id
+        JOIN discipline d ON e.discipline_id = d.discipline_id
+        JOIN employee_work_day ewd ON ewd.phase_assignee_id = pa.phase_assignee_id
+    `;
+
+    // Array to store the conditions
+    const conditions = [];
+
+    // Add conditions based on the presence of parameters in the query string (qs)
+    if (qs.project_id) {
+        conditions.push(`proj.project_id = ${qs.project_id}`);
+    }
+    if (qs.discipline_id) {
+        conditions.push(`d.discipline_id = ${qs.discipline_id}`);
+    }
+    if (qs.employee_id) {
+        conditions.push(`e.employee_id = ${qs.employee_id}`);
+    }
+    if (qs.phase_id) {
+        conditions.push(`p.phase_id = ${qs.phase_id}`);
+    }
+    if (qs.start_date && qs.end_date) {
+        conditions.push(`ewd.work_day BETWEEN '${qs.start_date}' AND '${qs.end_date}'`);
+    }
+
+    // Add conditions to the query if there are any
+    if (conditions.length > 0) {
+        query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    const results = await execute(query)
+    return results
+}
+

@@ -69,7 +69,7 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
   }
 
   return (
-    <div className="container mx-auto min-w-full z-100 border rounded-lg shadow-xl panel overflow-x-auto">
+    <div className="container mx-auto min-w-full z-100 border rounded-lg shadow-xl panel overflow-y-visible">
       <div className="table-wrapper bg-white p-5 mob:p-4 rounded-lg">
         <h1 className="font-bold text-3xl">{title}</h1>
         <h3 className="py-2 mb-3">{subTitle}</h3>

@@ -15,7 +15,7 @@ export const metadata = {
 async function TablePage({ searchParams }) {
 
     const results = await getAllProjects(searchParams);
-
+ 
     // Query String Parameters
     const project_status = searchParams.project_status;
     const keyword = searchParams.keyword;
