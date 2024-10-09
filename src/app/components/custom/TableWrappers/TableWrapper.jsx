@@ -16,7 +16,7 @@ import TableFilter from '@/app/components/custom/Table/TableFilter';
 import TableBody from '@/app/components/custom/Table/TableBody';
 import TablePagination from '@/app/components/custom/Table/TablePagination';
 
-function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterable, minPageSize, maxPageSize, pageSizeStep, title, subTitle }) {
+function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterable, minPageSize, maxPageSize, pageSizeStep, title, subTitle, nonClearableQS, children }) {
 
   const router = useRouter();
   const pathname = usePathname();
@@ -64,9 +64,33 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
   };
 
   const clearFunction = () => {
-    router.push(`${pathname}`);
+    const params = new URLSearchParams(searchParams.toString());
+
+    // Create a new URLSearchParams object to store only the non-clearable keys
+    const newParams = new URLSearchParams();
+
+    // Iterate over nonClearableQS and append those keys and values to the newParams
+    nonClearableQS.forEach((key) => {
+      const value = params.get(key);
+      if (value) {
+        newParams.set(key, value);
+      }
+    });
+
+    // Build the new query string from the non-clearable keys
+    const queryString = newParams.toString();
+
+    // If there's a query string, append it; otherwise, just push the base pathname without the "?"
+    if (queryString.length > 0) {
+      router.push(`${pathname}?${queryString}`);
+    } else {
+      router.push(pathname); // No query parameters left, push the base path
+    }
+
     router.refresh();
-  }
+  };
+
+
 
   return (
     <div className="container mx-auto min-w-full z-100 border rounded-lg shadow-xl panel overflow-y-visible">
@@ -75,6 +99,7 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
         <h3 className="py-2 mb-3">{subTitle}</h3>
         {isFilterable && <TableFilter filterItems={filterItems} filterFunction={pushQS} clearFunction={clearFunction} keywordRef={keywordRef} />}
         <TableBody {...tableInstance} tableHeaders={tableHeaders} />
+        {children}
         {(isPaginated && data.length > 0) && <TablePagination {...tableInstance} pageSize={pageSize} pageIndex={pageIndex} pageSizeOptions={pageSizeOptions} />}
       </div>
 

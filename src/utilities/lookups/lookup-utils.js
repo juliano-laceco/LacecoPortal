@@ -153,23 +153,31 @@ export async function getPhaseNames() {
     }
 }
 
-export async function getFiltersForTransfer() {
-    // SQL queries for different filters
-
-    // Projects filter
+export async function getFiltersForTransfer(type = "P2P") {
+    // SQL query to fetch projects along with their phases
     const projectsQuery = `
         SELECT 
-            proj.title AS label, 
-            proj.project_id AS value
+            proj.project_id AS value,
+            proj.title AS label,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'value', phase.phase_id,
+                    'label', phase.phase_name
+                )
+            ) AS phases
         FROM 
-            project proj;
+            project proj
+        LEFT JOIN 
+            phase ON phase.project_id = proj.project_id
+        GROUP BY 
+            proj.project_id;
     `;
 
     // Discipline filter (excluding "Proposals" and limited to division_id = 8)
     const disciplinesQuery = `
         SELECT 
-           discipline_id AS value, 
-           discipline_name AS label
+            discipline_id AS value, 
+            discipline_name AS label
         FROM 
             discipline
         WHERE 
@@ -178,7 +186,7 @@ export async function getFiltersForTransfer() {
     `;
 
     // Employees with assignments filter (joined with employee_work_day)
-    const employeesQuery = `
+    const employeesQuery = type === "P2P" ? `
         SELECT 
             DISTINCT(e.employee_id) AS value, 
             CONCAT(e.first_name, ' ', e.last_name) AS label
@@ -188,9 +196,17 @@ export async function getFiltersForTransfer() {
             phase_assignee pa ON e.employee_id = pa.assignee_id
         JOIN 
             employee_work_day ewd ON ewd.phase_assignee_id = pa.phase_assignee_id;
+    ` : `
+        SELECT 
+            DISTINCT(e.employee_id) AS value, 
+            CONCAT(e.first_name, ' ', e.last_name) AS label
+        FROM 
+            employee e
+        JOIN 
+            development_hour dh ON e.employee_id = dh.employee_id;
     `;
 
-    // Phases with assignments linked to phase_assignee and employee_work_day
+    // Phases with assignments linked to phase_assignee and employee_work_day (only for P2P)
     const phasesQuery = `
         SELECT 
             DISTINCT(p.phase_id) AS value, 
@@ -203,17 +219,28 @@ export async function getFiltersForTransfer() {
             employee_work_day ewd ON ewd.phase_assignee_id = pa.phase_assignee_id;
     `;
 
-    // Execute the queries sequentially
-    const projects = await execute(projectsQuery);
+    // Execute queries conditionally
     const disciplines = await execute(disciplinesQuery);
     const employees = await execute(employeesQuery);
-    const phases = await execute(phasesQuery);
 
-    // Return the result as an object with the filter data
-    return {
-        projects: projects,
-        disciplines: disciplines,
-        employees: employees,
-        phases: phases,
-    };
+    if (type === "P2P") {
+        const projects = await execute(projectsQuery);
+        const phases = await execute(phasesQuery);
+        return {
+            projects: projects, // Now includes the phases associated with each project
+            disciplines: disciplines,
+            employees: employees,
+            phases: phases,
+        };
+    }
+
+    // For non-P2P, return only employees and disciplines
+    if (type === "D2P") {
+        return {
+            disciplines: disciplines,
+            employees: employees,
+        };
+    }
+
+    return {};
 }

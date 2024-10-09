@@ -7,6 +7,7 @@ import { theme } from '../../../../../tailwind.config';
 function DropdownRegular({
     options,
     isSearchable,
+    isClearable,
     isDisabled,
     isLoading,
     label,
@@ -32,6 +33,7 @@ function DropdownRegular({
                     options={options}
                     isSearchable={isSearchable}
                     isDisabled={isDisabled}
+                    isClearable={isClearable}
                     isLoading={isLoading}
                     classNames="px-2 py-2 rounded-md z-50"
                     styles={{

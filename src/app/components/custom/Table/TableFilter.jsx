@@ -1,65 +1,91 @@
-import { useEffect, useState } from "react";
+import { DateRangePicker } from "@nextui-org/react";
+import { useEffect, useState, useCallback } from "react";
+import { parseDate, CalendarDate } from "@internationalized/date";
 import Button from "../Other/Button";
 import Image from "next/image";
 import DropdownFilter from "../Dropdowns/DropdownFilter";
 import Input from "../Other/Input";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 // Get the current year for validation
 const currentYear = new Date().getFullYear();
 
 function TableFilter({ filterItems, filterFunction, keywordRef, clearFunction }) {
-    const router = useRouter();
     const searchParams = useSearchParams();
-
-    // Initialize state for the date range with parsed values from QS or null
-    const [dateRange, setDateRange] = useState({
-        start: searchParams.get('start_date') || "",
-        end: searchParams.get('end_date') || ""
+    const [dateRange, setDateRange] = useState(() => {
+        const dateRangeFilter = filterItems.find(item => item.filterKey === 'date_range');
+        return {
+            start: dateRangeFilter && dateRangeFilter.filterValue.start_date ? parseDate(dateRangeFilter.filterValue.start_date) : null,
+            end: dateRangeFilter && dateRangeFilter.filterValue.end_date ? parseDate(dateRangeFilter.filterValue.end_date) : null
+        };
     });
+    
+    const [dateError, setDateError] = useState(null); // State to track date validation error
 
-    // Effect to synchronize QS with state when the component loads
+    // Function to parse and validate date from query string
+    const parseAndValidateDate = useCallback((dateString) => {
+        if (!dateString) return null;
+        const date = parseDate(dateString);
+        if (date.year >= 2000 && date.year <= currentYear) {
+            return date;
+        }
+        return null;
+    }, []);
+
+    // Effect to set initial date range from query string
     useEffect(() => {
         const start_date = searchParams.get('start_date');
         const end_date = searchParams.get('end_date');
 
-        if (start_date && end_date) {
-            setDateRange({
-                start: start_date,
-                end: end_date
-            });
+        const parsedStartDate = parseAndValidateDate(start_date);
+        const parsedEndDate = parseAndValidateDate(end_date);
+
+        if (parsedStartDate && parsedEndDate) {
+            setDateRange({ start: parsedStartDate, end: parsedEndDate });
         }
-    }, [searchParams]);
+    }, [searchParams, parseAndValidateDate]);
 
-    // Function to handle changes in date inputs
-    const handleDateChange = (e, key) => {
-        const value = e.target.value;
-        setDateRange((prev) => ({
-            ...prev,
-            [key]: value
-        }));
-    };
+    const handleDateChange = (value) => {
+        setDateRange(value);
+        const start = value?.start;
+        const end = value?.end;
 
-    // Function to validate and apply the date range
-    const applyDateRange = () => {
-        const { start, end } = dateRange;
+        // Check if both start and end dates are fully filled
+        if (start && end && start instanceof CalendarDate && end instanceof CalendarDate) {
+            const startYear = start.year;
+            const endYear = end.year;
 
-        // Validate both dates
-        if (start && end) {
-            const startYear = new Date(start).getFullYear();
-            const endYear = new Date(end).getFullYear();
+            // Ensure year is between 2000 and the current year
+            if (
+                startYear >= 2000 && startYear <= currentYear &&
+                endYear >= 2000 && endYear <= currentYear
+            ) {
+                // Clear the error message
+                setDateError(null);
 
-            // Ensure the years are between 2000 and the current year
-            if (startYear >= 2000 && startYear <= currentYear && endYear >= 2000 && endYear <= currentYear) {
-                // Combine the dates and call the filter function
-                const dateRangeValue = `${start}-${end}`;
-                filterFunction('date_range', dateRangeValue);
+                // Get the formatted start and end dates for filtering
+                const formattedStart = `${start.year}-${String(start.month).padStart(2, '0')}-${String(start.day).padStart(2, '0')}`;
+                const formattedEnd = `${end.year}-${String(end.month).padStart(2, '0')}-${String(end.day).padStart(2, '0')}`;
+
+                // Combine the formatted start and end dates into a single date_range value
+                const dateRange = `${formattedStart}-${formattedEnd}`;
+
+                // Call the filter function with the combined date_range string
+                filterFunction('date_range', dateRange);
             } else {
-                console.log('Year must be between 2000 and the current year.');
+                // Set the error message if the year is out of range
+                setDateError(`Year must be between 2000 and ${currentYear}.`);
             }
         } else {
-            console.log('Both start and end dates must be selected.');
+            // Set the error message if dates are not fully selected
+            setDateError('Please select both start and end dates.');
         }
+    };
+
+    const handleClearFilters = () => {
+        setDateRange(null);
+        clearFunction();
+        setDateError(null); // Clear any error message when filters are cleared
     };
 
     return (
@@ -97,31 +123,14 @@ function TableFilter({ filterItems, filterFunction, keywordRef, clearFunction })
                         return (
                             <div className="flex flex-col" key={index}>
                                 <label className="mob:text-base tablet:text-base lap:text-base desk:text-base pr-3 pb-[2px]">{item.filterLabel}</label>
-                                <div className="flex gap-2">
-                                    {/* Start Date Input */}
-                                    <input
-                                        type="date"
-                                        value={dateRange.start}
-                                        onChange={(e) => handleDateChange(e, 'start')}
-                                        className="max-w-xs border rounded-md border-gray-400"
-                                    />
-
-                                    {/* End Date Input */}
-                                    <input
-                                        type="date"
-                                        value={dateRange.end}
-                                        onChange={(e) => handleDateChange(e, 'end')}
-                                        className="max-w-xs border rounded-md border-gray-400"
-                                    />
-
-                                    {/* Apply Date Range Button */}
-                                    <button
-                                        onClick={applyDateRange}
-                                        className="bg-blue-500 text-white py-2 px-4 rounded-md"
-                                    >
-                                        Apply
-                                    </button>
-                                </div>
+                                <DateRangePicker
+                                    value={dateRange}
+                                    onChange={handleDateChange}
+                                    aria-label={`${item.filterLabel} date range`}
+                                    radius="none"
+                                    className="max-w-xs border rounded-md border-gray-400 overflow-hidden w-full"
+                                />
+                                {dateError && <p className="text-pric text-xs p-1">{dateError}</p>}
                             </div>
                         );
                     }
@@ -134,10 +143,16 @@ function TableFilter({ filterItems, filterFunction, keywordRef, clearFunction })
                     height="40"
                     width="50"
                     className="cursor-pointer hover:bg-[#E9EBEF] max-h-[45px] max-w-[55px] mt-6 mob:hidden tablet:hidden transition-all duration-200 p-2 rounded-lg"
-                    onClick={clearFunction}
+                    onClick={handleClearFilters}
                     alt="clear-filter"
                 />
-                <Button primary small name="Clear Filters" className="w-fit mt-2 lap:hidden desk:hidden" onClick={clearFunction} />
+                <Button
+                    primary
+                    small
+                    name="Clear Filters"
+                    className="w-fit mt-2 lap:hidden desk:hidden"
+                    onClick={handleClearFilters}
+                />
             </div>
         </div>
     );
