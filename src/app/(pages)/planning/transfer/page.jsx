@@ -98,12 +98,16 @@ async function TransferPage({ searchParams }) {
         { Header: 'Discipline', accessor: 'discipline_name' },
         ...(type === "P2P" ? [
             { Header: 'Project Title', accessor: 'title' },
-            { Header: 'Phase Name', accessor: 'phase_name', mobile: true, tablet: true }
+            { Header: 'Phase Name', accessor: 'phase_name', mobile: true, tablet: true },
+            { Header: 'EWD', accessor: 'employee_work_day_id', hidden: true },
+
         ] : [
-            { Header: 'Type', accessor: 'type' }
+            { Header: 'Type', accessor: 'type' },
+            { Header: 'DH', accessor: 'development_hour_day_id', hidden: true },
         ]),
         { Header: 'Work Day', accessor: 'work_day' },
         { Header: 'Hours Worked', accessor: 'hours_worked', mobile: true, tablet: true },
+
     ];
 
     return (
@@ -136,10 +140,9 @@ async function TransferPage({ searchParams }) {
 
             <TableWrapper
                 data={preprocessData(assignments)}
-                // title={type === "P2P" ? "Hour Transfers" : "Development Hour Transfers"}
-                // title="Filter"
-                // subTitle={type === "P2P" ? "Displays all employee hours transfers" : "Displays all development hours transfers"}
+                title="Filter"
                 searchParams={searchParams}
+             
                 filterItems={filterItems}
                 tableHeaders={tableHeaders}
                 minPageSize={5}

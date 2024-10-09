@@ -853,7 +853,7 @@ export async function getAssignmentsForTransfer(qs, type = "P2P") {
     if (type === "P2P") {
         // Initialize base query
         let query = `
-                  SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, proj.title, p.phase_name, ewd.work_day, ewd.hours_worked , d.discipline_name 
+                  SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, proj.title, p.phase_name, ewd.work_day, ewd.hours_worked , d.discipline_name  , ewd.employee_work_day_id
                   FROM project proj
                   JOIN phase p ON p.project_id = proj.project_id
                   JOIN phase_assignee pa ON pa.phase_id = p.phase_id
@@ -892,7 +892,7 @@ export async function getAssignmentsForTransfer(qs, type = "P2P") {
     } else if (type === "D2P") {
         // Initialize base query
         let query = `
-                    SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, dh.work_day, d.discipline_name , dh.type , dh.hours_worked
+                    SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, dh.work_day, d.discipline_name , dh.type , dh.hours_worked , dh.development_hour_day_id
                     FROM employee e 
                     JOIN discipline d ON e.discipline_id = d.discipline_id
                     JOIN development_hour dh ON dh.employee_id = e.employee_id
@@ -913,8 +913,6 @@ export async function getAssignmentsForTransfer(qs, type = "P2P") {
         if (qs.dev_type) {
             conditions.push(`dh.type = '${qs.dev_type}'`);
         }
-
-        console.log(qs)
 
         // Add conditions to the query if there are any
         if (conditions.length > 0) {

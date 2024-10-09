@@ -6,27 +6,36 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
       <thead>
         {headerGroups.map((headerGroup) => (
           <tr {...headerGroup.getHeaderGroupProps()} key={crypto.randomUUID()} className="border overflow-hidden">
-            {headerGroup.headers.map((column) => {
-              const columnMeta = tableHeaders.find((col) => col.accessor === column.id);
-              return (
-                <th
-                  {...column.getHeaderProps(column.getSortByToggleProps())}
-                  className={`px-6 py-3 bg-gray-100 text-black text-center font-bold text-xs uppercase tracking-wider 
-                    ${columnMeta && !columnMeta.mobile ? 'mob:hidden' : ''}
-                    ${columnMeta && !columnMeta.tablet ? 'tablet:hidden' : ''}`
-                  }
-
-                  key={crypto.randomUUID()}
-                >
-                  <div className="flex justify-center items-center gap-1">
-                    {column.render('Header')}
-                    <span className={column.isSortedDesc ? 'text-red-500' : ''}>
-                      {column.isSorted ? (column.isSortedDesc ? <Image src="/resources/icons/descending.svg" height="15" width="15" className="min-h-[15px] min-w-[15px]" alt="descending" /> : <Image src="/resources/icons/ascending.svg" alt="ascending" height="15" width="15" className="min-h-[15px] min-w-[15px]" />) : ''}
-                    </span>
-                  </div>
-                </th>
-              );
-            })}
+            {headerGroup.headers
+              .filter((column) => !column.hidden) // Only render visible columns
+              .map((column) => {
+                const columnMeta = tableHeaders.find((col) => col.accessor === column.id);
+                return (
+                  <th
+                    {...column.getHeaderProps(column.getSortByToggleProps())}
+                    className={`px-6 py-3 bg-gray-100 text-black text-center font-bold text-xs uppercase tracking-wider 
+                      ${columnMeta && !columnMeta.mobile ? 'mob:hidden' : ''} 
+                      ${columnMeta && !columnMeta.tablet ? 'tablet:hidden' : ''}`
+                    }
+                    key={crypto.randomUUID()}
+                  >
+                    <div className="flex justify-center items-center gap-1">
+                      {column.render('Header')}
+                      <span className={column.isSortedDesc ? 'text-red-500' : ''}>
+                        {column.isSortable !== false && column.isSorted ? (
+                          column.isSortedDesc ? (
+                            <Image src="/resources/icons/descending.svg" height="15" width="15" className="min-h-[15px] min-w-[15px]" alt="descending" />
+                          ) : (
+                            <Image src="/resources/icons/ascending.svg" alt="ascending" height="15" width="15" className="min-h-[15px] min-w-[15px]" />
+                          )
+                        ) : (
+                          ''
+                        )}
+                      </span>
+                    </div>
+                  </th>
+                );
+              })}
           </tr>
         ))}
       </thead>
@@ -36,20 +45,22 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
             prepareRow(row);
             return (
               <tr {...row.getRowProps()} className="bg-white border-t" key={crypto.randomUUID()}>
-                {row.cells.map((cell) => {
-                  const columnMeta = tableHeaders.find((col) => col.accessor === cell.column.id);
-                  return (
-                    <td
-                      {...cell.getCellProps()}
-                      className={`px-6 py-4 w-fit text-sm mob:text-xs mob:px-3 mob:py-3 leading-5 text-sec-txtc overflow-hidden text-ellipsis 
-                        ${columnMeta && !columnMeta.mobile ? 'mob:hidden' : ''}
-                        ${columnMeta && !columnMeta.tablet ? 'tablet:hidden' : ''}`}
-                      key={crypto.randomUUID()}
-                    >
-                      <div className="flex justify-center text-center items-center">{cell.render('Cell')}</div>
-                    </td>
-                  );
-                })}
+                {row.cells
+                  .filter((cell) => !cell.column.hidden) // Only render visible cells
+                  .map((cell) => {
+                    const columnMeta = tableHeaders.find((col) => col.accessor === cell.column.id);
+                    return (
+                      <td
+                        {...cell.getCellProps()}
+                        className={`px-6 py-4 w-fit text-sm mob:text-xs mob:px-3 mob:py-3 leading-5 text-sec-txtc overflow-hidden text-ellipsis 
+                          ${columnMeta && !columnMeta.mobile ? 'mob:hidden' : ''} 
+                          ${columnMeta && !columnMeta.tablet ? 'tablet:hidden' : ''}`}
+                        key={crypto.randomUUID()}
+                      >
+                        <div className="flex justify-center text-center items-center">{cell.render('Cell')}</div>
+                      </td>
+                    );
+                  })}
               </tr>
             );
           })
@@ -61,13 +72,13 @@ function TableBody({ getTableBodyProps, getTableProps, tableHeaders, headerGroup
           </tr>
         )}
 
-        {page.length > 0 &&
+        {page.length > 0 && (
           <tr>
-            <td colSpan={tableHeaders.length} className="px-6 py-4 text-left text-sm text-pric bg-gray-100">
+            <td colSpan={tableHeaders.filter((col) => !col.hidden).length + 1} className="px-6 py-4 text-left text-sm text-pric bg-gray-100">
               Showing {page.length} out of {data.length} entries
             </td>
           </tr>
-        }
+        )}
       </tbody>
     </table>
   );
