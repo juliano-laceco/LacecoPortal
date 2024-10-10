@@ -9,17 +9,17 @@ export default withAuth(
         // Middleware checks based on the path and role
         switch (true) {
             case /^\/hr(\/|$)/.test(page):
-                if (role !== "HR") return NextResponse.redirect(new URL("/forbidden", req.url));
+              //  if (role !== "HR") return NextResponse.redirect(new URL("/forbidden", req.url));
                 break;
             
             case /^\/planning(\/|$)/.test(page):
-                if (role !== "Planning Administrator") return NextResponse.redirect(new URL("/forbidden", req.url));
+              //  if (role !== "Planning Administrator") return NextResponse.redirect(new URL("/forbidden", req.url));
                 break;
             
             case /^\/timesheet(\/|$)/.test(page):
-                if (role !== "Planning Administrator" && role !== "HoD") {
-                    return NextResponse.redirect(new URL("/forbidden", req.url));
-                }
+                // if (role !== "Planning Administrator" && role !== "HoD") {
+                //     return NextResponse.redirect(new URL("/forbidden", req.url));
+                // }
                 break;
         }
     },

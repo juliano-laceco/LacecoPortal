@@ -99,7 +99,7 @@ async function TransferPage({ searchParams }) {
         ...(type === "P2P" ? [
             { Header: 'Project Title', accessor: 'title' },
             { Header: 'Phase Name', accessor: 'phase_name', mobile: true, tablet: true },
-            { Header: 'EWD', accessor: 'employee_work_day_id', hidden: true },
+            { Header: 'EWD', accessor: 'employee_work_day_id'},
 
         ] : [
             { Header: 'Type', accessor: 'type' },

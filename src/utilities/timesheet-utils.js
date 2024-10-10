@@ -5,7 +5,7 @@ import { getLoggedInId, getSession } from "./auth/auth-utils";
 import { commitTransaction, execute, executeTrans, rollbackTransaction, startTransaction } from "../utilities/db/db-utils"
 import { logError } from "../utilities/misc-utils"
 import * as res from "../utilities/response-utils"
-import { eachDayOfInterval, endOfWeek, startOfWeek } from "date-fns";
+import { addDays, eachDayOfInterval, endOfWeek, startOfWeek } from "date-fns";
 import { formatDate } from "./date/date-utils";
 
 
@@ -849,18 +849,26 @@ export async function getApprovalData(departments = [], limit = 4) {
 
 
 export async function getAssignmentsForTransfer(qs, type = "P2P") {
-
     if (type === "P2P") {
-        // Initialize base query
+        // Initialize base query for P2P
         let query = `
-                  SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, proj.title, p.phase_name, ewd.work_day, ewd.hours_worked , d.discipline_name  , ewd.employee_work_day_id
-                  FROM project proj
-                  JOIN phase p ON p.project_id = proj.project_id
-                  JOIN phase_assignee pa ON pa.phase_id = p.phase_id
-                  JOIN employee e ON pa.assignee_id = e.employee_id
-                  JOIN discipline d ON e.discipline_id = d.discipline_id
-                  JOIN employee_work_day ewd ON ewd.phase_assignee_id = pa.phase_assignee_id
-                  `;
+            SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, 
+                   proj.title, 
+                   p.phase_name, 
+                   ewd.work_day, 
+                   ewd.hours_worked, 
+                   d.discipline_name,  
+                   ewd.employee_work_day_id, 
+                   p.phase_id,
+                   pa.assignee_id
+            FROM project proj
+            JOIN phase p ON p.project_id = proj.project_id
+            JOIN phase_assignee pa ON pa.phase_id = p.phase_id
+            JOIN employee e ON pa.assignee_id = e.employee_id
+            JOIN discipline d ON e.discipline_id = d.discipline_id
+            JOIN employee_work_day ewd ON ewd.phase_assignee_id = pa.phase_assignee_id
+            WHERE ewd.status = 'Approved' AND proj.project_status = 'Active'
+        `;
 
         // Array to store the conditions
         const conditions = [];
@@ -884,19 +892,26 @@ export async function getAssignmentsForTransfer(qs, type = "P2P") {
 
         // Add conditions to the query if there are any
         if (conditions.length > 0) {
-            query += ` WHERE ${conditions.join(' AND ')}`;
+            query += ` AND ${conditions.join(' AND ')}`;
         }
 
-        const results = await execute(query)
-        return results
+        const results = await execute(query);
+        return results;
+
     } else if (type === "D2P") {
-        // Initialize base query
+        // Initialize base query for D2P
         let query = `
-                    SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, dh.work_day, d.discipline_name , dh.type , dh.hours_worked , dh.development_hour_day_id
-                    FROM employee e 
-                    JOIN discipline d ON e.discipline_id = d.discipline_id
-                    JOIN development_hour dh ON dh.employee_id = e.employee_id
-                    `;
+            SELECT CONCAT(e.first_name , ' ', e.last_name) AS name, 
+                   dh.work_day, 
+                   d.discipline_name, 
+                   dh.type, 
+                   dh.hours_worked, 
+                   dh.development_hour_day_id
+            FROM employee e 
+            JOIN discipline d ON e.discipline_id = d.discipline_id
+            JOIN development_hour dh ON dh.employee_id = e.employee_id
+            WHERE dh.status = 'Approved'
+        `;
 
         // Array to store the conditions
         const conditions = [];
@@ -916,12 +931,97 @@ export async function getAssignmentsForTransfer(qs, type = "P2P") {
 
         // Add conditions to the query if there are any
         if (conditions.length > 0) {
-            query += ` WHERE ${conditions.join(' AND ')}`;
+            query += ` AND ${conditions.join(' AND ')}`;
         }
 
-        const results = await execute(query)
-        return results
+        const results = await execute(query);
+        return results;
     }
-
 }
 
+
+
+export async function saveTransfer(assignments, targetPhaseId) {
+    let transaction;
+
+    try {
+        // Start transaction
+        transaction = await startTransaction();
+
+        // 1. Ensure there is only one type of phase in the selected assignments
+        const uniquePhaseIds = [...new Set(assignments.map(assignment => assignment.phase_id))];
+
+        if (uniquePhaseIds.length > 1) {
+            throw new Error('The filtered results contain more than one phase. Migration can only be done from a single phase to another.');
+        }
+
+        // 2. Loop over each assignment and handle the transfer logic
+        for (let assignment of assignments) {
+            const { employee_work_day_id, work_day, assignee_id } = assignment;
+
+            // b) Check if the target phase already has this assignee
+            const checkPhaseAssigneeQuery = `
+                SELECT phase_assignee_id 
+                FROM phase_assignee
+                WHERE phase_id = ? AND assignee_id = ?
+            `;
+            const phaseAssigneeResult = await executeTrans(checkPhaseAssigneeQuery, [targetPhaseId, assignee_id], transaction);
+
+            let targetPhaseAssigneeId;
+            if (phaseAssigneeResult.length > 0) {
+                // Assignee already exists in the target phase
+                targetPhaseAssigneeId = phaseAssigneeResult[0].phase_assignee_id;
+            } else {
+                // Assignee doesn't exist in the target phase, create a new phase_assignee record
+                const insertPhaseAssigneeQuery = `
+                    INSERT INTO phase_assignee (phase_id, assignee_id, work_done_hrs, expected_work_hrs)
+                    VALUES (?, ?, 0, 0)
+                `;
+                const insertResult = await executeTrans(insertPhaseAssigneeQuery, [targetPhaseId, assignee_id], transaction);
+                targetPhaseAssigneeId = insertResult.insertId;
+
+                // ** Insert a projected_work_week record for the new phase_assignee_id **
+                // Get the start of the week for `work_day` (Monday)
+                let weekStart = startOfWeek(new Date(work_day), { weekStartsOn: 1 }); // Monday as the start of the week
+
+                // Add a day to move from Monday to Tuesday
+                weekStart = addDays(weekStart, 1);
+
+                const insertProjectedWorkWeekQuery = `
+                    INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected)
+                    VALUES (?, ?, ?)
+                `;
+                await executeTrans(insertProjectedWorkWeekQuery, [targetPhaseAssigneeId, weekStart.toISOString().split('T')[0], 1], transaction); // hours_expected = 1
+            }
+
+            // ** d) Move the employee_work_day entries by updating their phase_assignee_id **
+            const updateWorkDayPhaseQuery = `
+                UPDATE employee_work_day
+                SET phase_assignee_id = ?
+                WHERE employee_work_day_id = ?
+            `;
+            await executeTrans(updateWorkDayPhaseQuery, [targetPhaseAssigneeId, employee_work_day_id], transaction);
+        }
+
+        // Commit the transaction after all queries are successful
+        await commitTransaction(transaction);
+
+        return res.success();
+
+    } catch (error) {
+        console.error("Transaction failed:", error);
+        await logError(error, "Error processing transfer in saveTransfer function");
+
+        // Rollback transaction in case of failure
+        if (transaction) {
+            await rollbackTransaction(transaction);
+        }
+
+        return res.failed()
+    } finally {
+        // Release the transaction
+        if (transaction) {
+            transaction.release();
+        }
+    }
+}
