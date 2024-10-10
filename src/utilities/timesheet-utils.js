@@ -957,7 +957,7 @@ export async function saveTransfer(assignments, targetPhaseId) {
 
         // 2. Loop over each assignment and handle the transfer logic
         for (let assignment of assignments) {
-            const { employee_work_day_id, work_day, assignee_id } = assignment;
+            const { employee_work_day_id, work_day, hours_worked, assignee_id } = assignment;
 
             // b) Check if the target phase already has this assignee
             const checkPhaseAssigneeQuery = `
@@ -981,11 +981,8 @@ export async function saveTransfer(assignments, targetPhaseId) {
                 targetPhaseAssigneeId = insertResult.insertId;
 
                 // ** Insert a projected_work_week record for the new phase_assignee_id **
-                // Get the start of the week for `work_day` (Monday)
-                let weekStart = startOfWeek(new Date(work_day), { weekStartsOn: 1 }); // Monday as the start of the week
-
-                // Add a day to move from Monday to Tuesday
-                weekStart = addDays(weekStart, 1);
+                let weekStart = startOfWeek(new Date(work_day), { weekStartsOn: 1 }); // Get the Monday of the week
+                weekStart = addDays(weekStart, 1); // Add a day to move from Monday to Tuesday
 
                 const insertProjectedWorkWeekQuery = `
                     INSERT INTO projected_work_week (phase_assignee_id, week_start, hours_expected)
@@ -994,13 +991,42 @@ export async function saveTransfer(assignments, targetPhaseId) {
                 await executeTrans(insertProjectedWorkWeekQuery, [targetPhaseAssigneeId, weekStart.toISOString().split('T')[0], 1], transaction); // hours_expected = 1
             }
 
-            // ** d) Move the employee_work_day entries by updating their phase_assignee_id **
-            const updateWorkDayPhaseQuery = `
-                UPDATE employee_work_day
-                SET phase_assignee_id = ?
-                WHERE employee_work_day_id = ?
+            // ** c) Check if there's an existing `employee_work_day` record for the same work day in the target phase **
+            const checkWorkDayQuery = `
+                SELECT employee_work_day_id, hours_worked
+                FROM employee_work_day ewd
+                JOIN phase_assignee pa ON pa.phase_assignee_id = ewd.phase_assignee_id
+                WHERE pa.phase_id = ? AND ewd.work_day = ? AND pa.assignee_id = ?
             `;
-            await executeTrans(updateWorkDayPhaseQuery, [targetPhaseAssigneeId, employee_work_day_id], transaction);
+            const workDayResult = await executeTrans(checkWorkDayQuery, [targetPhaseId, work_day, assignee_id], transaction);
+
+            if (workDayResult.length > 0) {
+                // ** d) If an existing record exists in the target phase, add the hours worked **
+                const existingWorkDayId = workDayResult[0].employee_work_day_id;
+                const existingHoursWorked = workDayResult[0].hours_worked;
+
+                const updateWorkDayHoursQuery = `
+                    UPDATE employee_work_day
+                    SET hours_worked = ?
+                    WHERE employee_work_day_id = ?
+                `;
+                await executeTrans(updateWorkDayHoursQuery, [existingHoursWorked + hours_worked, existingWorkDayId], transaction);
+
+                // ** e) Delete the original `employee_work_day` from the source phase (since we moved the hours) **
+                const deleteWorkDayQuery = `
+                    DELETE FROM employee_work_day
+                    WHERE employee_work_day_id = ?
+                `;
+                await executeTrans(deleteWorkDayQuery, [employee_work_day_id], transaction);
+            } else {
+                // ** f) If no record exists in the target phase, just update the phase_assignee_id **
+                const updateWorkDayPhaseQuery = `
+                    UPDATE employee_work_day
+                    SET phase_assignee_id = ?
+                    WHERE employee_work_day_id = ?
+                `;
+                await executeTrans(updateWorkDayPhaseQuery, [targetPhaseAssigneeId, employee_work_day_id], transaction);
+            }
         }
 
         // Commit the transaction after all queries are successful
@@ -1017,7 +1043,7 @@ export async function saveTransfer(assignments, targetPhaseId) {
             await rollbackTransaction(transaction);
         }
 
-        return res.failed()
+        return res.failed();
     } finally {
         // Release the transaction
         if (transaction) {

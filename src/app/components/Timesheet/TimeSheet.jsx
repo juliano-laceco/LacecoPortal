@@ -839,7 +839,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
 
     const handleActionTimesheet = async () => {
         try {
-            router.refresh()
+            
             setIsSaving(true);
             await actionTimesheet(timesheet_data, dateActions);
             showToast("success", "Timesheet actions successfully updated.");
@@ -848,6 +848,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
             setDateActions([])
             setBatchType(null)
             setBatchRejectionReason(null)
+            router.refresh()
 
         } catch (error) {
             showToast("failed", "Failed to update timesheet actions.");

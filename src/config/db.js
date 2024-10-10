@@ -1,4 +1,3 @@
-
 const mysql = require('mysql2/promise');
 
 const dbConfig = {
@@ -7,9 +6,13 @@ const dbConfig = {
     password: process.env.DATABASE_PASS,
     database: 'lacecodb',
     waitForConnections: true,
-    connectionLimit: 100000, // Change this number to set the max number of connections
+    connectionLimit: 1000,  // Set a reasonable connection limit (e.g., 500)
+    queueLimit: 0,         // Unlimited request queuing
 };
 
-const db = mysql.createPool(dbConfig);
+let db;
+if (!db) {
+    db = mysql.createPool(dbConfig);
+}
 
-module.exports = db; 
+module.exports = db;
