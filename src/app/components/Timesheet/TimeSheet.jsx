@@ -108,7 +108,6 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
     const setIsEdited = () => {
         !edited && setEdited(true);
     }
-
     const handleInputChange = (
         e,
         projectIndex,
@@ -118,12 +117,15 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         developmentId = null,
         type = null
     ) => {
-
-        console.log(projectIndex, phaseIndex)
         const { value } = e.target;
         const updatedValue = value ? parseFloat(value) : ''; // Set to "" if value is empty
-        const { status } = getStatusForDayWrapper(date);
-
+        let { status } = getStatusForDayWrapper(date); // Retrieve the status
+    
+        // If status is null, set it to "Added" to mark it as a new day entry
+        if (status === null) {
+            status = 'Added';
+        }
+    
         if (isDevelopment) {
             let newDevelopmentTimesheet = developmentTimeSheet
                 .map((item) => {
@@ -139,13 +141,13 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                         return {
                             ...item,
                             hours_worked: updatedValue,
-                            status: status,
+                            status: status, // Update the status (set to "Added" if it was null)
                         };
                     }
                     return item;
                 })
                 .filter((item) => item !== null); // Filter out the null values (deleted items)
-
+    
             // If no existing record matches, create a new one
             if (developmentId === null && updatedValue !== '') {
                 newDevelopmentTimesheet.push({
@@ -153,35 +155,34 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     work_day: date,
                     display_date: date,
                     hours_worked: updatedValue,
-                    status: status, // Default status for new entries
+                    status: status, // Set to "Added" for new entries if status was null
                     rejection_reason: null,
                     type, // Set any default or null type
                 });
                 setIsEdited(); // Set edited if a new entry is added
             }
-
+    
             setDevelopmentTimeSheet(newDevelopmentTimesheet);
         } else {
             const newProjectTimeSheet = [...projectTimeSheet];
             const assignmentIndex = newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.findIndex(
                 (assignment) => assignment.work_day === date
             );
-
+    
             if (assignmentIndex !== -1) {
                 const currentAssignment = newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex];
-
+    
                 // If the input is empty and it's a UUID, remove the record
                 if (!updatedValue && isUUID(currentAssignment.employee_work_day_id)) {
                     newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.splice(assignmentIndex, 1);
                 } else {
                     // Check if the updated value is different from the previous one
                     if (currentAssignment.hours_worked !== updatedValue) {
-                        setIsEdited() // Call setIsEdited if the value has changed
+                        setIsEdited(); // Call setIsEdited if the value has changed
                     }
                     // If assignment exists, update the hours worked
-                    newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[
-                        assignmentIndex
-                    ].hours_worked = updatedValue;
+                    newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].hours_worked = updatedValue;
+                    newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex].status = status; // Update the status
                 }
             } else if (updatedValue !== '') {
                 // Add new assignment if value is not empty
@@ -190,15 +191,16 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     work_day: date,
                     display_date: format(new Date(date), 'dd MMMM yyyy'),
                     hours_worked: updatedValue,
-                    status: status, // Default status for new entries
+                    status: status, // Set to "Added" for new entries if status was null
                     rejection_reason: null,
                 });
-                setIsEdited() // Set edited if a new entry is added
+                setIsEdited(); // Set edited if a new entry is added
             }
-
+    
             setProjectTimeSheet(newProjectTimeSheet);
         }
     };
+    
 
     // Function to delete a development row
     const deleteDevelopmentRow = (type) => {

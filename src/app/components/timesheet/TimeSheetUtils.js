@@ -1,7 +1,7 @@
 // TimeSheetUtils.js
 
 import { addDays, format } from 'date-fns';
-import { isUUID } from '../sheet/SheetUtils'; 
+import { isUUID } from '../sheet/SheetUtils';
 
 // Generate week days starting from the given date
 export function generateWeekDays(startDate) {
@@ -198,8 +198,8 @@ export function checkForGapsInFilledDays(weekDays, getStatusForDay) {
         const day = weekDays[i];
         const { status } = getStatusForDay(day.fullDate);
 
-        // Only consider 'Approved', 'Pending', or 'New Non Working' as filled days
-        if (status === 'Approved' || status === 'Pending' || status === 'New Non Working') {
+        // Only consider 'Approved', 'Pending', 'New Non Working', or 'Added' as filled days
+        if (status === 'Approved' || status === 'Pending' || status === 'New Non Working' || status === 'Added') {
             if (lastFilledDay && hasGap) {
                 return false; // Invalid, there is a gap between filled days with specified statuses
             }
@@ -211,8 +211,9 @@ export function checkForGapsInFilledDays(weekDays, getStatusForDay) {
                 // Look ahead to see if there's a filled day later in the week
                 for (let j = i + 1; j < weekDays.length; j++) {
                     const futureDayStatus = getStatusForDay(weekDays[j].fullDate).status;
-                    if (futureDayStatus === 'Approved' || futureDayStatus === 'Pending' || futureDayStatus === 'New Non Working') {
+                    if (futureDayStatus === 'Approved' || futureDayStatus === 'Pending' || futureDayStatus === 'New Non Working' || futureDayStatus === 'Added') {
                         hasGap = true; // Mark that a gap exists between two filled days
+                        console.log("GAP FOUND on: " + weekDays[j].fullDate);
                         break;
                     }
                     if (futureDayStatus !== null) {
@@ -225,6 +226,7 @@ export function checkForGapsInFilledDays(weekDays, getStatusForDay) {
 
     return true; // No gaps found
 }
+
 
 // Calculate total hours for a specific date
 export function calculateTotalHours(date, projectTimeSheet, developmentTimeSheet) {

@@ -99,7 +99,7 @@ async function TransferPage({ searchParams }) {
         ...(type === "P2P" ? [
             { Header: 'Project Title', accessor: 'title' },
             { Header: 'Phase Name', accessor: 'phase_name', mobile: true, tablet: true },
-            { Header: 'EWD', accessor: 'employee_work_day_id'},
+            { Header: 'EWD', accessor: 'employee_work_day_id' },
 
         ] : [
             { Header: 'Type', accessor: 'type' },
@@ -142,7 +142,6 @@ async function TransferPage({ searchParams }) {
                 data={preprocessData(assignments)}
                 title="Filter"
                 searchParams={searchParams}
-             
                 filterItems={filterItems}
                 tableHeaders={tableHeaders}
                 minPageSize={5}
@@ -152,7 +151,7 @@ async function TransferPage({ searchParams }) {
                 isPaginated
                 isFilterable
             >
-                <TransferComponent type={type} assignments={assignments} projects={projects} />
+                <TransferComponent type={type} assignments={assignments} projects={projects} nonClearableQS={["type"]} />
             </TableWrapper>
 
         </>

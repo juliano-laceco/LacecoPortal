@@ -10,7 +10,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
-function TransferComponent({ assignments, type, projects }) {
+function TransferComponent({ assignments, type, projects, nonClearableQS }) {
     const [selectedProject, setSelectedProject] = useState(null); // State to store selected project
     const [selectedPhase, setSelectedPhase] = useState(null); // State to store selected phase
     const [isMoveDisabled, setIsMoveDisabled] = useState(true); // State to control move button disable/enable
@@ -117,7 +117,7 @@ function TransferComponent({ assignments, type, projects }) {
                 return;
             }
 
-            const data = await saveTransfer(assignments, selectedPhase.value)
+            const data = await saveTransfer(assignments, selectedPhase.value, type)
             if (!data.res) {
                 showToast("failed", "Failed to transfer hours.")
                 router.refresh()
@@ -138,7 +138,7 @@ function TransferComponent({ assignments, type, projects }) {
                 Move To
             </TitleComponent>
             <div className="flex flex-wrap gap-4">
-                {/* Project Dropdown */}  
+                {/* Project Dropdown */}
                 <DropdownRegular
                     options={projects}
                     label="Project"
@@ -148,7 +148,7 @@ function TransferComponent({ assignments, type, projects }) {
                     isSearchable
                 />
 
-                {/* Phase Dropdown */}  
+                {/* Phase Dropdown */}
                 <DropdownRegular
                     options={phaseOptions}
                     label="Phase"

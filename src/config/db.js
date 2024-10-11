@@ -6,7 +6,7 @@ const dbConfig = {
     password: process.env.DATABASE_PASS,
     database: 'lacecodb',
     waitForConnections: true,
-    connectionLimit: 1000,  // Set a reasonable connection limit (e.g., 500)
+    connectionLimit: 1000000,  // Set a reasonable connection limit (e.g., 500)
     queueLimit: 0,         // Unlimited request queuing
 };
 
