@@ -371,14 +371,14 @@ export async function saveTimeSheet(timesheet_data) {
         }
 
         // Process non-working days
-        non_working.map(async (non_working_day) => {
+        for (const non_working_day of non_working) {
             const { date, newNonWorking, non_working_day_id } = non_working_day;
             let nwd_query;
 
             if (!newNonWorking) {
                 nwd_query = `
-                    INSERT INTO non_working_day (date , employee_id, status , actioned_by)  
-                    VALUES (? , ?, ? , ?)
+                    INSERT INTO non_working_day (date, employee_id, status, actioned_by)  
+                    VALUES (?, ?, ?, ?)
                 `;
                 await executeTrans(nwd_query, [date, initiatorId, isHoD ? "Approved" : "Pending", isHoD ? initiatorId : null], transaction);
                 clearedDates.push(date);
@@ -410,32 +410,37 @@ export async function saveTimeSheet(timesheet_data) {
                 `;
                 await executeTrans(nwd_query, [isHoD ? "Approved" : "Pending", initiatorId, "", non_working_day_id], transaction);
             }
-        });
+        }
 
         // Process project_timesheet records
-        project_timesheet.map(async (project) => {
-            project?.phases.map(async (phase) => {
+        for (const project of project_timesheet) {
+            for (const phase of project.phases) {
                 const { phase_id } = phase;
 
-                phase?.assignments.map(async (assignment) => {
+                for (const assignment of phase.assignments) {
                     const { employee_work_day_id, hours_worked, work_day } = assignment;
 
                     // Check if data for the specific rejected date has changed
                     const dateChangeInfo = changesPerRejectedDate.find(item => Object.keys(item)[0] === work_day);
                     const hasChanged = dateChangeInfo ? dateChangeInfo[work_day] : false;
 
+                    // Fetch the phase_assignee_id first
+                    const phaseAssigneeQuery = `
+                        SELECT phase_assignee_id 
+                        FROM phase_assignee 
+                        WHERE phase_id = ? 
+                        AND assignee_id = ?
+                    `;
+                    const phaseAssigneeResult = await executeTrans(phaseAssigneeQuery, [phase_id, initiatorId], transaction);
+                    const phase_assignee_id = phaseAssigneeResult[0]?.phase_assignee_id;
+
                     if (isUUID(employee_work_day_id)) {
+                        // Use the fetched phase_assignee_id to insert a new work day
                         const query = `
                             INSERT INTO employee_work_day (phase_assignee_id, work_day, hours_worked, status, actioned_by)
-                            VALUES (
-                              (SELECT phase_assignee_id FROM phase_assignee WHERE phase_id = ? AND assignee_id = ? LIMIT 1), 
-                              ?, 
-                              ?, 
-                              ?,
-                              ?
-                            )
+                            VALUES (?, ?, ?, ?, ?)
                         `;
-                        await executeTrans(query, [phase_id, initiatorId, work_day, hours_worked, isHoD ? "Approved" : "Pending", isHoD ? initiatorId : null], transaction);
+                        await executeTrans(query, [phase_assignee_id, work_day, hours_worked, isHoD ? "Approved" : "Pending", isHoD ? initiatorId : null], transaction);
                     } else {
                         if (hours_worked !== "") {
                             const query = `
@@ -452,12 +457,12 @@ export async function saveTimeSheet(timesheet_data) {
                             await executeTrans(query, [employee_work_day_id], transaction);
                         }
                     }
-                });
-            });
-        });
+                }
+            }
+        }
 
         // Process development_timesheet records
-        development_timesheet.map(async (development_item) => {
+        for (const development_item of development_timesheet) {
             const { development_hour_day_id, type, hours_worked, work_day } = development_item;
 
             // Check if data for the specific rejected date has changed
@@ -486,7 +491,7 @@ export async function saveTimeSheet(timesheet_data) {
                     await executeTrans(query, [development_hour_day_id], transaction);
                 }
             }
-        });
+        }
 
         await commitTransaction(transaction);
 
@@ -822,14 +827,6 @@ export async function getApprovalData(departments = [], limit = 4) {
             `;
             const lastApprovedBeforeRejected = await execute(lastApprovedBeforeRejectedQuery, [employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date, employee_id, minRejectedDate[0]?.min_rejected_date]);
 
-
-            console.log({
-                ...employee,
-                last_approved_date: lastApprovedDate[0]?.last_approved_date || null,
-                min_rejected_date: minRejectedDate[0]?.min_rejected_date || null,
-                min_pending_date: minPendingDate[0]?.min_pending_date || null,
-                last_approved_before_rejected: lastApprovedBeforeRejected[0]?.last_approved_before_rejected || null,
-            })
             // Combine the data into a final object
             return {
                 ...employee,
@@ -860,7 +857,8 @@ export async function getAssignmentsForTransfer(qs, type = "P2P") {
                    d.discipline_name,  
                    ewd.employee_work_day_id, 
                    p.phase_id,
-                   pa.assignee_id
+                   pa.assignee_id,
+                   d.discipline_id
             FROM project proj
             JOIN phase p ON p.project_id = proj.project_id
             JOIN phase_assignee pa ON pa.phase_id = p.phase_id
@@ -907,7 +905,8 @@ export async function getAssignmentsForTransfer(qs, type = "P2P") {
                    dh.type, 
                    dh.hours_worked, 
                    dh.development_hour_day_id,
-                   e.employee_id
+                   e.employee_id,
+                   d.discipline_id
             FROM employee e 
             JOIN discipline d ON e.discipline_id = d.discipline_id
             JOIN development_hour dh ON dh.employee_id = e.employee_id
@@ -942,10 +941,9 @@ export async function getAssignmentsForTransfer(qs, type = "P2P") {
 
 
 
-export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
-
+export async function saveTransfer(assignments, targetPhaseId, targetProjectId, type = 'P2P') {
     let transaction;
-    const initiatorId = await getLoggedInId()
+    const initiatorId = await getLoggedInId();
 
     try {
         // Start transaction
@@ -960,10 +958,12 @@ export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
             }
         }
 
+        const disciplinesToInsert = [];
+
         if (type === 'P2P') {
             // ---- Handle Phase-to-Phase (P2P) Transfer Logic ----
             for (let assignment of assignments) {
-                const { employee_work_day_id, work_day, hours_worked, assignee_id } = assignment;
+                const { employee_work_day_id, work_day, hours_worked, assignee_id, discipline_id } = assignment;
 
                 // Check if the target phase already has this assignee
                 const checkPhaseAssigneeQuery = `
@@ -977,6 +977,7 @@ export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
                 if (phaseAssigneeResult.length > 0) {
                     targetPhaseAssigneeId = phaseAssigneeResult[0].phase_assignee_id;
                 } else {
+                    // Insert phase_assignee
                     const insertPhaseAssigneeQuery = `
                         INSERT INTO phase_assignee (phase_id, assignee_id, work_done_hrs, expected_work_hrs)
                         VALUES (?, ?, 0, 0)
@@ -992,8 +993,12 @@ export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
                         VALUES (?, ?, ?)
                     `;
                     await executeTrans(insertProjectedWorkWeekQuery, [targetPhaseAssigneeId, weekStart.toISOString().split('T')[0], 1], transaction);
+
+                    // Add discipline to be inserted if not already in project_discipline
+                    disciplinesToInsert.push([targetProjectId, discipline_id]);
                 }
 
+                // Rest of the P2P logic for moving hours and deleting old workday...
                 const checkWorkDayQuery = `
                     SELECT employee_work_day_id, hours_worked
                     FROM employee_work_day ewd
@@ -1032,11 +1037,11 @@ export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
 
             // Group assignments by `work_day` and sum `hours_worked`
             const groupedAssignments = assignments.reduce((acc, assignment) => {
-                const { work_day, hours_worked, employee_id } = assignment;
-                const key = work_day;
+                const { work_day, hours_worked, employee_id, type, discipline_id } = assignment;
+                const key = `${work_day}_${type}`; // Use both work_day and type to ensure uniqueness
 
                 if (!acc[key]) {
-                    acc[key] = { work_day, total_hours_worked: 0, employee_id };
+                    acc[key] = { work_day, total_hours_worked: 0, employee_id, type, discipline_id };
                 }
 
                 acc[key].total_hours_worked += hours_worked;
@@ -1044,8 +1049,8 @@ export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
             }, {});
 
             // Now loop over the grouped assignments
-            for (let day in groupedAssignments) {
-                const { work_day, total_hours_worked, employee_id } = groupedAssignments[day];
+            for (let key in groupedAssignments) {
+                const { work_day, total_hours_worked, employee_id, type, discipline_id } = groupedAssignments[key];
 
                 const checkPhaseAssigneeQuery = `
                     SELECT phase_assignee_id 
@@ -1073,9 +1078,12 @@ export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
                         VALUES (?, ?, ?)
                     `;
                     await executeTrans(insertProjectedWorkWeekQuery, [targetPhaseAssigneeId, weekStart.toISOString().split('T')[0], 1], transaction);
+
+                    // Add discipline to be inserted if not already in project_discipline
+                    disciplinesToInsert.push([targetProjectId, discipline_id]);
                 }
 
-                // Check if there's an existing `employee_work_day` for this day
+                // Handle moving work days and deleting from development_hour...
                 const checkWorkDayQuery = `
                     SELECT employee_work_day_id, hours_worked
                     FROM employee_work_day ewd
@@ -1095,11 +1103,12 @@ export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
                     `;
                     await executeTrans(updateWorkDayHoursQuery, [existingHoursWorked + total_hours_worked, existingWorkDayId], transaction);
 
+                    // Only delete the specific type of `development_hour` entry
                     const deleteDevelopmentHourQuery = `
                         DELETE FROM development_hour
-                        WHERE work_day = ? AND employee_id = ?
+                        WHERE work_day = ? AND employee_id = ? AND type = ?
                     `;
-                    await executeTrans(deleteDevelopmentHourQuery, [work_day, employee_id], transaction);
+                    await executeTrans(deleteDevelopmentHourQuery, [work_day, employee_id, type], transaction);
                 } else {
                     const insertWorkDayQuery = `
                         INSERT INTO employee_work_day (phase_assignee_id, work_day, hours_worked , status , actioned_by)
@@ -1107,12 +1116,28 @@ export async function saveTransfer(assignments, targetPhaseId, type = 'P2P') {
                     `;
                     await executeTrans(insertWorkDayQuery, [targetPhaseAssigneeId, work_day, total_hours_worked, initiatorId], transaction);
 
+                    // Only delete the specific type of `development_hour` entry
                     const deleteDevelopmentHourQuery = `
                         DELETE FROM development_hour
-                        WHERE work_day = ? AND employee_id = ?
+                        WHERE work_day = ? AND employee_id = ? AND type = ?
                     `;
-                    await executeTrans(deleteDevelopmentHourQuery, [work_day, employee_id], transaction);
+                    await executeTrans(deleteDevelopmentHourQuery, [work_day, employee_id, type], transaction);
                 }
+            }
+        }
+
+        // Insert disciplines into project_disciplines if they don't already exist
+        if (disciplinesToInsert.length > 0) {
+            const insertDisciplinesQuery = `
+                INSERT INTO project_disciplines (project_id, discipline_id)
+                SELECT ?, ? FROM DUAL
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM project_disciplines WHERE project_id = ? AND discipline_id = ?
+                )
+            `;
+
+            for (const [projectId, disciplineId] of disciplinesToInsert) {
+                await executeTrans(insertDisciplinesQuery, [projectId, disciplineId, projectId, disciplineId], transaction);
             }
         }
 

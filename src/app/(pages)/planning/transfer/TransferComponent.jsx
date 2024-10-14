@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import DropdownRegular from "@/app/components/custom/Dropdowns/DropdownRegular";
 import Modal from "@/app/components/custom/Modals/Modal";
@@ -7,15 +7,16 @@ import TitleComponent from "@/app/components/custom/Other/TitleComponent";
 import { saveTransfer } from "@/utilities/timesheet-utils";
 import { showToast } from "@/utilities/toast-utils";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
-function TransferComponent({ assignments, type, projects, nonClearableQS }) {
+function TransferComponent({ assignments, move_type, projects, nonClearableQS }) {
     const [selectedProject, setSelectedProject] = useState(null); // State to store selected project
     const [selectedPhase, setSelectedPhase] = useState(null); // State to store selected phase
     const [isMoveDisabled, setIsMoveDisabled] = useState(true); // State to control move button disable/enable
     const [modal, setModal] = useState(null); // Combined state for modal visibility and content
-    const router = useRouter()
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
     // Handle project change
     const handleProjectChange = (selectedOption) => {
@@ -102,8 +103,54 @@ function TransferComponent({ assignments, type, projects, nonClearableQS }) {
                     'Invalid Selection'
                 );
                 break;
+            case 'Confirm Transfer':
+                modalContent = renderModalContent(
+                    'Are you sure you want to transfer the selected days? This action is not reversible.',
+                    [
+                        {
+                            variant: 'primary',
+                            name: 'Transfer',
+                            onClick: async () => {
+                                const data = await saveTransfer(assignments, selectedPhase.value, selectedProject.value, move_type);
+                                if (!data.res) {
+                                    showToast("failed", "Failed to transfer hours.");
+                                    clearQSParams();
+                                    setSelectedProject(null);
+                                    setModal(null);
+                                    return;
+                                }
+
+                                showToast("success", "Successfully transferred hours.");
+                                setModal(null);
+                                setSelectedProject(null);
+                                clearQSParams();
+                            },
+                        },
+                        {
+                            variant: 'secondary',
+                            name: 'Cancel',
+                            onClick: () => {
+                                setModal(null);
+                            },
+                        }
+                    ],
+                    'Confirm Transfer'
+                );
+                break;
         }
         setModal(modalContent);
+    };
+
+    // Clear QS params not included in nonClearableQS
+    const clearQSParams = () => {
+        const params = new URLSearchParams(searchParams);
+        [...params.keys()].forEach((key) => {
+            if (!nonClearableQS.includes(key)) {
+                params.delete(key); // Remove key if not in nonClearableQS
+            }
+        });
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        router.push(newUrl); // Update URL with the new params
     };
 
     const handleMoveClick = async () => {
@@ -117,15 +164,8 @@ function TransferComponent({ assignments, type, projects, nonClearableQS }) {
                 return;
             }
 
-            const data = await saveTransfer(assignments, selectedPhase.value, type)
-            if (!data.res) {
-                showToast("failed", "Failed to transfer hours.")
-                router.refresh()
-                return;
-            }
-
-            showToast("success", "Successfully transferred hours.")
-            router.refresh()
+            openModal(null, "Confirm Transfer");
+            return;
         }
     };
 

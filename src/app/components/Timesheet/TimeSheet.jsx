@@ -54,11 +54,11 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
     const batch_rejection_ref = useRef()
     const [batchRejectionReason, setBatchRejectionReason] = useState();
     const [batchType, setBatchType] = useState(null)
-
+    const [isResetAll, setIsResetAll] = useState(null)
     const router = useRouter();
 
     useEffect(() => {
-        console.log("Batch Rejection Reason: " + batchRejectionReason)
+      //  console.log("Batch Rejection Reason: " + batchRejectionReason)
     }, [batchRejectionReason])
 
     useEffect(() => {
@@ -89,7 +89,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
     }, []);
 
     useEffect(() => {
-        console.log("Date Actions: " + JSON.stringify(dateActions))
+       // console.log("Date Actions: " + JSON.stringify(dateActions))
     }, [dateActions])
 
     useEffect(() => {
@@ -120,12 +120,12 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
         const { value } = e.target;
         const updatedValue = value ? parseFloat(value) : ''; // Set to "" if value is empty
         let { status } = getStatusForDayWrapper(date); // Retrieve the status
-    
+
         // If status is null, set it to "Added" to mark it as a new day entry
         if (status === null) {
             status = 'Added';
         }
-    
+
         if (isDevelopment) {
             let newDevelopmentTimesheet = developmentTimeSheet
                 .map((item) => {
@@ -147,7 +147,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     return item;
                 })
                 .filter((item) => item !== null); // Filter out the null values (deleted items)
-    
+
             // If no existing record matches, create a new one
             if (developmentId === null && updatedValue !== '') {
                 newDevelopmentTimesheet.push({
@@ -161,17 +161,17 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                 });
                 setIsEdited(); // Set edited if a new entry is added
             }
-    
+
             setDevelopmentTimeSheet(newDevelopmentTimesheet);
         } else {
             const newProjectTimeSheet = [...projectTimeSheet];
             const assignmentIndex = newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.findIndex(
                 (assignment) => assignment.work_day === date
             );
-    
+
             if (assignmentIndex !== -1) {
                 const currentAssignment = newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments[assignmentIndex];
-    
+
                 // If the input is empty and it's a UUID, remove the record
                 if (!updatedValue && isUUID(currentAssignment.employee_work_day_id)) {
                     newProjectTimeSheet[projectIndex].phases[phaseIndex].assignments.splice(assignmentIndex, 1);
@@ -196,11 +196,11 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                 });
                 setIsEdited(); // Set edited if a new entry is added
             }
-    
+
             setProjectTimeSheet(newProjectTimeSheet);
         }
     };
-    
+
 
     // Function to delete a development row
     const deleteDevelopmentRow = (type) => {
@@ -592,6 +592,28 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                     'Confirm'
                 );
                 break;
+            case "Confirm Reset All Days":
+                modalContent = renderModalContent(
+                    "Are you sure you want to reset all days? This action will clear any previous actions you made on all the week's dates.",
+                    [
+                        {
+                            variant: 'primary',
+                            name: 'Reset All',
+                            onClick: () => {
+                                setIsEdited(true)
+                                resetAllDays()
+                                setModal(null)
+                            },
+                        },
+                        {
+                            variant: 'secondary',
+                            name: 'Close',
+                            onClick: () => { setModal(null) },
+                        }
+                    ],
+                    'Confirm'
+                );
+                break;
         }
         setModal(modalContent);
     };
@@ -800,6 +822,43 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
             ];
         });
     };
+    const resetAllDays = () => {
+        // Loop through each day in weekDays
+        setDateActions((prevActions) => {
+            return weekDays.map(day => {
+                const { status } = getStatusForDayWrapper(day.fullDate);
+
+                // Check if the status is not "Pending" and not null
+                if (status !== "Pending" && status !== null) {
+                    // Find if the day already exists in dateActions
+                    const existingDayIndex = prevActions.findIndex(action => action.date === day.fullDate);
+
+                    if (existingDayIndex !== -1) {
+                        // If the day already exists, update its action status to "Reset" and clear the rejection reason
+                        const updatedActions = [...prevActions];
+                        updatedActions[existingDayIndex] = {
+                            ...updatedActions[existingDayIndex],
+                            action_status: "Reset",   // Set status to "Reset"
+                            rejection_reason: null    // Clear rejection reason
+                        };
+                        return updatedActions[existingDayIndex];  // Return the updated action for the day
+                    }
+
+                    // If the day doesn't exist, create a new entry with "Reset" status
+                    return {
+                        date: day.fullDate,
+                        action_status: "Reset",    // Set status to "Reset"
+                        rejection_reason: null     // Clear rejection reason
+                    };
+                }
+
+                // If the status is "Pending" or null, return the unchanged day
+                return prevActions.find(action => action.date === day.fullDate) || null;
+            }).filter(Boolean); // Filter out any null or undefined days
+        });
+    };
+
+
 
     const undoReset = (date) => {
         // Remove the day from dateActions state if the status is "Reset"
@@ -817,6 +876,21 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
             }
         }
         return false; // Return false if no pending days are found
+    };
+
+    const hasResettableDays = () => {
+        for (const day of weekDays) {
+            const { status } = getStatusForDayWrapper(day.fullDate);
+            if (status !== "Pending" && status !== null) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // Check if any days have been reset
+    const hasDaysReset = () => {
+        return dateActions.some((day) => day.action_status === "Reset");
     };
 
 
@@ -841,7 +915,7 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
 
     const handleActionTimesheet = async () => {
         try {
-            
+
             setIsSaving(true);
             await actionTimesheet(timesheet_data, dateActions);
             showToast("success", "Timesheet actions successfully updated.");
@@ -993,6 +1067,9 @@ function TimeSheet({ timesheet_data, start, end, allowed_range, is_readonly = fa
                         checkDayAction={checkDayAction}
                         batchType={batchType}
                         hasPendingDays={hasPendingDays()}
+                        hasDaysReset={hasDaysReset()}
+                        isResetAll={isResetAll}
+                        hasResettableDays={hasResettableDays()}
                     />
                 }
                 <TimeSheetFooter

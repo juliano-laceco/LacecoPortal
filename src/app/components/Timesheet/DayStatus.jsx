@@ -23,7 +23,7 @@ function DayStatus({ openModal, addNonWorkingDay, removeNonWorkingDay }) {
             </div>
             <div className="flex flex-1 w-full">
                 {weekDays.map((day, i) => {
-                    const { status, rejectionReason, has_data, non_working } = getStatusForDay(day.fullDate);
+                    const { status, rejectionReason, has_data } = getStatusForDay(day.fullDate);
                     let statusClass;
                     let statusText;
                     let statusImg;

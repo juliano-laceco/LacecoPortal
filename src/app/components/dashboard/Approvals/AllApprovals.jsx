@@ -7,6 +7,7 @@ import Button from "../../custom/Other/Button";
 import Link from "next/link";
 import TablePagination from "../../custom/Table/TablePagination";
 import { determineDayStatus } from "./approval-utils";
+import { useSession } from "next-auth/react";
 
 const statusOptions = [
     { value: "All", label: "All" },
@@ -22,16 +23,18 @@ function AllApprovals({ approvals }) {
     const [disciplineFilter, setDisciplineFilter] = useState("All");
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10); // Limit of approvals per page
+    const { data: session, status } = useSession();
 
-    // Extract distinct disciplines for the discipline dropdown
+    // Always define the discipline options, regardless of session status
     const disciplineOptions = [
         { value: "All", label: "All" },
         ...Array.from(new Set(approvals.map((approval) => approval.discipline_id))).map((id) => {
             const approval = approvals.find((a) => a.discipline_id === id);
             return { value: id, label: approval.discipline_name };
-        })
+        }),
     ];
 
+    // Effect to filter approvals based on search term, status filter, and discipline
     useEffect(() => {
         filterApprovals(searchTerm, statusFilter, disciplineFilter);
     }, [searchTerm, statusFilter, disciplineFilter, currentPage, pageSize]);
@@ -117,6 +120,15 @@ function AllApprovals({ approvals }) {
         setFilteredApprovals(approvals);
     };
 
+    // Extract role_name and employee_id from session data
+    const role_name = session?.user?.role_name;
+    const disciplines = session?.user?.disciplines || [];
+
+    // Render loading state while session is being fetched
+    if (status === "loading") {
+        return <div className="w-full text-center">Loading...</div>;
+    }
+
     return (
         <div className="space-y-6">
             {/* Search and Filter Section */}
@@ -137,16 +149,25 @@ function AllApprovals({ approvals }) {
                     isDisabled={false}
                     isLoading={false}
                 />
-                <DropdownRegular
-                    options={disciplineOptions}
-                    value={disciplineFilter}
-                    onChange={handleDisciplineFilterChange}
-                    label="Filter by Discipline"
-                    isSearchable={false}
-                    isDisabled={false}
-                    isLoading={false}
+
+                {(role_name === "Planning Administrator" || disciplines?.length > 1) && (
+                    <DropdownRegular
+                        options={disciplineOptions}
+                        value={disciplineFilter}
+                        onChange={handleDisciplineFilterChange}
+                        label="Filter by Discipline"
+                        isSearchable={false}
+                        isDisabled={false}
+                        isLoading={false}
+                    />
+                )}
+
+                <Button
+                    name="Clear"
+                    className="w-fit desk:self-center lap:self-center desk:mt-6 lap:mt-6"
+                    size="small"
+                    onClick={clearFilters}
                 />
-                <Button name="Clear" className="w-fit desk:self-center lap:self-center desk:mt-6 lap:mt-6" size="small" onClick={clearFilters} />
             </div>
 
             {/* Approval List */}
@@ -166,7 +187,10 @@ function AllApprovals({ approvals }) {
                         }
 
                         const formattedFinalDate = final_date
-                            ? new Date(final_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })
+                            ? new Date(final_date).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                            })
                             : "N/A";
 
                         return (
@@ -176,12 +200,23 @@ function AllApprovals({ approvals }) {
                                         <div className="flex items-center gap-4 mob:gap-3 tablet:gap-3">
                                             {/* Placeholder for employee avatar */}
                                             <div className="w-12 h-12 rounded-full bg-gray-200 flex justify-center items-center">
-                                                <svg className="h-10 w-10 text-red-400 mob:h-8 mob:w-8" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+                                                <svg
+                                                    className="h-10 w-10 text-red-400 mob:h-8 mob:w-8"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path
+                                                        fillRule="evenodd"
+                                                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                                        clipRule="evenodd"
+                                                    ></path>
                                                 </svg>
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-base mob:text-sm">{approval.first_name} {approval.last_name}</p>
+                                                <p className="font-semibold text-base mob:text-sm">
+                                                    {approval.first_name} {approval.last_name}
+                                                </p>
                                                 <p className="text-sm text-gray-500">{approval.discipline_name}</p>
                                             </div>
                                         </div>
@@ -211,7 +246,7 @@ function AllApprovals({ approvals }) {
                 pageSizeOptions={[
                     { value: 5, label: "5" },
                     { value: 10, label: "10" },
-                    { value: 20, label: "20" }
+                    { value: 20, label: "20" },
                 ]}
                 gotoPage={handlePagination}
                 pageSize={pageSize}

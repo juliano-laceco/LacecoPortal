@@ -579,32 +579,44 @@ export async function getAllProjects(qs = {}) {
         { name: 'project', alias: 'p' },
         { name: 'employee', alias: 'e' },
         { name: 'position', alias: 'pos' },
-        { name: 'client', alias: 'c' }
+        { name: 'client', alias: 'c' },
+        
     ];
 
     const resp = await getTableFields(tables);
     const allowedKeys = resp.res ? new Set(resp.data.map(field => `${field.tableAlias}.${field.columnName}`)) : new Set([]);
 
     try {
-
-        const selectClause = await renameAmbiguousColumns(resp.data)
+        const selectClause = await renameAmbiguousColumns(resp.data);
 
         // Base query
-        let query = `SELECT ${selectClause.slice(2)} 
-                     FROM project p 
-                     JOIN employee e ON p.employee_id = e.employee_id
-                     JOIN position pos ON e.position_id = pos.position_id
-                     JOIN client c ON p.client_id = c.client_id
-                     `;
+        let query = `
+            SELECT ${selectClause.slice(2)}, 
+            (
+                SELECT SUM(ph.expected_work_hours)
+                FROM phase ph
+                WHERE ph.project_id = p.project_id
+            ) AS total_expected_work_hours,
+            (
+                SELECT SUM(ph.completed_work_hours)
+                FROM phase ph
+                WHERE ph.project_id = p.project_id
+            ) AS total_completed_work_hours
+            FROM project p 
+            JOIN employee e ON p.employee_id = e.employee_id
+            JOIN position pos ON e.position_id = pos.position_id
+            JOIN client c ON p.client_id = c.client_id
+        `;
 
         const result = await dynamicQuery(qs, query, allowedKeys);
         return result;
 
     } catch (error) {
-        await logError(error, 'Error fetching project details')
+        await logError(error, 'Error fetching project details');
         return res.failed();
     }
 }
+
 
 function getMinMaxDate(dateSet) {
 

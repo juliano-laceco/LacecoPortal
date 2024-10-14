@@ -32,7 +32,7 @@ export const authOptions = {
                         }
                     }
 
-                    console.log(token)
+                   // console.log(token)
 
                 } catch (error) {
                     await logError(error, "Error during JWT callback")

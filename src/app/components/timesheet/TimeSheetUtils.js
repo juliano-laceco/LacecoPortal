@@ -181,7 +181,7 @@ export function countEnabledDays(weekDays, allowed_range, getStatusForDay) {
                 : dayDate <= today; // Check only up to today
 
         // A day is enabled if it's within the allowed range and its status is either null or Rejected
-        if (isWithinAllowedRange && (status === null || status === 'Rejected')) {
+        if (isWithinAllowedRange && (status === null || status === 'Rejected' || status === "Added")) {
             enabledDays++;
         }
     });
@@ -213,7 +213,7 @@ export function checkForGapsInFilledDays(weekDays, getStatusForDay) {
                     const futureDayStatus = getStatusForDay(weekDays[j].fullDate).status;
                     if (futureDayStatus === 'Approved' || futureDayStatus === 'Pending' || futureDayStatus === 'New Non Working' || futureDayStatus === 'Added') {
                         hasGap = true; // Mark that a gap exists between two filled days
-                        console.log("GAP FOUND on: " + weekDays[j].fullDate);
+                       // console.log("GAP FOUND on: " + weekDays[j].fullDate);
                         break;
                     }
                     if (futureDayStatus !== null) {

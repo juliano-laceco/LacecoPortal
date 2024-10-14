@@ -15,7 +15,7 @@ export const metadata = {
 async function TablePage({ searchParams }) {
 
     const results = await getAllProjects(searchParams);
- 
+
     // Query String Parameters
     const project_status = searchParams.project_status;
     const keyword = searchParams.keyword;
@@ -36,44 +36,61 @@ async function TablePage({ searchParams }) {
             filterValue: project_status ?? ""
         }
     ];
-
     const preprocessData = (data) => {
-        return data.map(row => ({
-            ...row,
-            created_on: formatDate(row.project_created_on),
-            project_manager: (
-                <p className="font-bold">{row.first_name} {row.last_name}</p>
-            ),
-            progress: (
-                <div className="w-full bg-gray-300 rounded-full">
-                    <div className="bg-pric text-xs text-white text-center p-1 leading-none rounded-full w-[60%]"> 60%</div>
-                </div>
-            ),
-            status: createStatusDiv(row.project_status),
-            actions: (
-                <div className="flex justify-center items-center gap-2">
-                    <Link title="Edit Project" href={`/planning/project/${row.project_id}`}>
-                        <Image
-                            src="/resources/icons/edit.svg"
-                            height="25"
-                            width="25"
-                            alt="edit"
-                            className="mob:h-[18px] mob:w-[18px]"
-                        />
-                    </Link>
-                    <Link title="Deployment" href={`/planning/project/deployment/${row.project_id}`}>
-                        <Image
-                            src="/resources/icons/deployment.png"
-                            height="28"
-                            width="28"
-                            alt="deployment"
-                            className="mob:h-[18px] mob:w-[18px]"
-                        />
-                    </Link>
-                </div>
-            ),
-        }));
+        return data.map(row => {
+            // Calculate progress percentage and handle NaN cases
+            const progressPercentage = isNaN(row.total_completed_work_hours / row.total_expected_work_hours)
+                ? 0
+                : Math.ceil((row.total_completed_work_hours / row.total_expected_work_hours) * 100);
+
+            // Return the processed row data with dynamic progress bar
+            return {
+                ...row,
+                created_on: formatDate(row.project_created_on),
+                project_manager: (
+                    <p className="font-bold">{row.first_name} {row.last_name}</p>
+                ),
+                progress: (
+                    <div className="flex w-full mob:flex-col items-center gap-2 mob:bg-white tablet:bg-white p-3 mob:gap-1 mob:p-1 desk:p-2 lap:p-2">
+                        <p className="text-xs flex items-center mt-1">{progressPercentage}%</p>
+                        <div className="w-full flex items-center bg-gray-300 rounded-full overflow-hidden h-4 mt-[3px]">
+                            <div
+                                className={`rounded-full font-normal h-4 text-xs bg-red-500`}
+                                style={{ width: `${progressPercentage}%` }}
+                            >
+                            </div>
+                        </div>
+                    </div>
+                ),
+                status: createStatusDiv(row.project_status), // Handle status
+                actions: (
+                    <div className="flex justify-center items-center gap-2">
+                        <Link title="Edit Project" href={`/planning/project/${row.project_id}`}>
+                            <Image
+                                src="/resources/icons/edit.svg"
+                                height="25"
+                                width="25"
+                                alt="edit"
+                                className="mob:h-[18px] mob:w-[18px]"
+                            />
+                        </Link>
+                        <Link title="Deployment" href={`/planning/project/deployment/${row.project_id}`}>
+                            <Image
+                                src="/resources/icons/deployment.png"
+                                height="28"
+                                width="28"
+                                alt="deployment"
+                                className="mob:h-[18px] mob:w-[18px]"
+                            />
+                        </Link>
+                    </div>
+                ),
+            };
+        });
     };
+
+
+
 
     function createStatusDiv(status) {
         let bg;
@@ -102,7 +119,7 @@ async function TablePage({ searchParams }) {
         { Header: 'Client', accessor: 'client_name', tablet: true },
         { Header: 'PM', accessor: 'project_manager' },
         { Header: 'Status', accessor: 'status' },
-        { Header: 'Progress', accessor: 'progress' },
+        { Header: 'Progress', accessor: 'progress'},
         { Header: 'Created On', accessor: 'created_on' },
         { Header: 'Actions', accessor: 'actions', mobile: true, tablet: true }
     ];
@@ -113,8 +130,7 @@ async function TablePage({ searchParams }) {
             <TitleComponent>All Projects</TitleComponent>
             <TableWrapper
                 data={preprocessData(results.data)}
-                title="Project List"
-                subTitle="Displays all project information"
+                title="Filter"
                 searchParams={searchParams}
                 filterItems={filterItems}
                 tableHeaders={tableHeaders}

@@ -113,7 +113,7 @@ async function TransferPage({ searchParams }) {
     return (
         <>
             <TitleComponent>
-                {type === "P2P" ? "Hours Transfer" : "Development Hours Transfer"}
+                {type === "P2P" ? "Phase Hours Transfer" : "Development Hours Transfer"}
             </TitleComponent>
             {/* Add two clickable cards for Project to Phase and Development to Phase */}
             <div className="flex justify-start gap-3 my-3 mb-6">
@@ -151,7 +151,7 @@ async function TransferPage({ searchParams }) {
                 isPaginated
                 isFilterable
             >
-                <TransferComponent type={type} assignments={assignments} projects={projects} nonClearableQS={["type"]} />
+                <TransferComponent move_type={type} assignments={assignments} projects={projects} nonClearableQS={["type"]} />
             </TableWrapper>
 
         </>

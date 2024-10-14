@@ -14,7 +14,7 @@ import TableFilter from '@/app/components/custom/Table/TableFilter';
 import TableBody from '@/app/components/custom/Table/TableBody';
 import TablePagination from '@/app/components/custom/Table/TablePagination';
 
-function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterable, minPageSize, maxPageSize, pageSizeStep, title, subTitle, nonClearableQS, children, isSelectable }) {
+function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterable, minPageSize, maxPageSize, pageSizeStep, title, subTitle, nonClearableQS = [], children, isSelectable }) {
 
   const router = useRouter();
   const pathname = usePathname();
@@ -24,7 +24,7 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
 
 
   useEffect(() => {
-    console.log("SELECTED ROWS", selectedRows)
+   // console.log("SELECTED ROWS", selectedRows)
   }, [selectedRows])
   const pageSizeOptions = [];
   for (let i = minPageSize; i <= maxPageSize; i += pageSizeStep) {
@@ -62,7 +62,7 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
         ...baseColumns,
       ];
     }
-    
+
 
     return baseColumns;
   }, [data, tableHeaders, selectedRows, isSelectable]);
@@ -100,7 +100,7 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
     const params = new URLSearchParams(searchParams.toString());
     const newParams = new URLSearchParams();
 
-    nonClearableQS.forEach((key) => {
+    nonClearableQS?.forEach((key) => {
       const value = params.get(key);
       if (value) {
         newParams.set(key, value);
@@ -149,10 +149,10 @@ function TableWrapper({ data, filterItems, tableHeaders, isPaginated, isFilterab
   };
 
   return (
-    <div className="container mx-auto min-w-full z-100 border rounded-lg shadow-xl panel overflow-y-visible">
-      <div className="table-wrapper bg-white p-5 mob:p-4 rounded-lg">
-        <h1 className="font-bold text-3xl">{title}</h1>
-        <h3 className="py-2 mb-3">{subTitle}</h3>
+    <div className="container mx-auto max-w-full z-100 border rounded-lg shadow-xl panel overflow-y-visible overflow-x-hidden">
+      <div className="table-wrapper bg-white p-5 mob:p-4 rounded-lg overflow-x-scroll">
+        {title && <h1 className="font-bold text-2xl">{title}</h1>}
+        {subTitle && <h3 className="py-2 mb-3">{subTitle}</h3>}
         {isFilterable && (
           <TableFilter
             filterItems={filterItems}
